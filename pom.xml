@@ -10,12 +10,11 @@ For commercial use, please contact cloudstead.io
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.cobbzilla</groupId>
-        <artifactId>cobbzilla-parent</artifactId>
+        <groupId>cloudstead</groupId>
+        <artifactId>cloudos</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>cloudstead</groupId>
     <artifactId>cloudos-appstore</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
