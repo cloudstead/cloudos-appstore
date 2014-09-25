@@ -1,0 +1,15 @@
+production:
+  adapter: <%=@app[:dbtype]%>
+  encoding: unicode
+  database: <%=@app[:dbname]%>
+  host: 127.0.0.1
+  username: <%=@app[:dbuser]%>
+  password: <%=@app[:dbpass]%>
+
+development:
+  adapter: <%=@app[:dbtype]%>
+  encoding: unicode
+  database: <%=@app[:dbname]%>
+  host: 127.0.0.1
+  username: <%=@app[:dbuser]%>
+  password: <%=@app[:dbpass]%>

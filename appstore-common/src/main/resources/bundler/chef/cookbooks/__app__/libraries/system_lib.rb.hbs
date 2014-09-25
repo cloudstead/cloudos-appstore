@@ -1,0 +1,16 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: system_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.init (chef, app)
+        app[:run_as] = nil
+        app[:run_as_home] = nil
+        app[:doc_root] = nil
+    end
+
+end

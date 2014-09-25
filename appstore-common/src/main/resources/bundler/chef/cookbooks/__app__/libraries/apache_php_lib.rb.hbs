@@ -1,0 +1,29 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: apache_php_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.apache_php (chef, app, config)
+
+        apache = Chef::Recipe::Apache
+        app_lib = Chef::Recipe::{{app.chefName}}
+
+        apache.enable_module(chef, 'php5')
+
+        {{#if app.web.apache.php_set}}
+          {{#each app.web.apache.php_set}}
+            apache.set_php_ini(chef, '{{name}}', '{{value}}')
+          {{/each}}
+        {{/if}}
+
+        # always ensure date.timezone is defined. most PHP apps require this to be set.
+        apache.set_php_ini(chef, 'date.timezone', %x(cat /etc/timezone).strip)
+
+        apache.define_app(chef, '{{app.name}}', config)
+    end
+
+end

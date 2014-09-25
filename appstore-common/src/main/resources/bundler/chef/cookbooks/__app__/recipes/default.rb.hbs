@@ -1,0 +1,255 @@
+#
+# Cookbook Name:: {{app.name}}
+# Recipe:: default
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+{{#if app.repo}}
+include_recipe 'git::default'
+{{/if}}
+
+{{#if app.web}}
+include_recipe '{{app.web.type}}::default'
+{{/if}}
+
+{{#if app.database}}
+include_recipe '{{app.database.type}}::default'
+{{/if}}
+
+require 'securerandom'
+
+base = Chef::Recipe::Base
+app_lib = Chef::Recipe::{{app.chefName}}
+
+# Install any certs provided
+base.local_certs('{{app.name}}').each do |cert_name|
+  base.install_ssl_cert self, '{{app.name}}', cert_name
+  Chef::Recipe::Java.install_cert(self, cert_name, base.pem_path(cert_name)) if defined? Chef::Recipe::Java.install_cert
+end
+
+app = {
+    :name => '{{app.name}}',
+    :hostname => %x(hostname).strip,
+    :ipaddress => node['ipaddress'],
+    :uniq => [],
+    :rand => [],
+    :chef_user => base.chef_user,
+    :chef_user_home => base.chef_user_home,
+    :mail_user => 'cloudos_system_mailer',
+    :mail_password => base.password('system_mailer')
+}
+
+(0...9).each do |n|
+  app[:uniq] << base.password("{{app.name}}_#{n}")
+  app[:rand] << SecureRandom.hex(64)
+end
+
+{{#if app.passwords}}
+app[:passwords] = {}
+    {{#each app.passwords}}
+app[:passwords]['{{this}}'] = base.password '{{this}}'
+    {{/each}}
+{{/if}}
+
+app[:databag] = {}
+app[:databag_replacements] = {}
+
+# If we have a ports databag, define it and populate replacements
+begin
+  app[:databag][:ports] = data_bag_item('{{app.name}}', 'ports')
+  app[:databag][:ports].each do |bagkey, bagvalue|
+    app_lib.define_databag_replacements app[:databag_replacements], "@databag[ports]", bagkey, bagvalue
+  end
+rescue
+  puts '{{app.name}}/ports databag not found'
+end
+
+# If we have a base databag, define it and populate replacements, then set hostname
+begin
+  app[:databag][:base] = data_bag_item('{{app.name}}', 'base')
+  app[:databag][:base].each do |bagkey, bagvalue|
+    app_lib.define_databag_replacements app[:databag_replacements], "@databag[base]", bagkey, bagvalue
+  end
+
+  # set the hostname based on values in the base databag
+  hostname = app[:databag][:base]['hostname']
+  parent_domain = app[:databag][:base]['parent_domain']
+  fqdn = "#{hostname}.#{parent_domain}"
+
+  # But only if we are already this hostname -- the install.sh script should set the hostname for us
+  raise "Please run with install.sh: system hostname (#{app[:hostname]}) didn't match base databag value (#{fqdn})" unless app[:hostname] == fqdn
+
+  Chef::Recipe::Base.set_hostname self, fqdn
+
+rescue
+  puts '{{app.name}}/base databag not found'
+end
+
+{{#if app.databags}}
+  {{#each app.databags}}
+app[:databag][:{{ident name}}] = data_bag_item('{{app.name}}', '{{name}}')
+app[:databag][:{{ident name}}].each do |bagkey, bagvalue|
+    app_lib.define_databag_replacements app[:databag_replacements], "@databag[{{ident name}}]", bagkey, bagvalue
+end
+  {{/each}}
+{{/if}}
+
+{{#if app.packages}}
+  {{#each app.packages}}
+package '{{this}}' do
+  action :install
+end
+  {{/each}}
+{{/if}}
+
+# init and init_{{app.style}} (a few lines down) are defined in libraries/{{app.style}}_lib.rb
+app_lib.init self, app
+
+{{#if app.users}}
+app[:users] = {}
+    {{#each app.users}}
+app[:users]['{{label}}'] = {
+    :name => '{{user}}',
+    :home => {{quoted_or_nil home}}
+}
+        {{#if kerberos}}
+raise "cannot create kerberos user without kerberos library." unless defined? Chef::Recipe::Kerberos.create_user
+kerberos_password = app[:users]['{{label}}'][:password] = base.password('{{user}}')
+Chef::Recipe::Kerberos.create_user self, '{{user}}', kerberos_password
+
+        {{else}}
+app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil group}}, {{can_login}}, {{system}}
+        {{/if}}
+    {{/each}}
+{{/if}}
+
+{{#if app.groups}}
+    app[:groups] = {}
+    {{#each app.groups}}
+
+        app[:groups]['{{label}}'] = {
+        :name => '{{group}}'
+        }
+
+        {{#if members}}
+            members = []
+            {{#each members}}
+                members << app_lib.subst_string('{{this}}', app)
+            {{/each}}
+            app[:groups]['{{label}}'][:members] = members
+        {{else}}
+            members = nil
+        {{/if}}
+        app_lib.group self, app, '{{group}}', members
+    {{/each}}
+{{/if}}
+
+{{#if app.database}}
+# database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
+app_lib.database_{{app.style}}_packages self, app if defined? app_lib.database_{{app.style}}_packages
+{{/if}}
+
+{{#if app.repo}}
+app_lib.install_git self, app
+{{/if}}
+
+{{#if app.tarball}}
+app_lib.install_tarball self, app
+{{/if}}
+
+{{#if app.prep_code}}
+    {{#each app.prep_code}}
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+    {{/each}}
+{{/if}}
+
+app_lib.init_{{app.style}} self, app if defined? app_lib.init_{{app.style}}
+
+{{#if app.templates}}
+    {{#each app.templates}}
+app_lib.template_file self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.dirs}}
+    {{#each app.dirs}}
+app_lib.dir self, '{{this}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.database}}
+app_lib.database self, app
+{{/if}}
+
+{{#if app.web}}
+app_lib.{{app.web.type}} self, app
+{{/if}}
+
+{{#if app.move}}
+    {{#each app.move}}
+app_lib.move self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.symlinks}}
+    {{#each app.symlinks}}
+app_lib.symlink self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.perms}}
+  {{#each app.perms}}
+app_lib.permission self, '{{@key}}', app, {{quoted_or_nil chown}}, {{quoted_or_nil chgrp}}, {{quoted_or_nil perms}}, {{recursive}}
+  {{/each}}
+{{/if}}
+
+{{#if app.append}}
+    {{#each app.append}}
+app_lib.append self, '{{safe this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.mailboxes}}
+raise "Cannot create mailboxes, standard email_lib not found" unless defined? Chef::Recipe::Email.create_mailbox
+
+email_lib = Chef::Recipe::Email
+  {{#each app.mailboxes}}
+email_lib.create_mailbox self, '{{address}}', app[:users]['vmail'][:name], app[:groups]['vmail'][:name], app[:hostname], {{quoted_or_nil alias_for}}
+  {{/each}}
+{{/if}}
+
+{{#if app.post_install}}
+    {{#each app.post_install}}
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+    {{/each}}
+{{/if}}
+
+# ensure doc root is owned by / readable by apache user
+app_lib.permission(self, '@doc_root', app, nil, nil, '-R u+rx') if app[:doc_root]
+
+{{#if app.logrotate}}
+    {{#each app.logrotate}}
+app_lib.logrotate self, app, '{{this}}'
+    {{/each}}
+{{/if}}
+
+{{#if app.sysinit}}
+    {{#each app.sysinit}}
+app_lib.sysinit self, app, '{{this}}'
+    {{/each}}
+{{/if}}
+
+{{#if app.services}}
+    {{#each app.services}}
+        {{#if chefProvider}}
+app_lib.service self, app, '{{name}}', '{{pattern}}', {{chefProvider}}
+        {{else}}
+app_lib.service self, app, '{{name}}', '{{pattern}}'
+        {{/if}}
+    {{/each}}
+{{/if}}
+
+{{#if app.web}}
+app_lib.{{app.web.type}}_reload self
+{{/if}}

@@ -1,0 +1,109 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: install_git_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.install_tarball (chef, app)
+        url = subst_string('{{app.tarball.url}}', app)
+        url_parts = /.+\/((.+)\.tar\.([^\/]+))(\/.*)?$/.match(url)
+        base_file = url_parts[1]
+        base_dir = url_parts[2]
+        compression = url_parts[3]
+
+        local_tarball = "#{Chef::Config[:file_cache_path]}/#{base_file}"
+
+        chef.remote_file local_tarball do
+          source url
+          checksum '{{app.tarball.shasum}}'
+        end
+
+        case compression
+        when 'gz'
+          tar_opts = 'xzf'
+        when 'bz2'
+          tar_opts = 'xjf'
+        else
+          raise 'Tarball must be .gz or .bz2'
+        end
+
+        tmp=%x(mktemp -d /tmp/{{app.name}}.XXXXXX).strip
+        app_lib = Chef::Recipe::{{app.chefName}}
+
+        chef.bash "unpacking #{local_tarball}" do
+          user 'root'
+          cwd '/tmp'
+          code <<-EOH
+
+function get_tarball_basedir {
+  tmpdir=${1}
+  dir=${2}
+
+  cd ${tmpdir}
+  if [ -d ./${dir} ] ; then
+    # if the tarball contains a top-level directory that matches the name of the tarball, copy the files therein
+    src="${dir}"
+
+  elif [ $(find . -maxdepth 1 -mindepth 1 -type d | wc -l) -eq 1 ] ; then
+    # if the tarball contains only a single top-level directory, copy the files therein
+    src="$(find . -maxdepth 1 -mindepth 1 -type d)"
+
+  else
+    # otherwise, copy everything in the tarball
+    src=''
+  fi
+  echo -n "${src}"
+}
+
+cd #{tmp}
+tar #{tar_opts} #{local_tarball}
+
+{{#if app.tarball.copy}}
+
+  {{#each app.tarball.copy}}
+# 'each' copy...
+src="$(echo -n "#{tmp}/{{from}}" | sed -e "s/@base/$(get_tarball_basedir #{tmp} #{base_dir})/")"
+if [ ! -e "${src}" ] ; then
+  src="#{tmp}/$(get_tarball_basedir #{tmp} #{base_dir})/{{from}}"
+fi
+dest="#{app_lib.subst('{{to}}', app)}"
+
+# Ensure no trailing slash on dest dir. We will re-add it where needed...
+dest=$(echo "${dest}" | sed -e 's,/$,,')
+
+mkdir -p ${dest}/
+cp -Rn ${src} ${dest}/
+chown -R #{app[:run_as]} ${dest}
+chmod -R u+rx ${dest}
+  {{/each}}
+
+{{else}}
+  {{#if app.tarball.to}}
+# 'to' copy...
+dest="#{app_lib.subst('{{app.tarball.to}}', app)}"
+
+  {{else}}
+# 'default' copy...
+dest="#{app[:doc_root]}"
+  {{/if}}
+
+# Ensure no trailing slash on dest dir. We will re-add it where needed...
+dest=$(echo "${dest}" | sed -e 's,/$,,')
+
+mkdir -p ${dest}/
+cp -Rn ./$(get_tarball_basedir #{tmp} #{base_dir})/* ${dest}/
+chown -R #{app[:run_as]} ${dest}
+chmod -R u+rx ${dest}
+
+{{/if}}
+
+rm -rf #{tmp}
+        EOH
+
+        end
+    end
+
+end

@@ -1,0 +1,116 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: database_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.database (chef, app)
+
+        database = Chef::Recipe::{{app.database.chefType}}
+        base = Chef::Recipe::Base
+        app_lib = Chef::Recipe::{{app.chefName}}
+
+        dbtype = app[:dbtype] = '{{app.database.type}}'
+
+        {{#if app.database.dbname}}
+        dbname = app[:dbname] = '{{ident app.database.dbname}}'
+        {{/if}}
+
+        {{#if app.database.dbuser}}
+        dbuser = app[:dbuser] = '{{ident app.database.dbuser}}'
+        {{/if}}
+
+        {{#if app.parent}}
+            dbname ||= app[:dbname] ||= '{{ident app.parent}}'
+            dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
+            dbpass = app[:dbpass] = base.password("db_#{dbname}")
+        {{else}}
+            default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+            dbname ||= app[:dbname] ||= default_db_val
+            dbuser ||= app[:dbuser] ||= default_db_val
+            dbpass = app[:dbpass] = base.password("db_#{dbname}")
+            {{#if app.database.allow_create_db}}
+                allow_create_db = true
+            {{else}}
+                allow_create_db = false
+            {{/if}}
+            database.create_user(chef, dbuser, dbpass, allow_create_db)
+        {{/if}}
+
+        unless_table = nil
+        {{#if app.database.unless}}
+            unless_table = '{{app.database.unless}}'
+        {{/if}}
+
+        {{#if app.database.set_config}}
+          {{#each app.database.set_config}}
+            database.set_config(chef, '{{group}}', '{{name}}', '{{value}}')
+          {{/each}}
+        {{/if}}
+
+        {{#if app.database.init_command}}
+          db_init = '{{app.database.init_command.exec}}'
+          db_init = app[:run_as_home] + '/' + db_init unless db_init.start_with?('/')
+          db_init.gsub!('@dbuser', dbuser);
+          db_init.gsub!('@dbname', dbname);
+          db_init.gsub!('@dbpass', dbpass);
+          chef.bash "initialize database with #{db_init}" do
+            user 'root'
+            code <<-EOF
+          {{#if app.database.init_command.stdin}}
+              echo '{{app.database.init_command.stdin}}' | #{db_init}
+          {{else}}
+              #{db_init}
+          {{/if}}
+            EOF
+          end
+
+        {{else}}
+            database.create_db(chef, dbname, dbuser)
+
+            {{#if app.database.here_schema}}
+          schema_file = "/tmp/{{app.name}}_schema.sql"
+          chef.cookbook_file schema_file do
+            source '{{app.database.here_schema}}'
+            owner 'root'
+            group 'root'
+            mode '0600'
+            action :create
+          end
+          database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
+          File.delete schema_file if File.exists? schema_file
+
+            {{else}}
+              {{#if app.database.schema}}
+                schema_file = app_lib.subst('{{app.database.schema}}', app)
+                schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
+                database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
+              {{/if}}
+
+            {{/if}}
+
+        {{/if}}
+
+        {{#if app.database.inserts}}
+          {{#each app.database.inserts}}
+            {{#if dbname}}
+                insertIntoDb = '{{dbname}}'
+            {{else}}
+                insertIntoDb = dbname
+            {{/if}}
+            database.insert(chef, dbuser, insertIntoDb, {
+                :sql => app_lib.subst_string('{{safe sql}}', app),
+                :unless => app_lib.subst_string('{{safe unless}}', app)
+            })
+          {{/each}}
+        {{/if}}
+
+        database_{{app.style}} chef, app, database if defined? database_{{app.style}}
+
+        database.restart chef
+    end
+
+end

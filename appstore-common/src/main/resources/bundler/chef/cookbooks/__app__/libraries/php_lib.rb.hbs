@@ -1,0 +1,48 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: php_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.init (chef, app)
+
+        chef.package 'libapache2-mod-php5' do
+            action :install
+        end
+
+        {{#if app.database}}
+        chef.package 'php5-{{app.database.shortName}}' do
+            action :install
+        end
+        {{/if}}
+
+        app[:run_as] = 'www-data'
+
+        {{#if app.parent}}
+            app[:run_as_home] = '/var/www/{{app.parent}}'
+        {{else}}
+            app[:run_as_home] = '/var/www/{{app.name}}'
+        {{/if}}
+
+        chef.directory app[:run_as_home] do
+            owner app[:run_as]
+            group app[:run_as]
+            mode '0755'
+            action :create
+        end
+
+        {{#if app.web.doc_root}}
+            app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
+        {{else}}
+            {{#if app.parent}}
+                app[:doc_root] = '/var/www/{{app.parent}}'
+            {{else}}
+                app[:doc_root] = '/var/www/{{app.name}}'
+            {{/if}}
+        {{/if}}
+    end
+
+end

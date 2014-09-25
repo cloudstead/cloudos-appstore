@@ -1,0 +1,22 @@
+#!/bin/bash
+
+function die () {
+  echo 1>&2 "${1}"
+  exit 1
+}
+
+SCRIPT_BASE=$(cd $(dirname $0) && pwd)
+
+APPS="$@"
+if [ -z "${APPS}" ] ; then
+  APPS=$(find . -type f -name cloudos-manifest.json | grep -v target | xargs -n 1 dirname)
+elif [ ! -f ${APPS}/cloudos-manifest.json ] ; then
+  APPS=$(find ${APPS} -type f -name cloudos-manifest.json | grep -v target | xargs -n 1 dirname)
+fi
+
+echo 1>&2 "Bundling apps:"
+echo ${APPS} | xargs -n 1 basename 1>&2
+
+for app in ${APPS} ; do
+  ${SCRIPT_BASE}/cbundle_app ${app} || echo 1>&2 "Error bundling ${app}"
+done

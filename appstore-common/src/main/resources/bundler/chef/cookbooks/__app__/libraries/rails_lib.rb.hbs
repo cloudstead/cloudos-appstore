@@ -1,0 +1,62 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: rails_lib
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.init (chef, app)
+
+        %w( ruby1.9.1 ruby1.9.1-dev ).each do |pkg|
+            chef.package pkg do
+                action :install
+            end
+        end
+
+        %w( bundler rake foreman ).each do |gem|
+            chef.bash "install ruby gem: #{gem}" do
+                user 'root'
+                code <<-EOF
+gem install #{gem} --no-ri --no-rdoc
+                EOF
+            end
+        end
+
+        init_user chef, app
+    end
+
+    def self.rails_dir (app)
+        dir = app[:run_as]
+        dir = app[:repo_dir] if app[:repo_dir].to_s != ''
+        "#{app[:run_as_home]}/#{dir}"
+    end
+
+    def self.init_rails (chef, app)
+        rails_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
+
+        chef.bash 'install gems' do
+          user app[:run_as]
+          cwd rails_dir
+          code <<-EOF
+bundle install --path vendor/bundle
+#sudo -u #{app[:run_as]} -H bash -c 'cd #{rails_dir} && bundle install --path vendor/bundle'
+          EOF
+        end
+
+        chef.bash 'ensure gems are readable' do
+          user 'root'
+          code <<-EOF
+
+for dir in $(find /var/lib/gems -type d) ; do
+  chmod a+rx "${dir}"
+done
+
+for file in $(find /var/lib/gems -type f) ; do
+  chmod a+r "${file}"
+done
+          EOF
+        end
+
+    end
+
+end

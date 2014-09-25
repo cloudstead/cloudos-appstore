@@ -1,0 +1,69 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: apache_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.apache (chef, app)
+        base = Chef::Recipe::Base
+        apache = Chef::Recipe::Apache
+
+        {{#if app.web.apache.mods}}
+          {{#each app.web.apache.mods}}
+            apache.enable_module(chef, '{{this}}')
+          {{/each}}
+        {{/if}}
+
+        config = {
+
+          :mode => :{{app.web.mode}},
+
+        {{#if app.web.mount}}
+          :mount => '{{app.web.mount}}',
+        {{/if}}
+
+          :doc_root => app[:doc_root],
+
+        {{#if app.web.apache.vhost}}
+          :vhost => :{{app.web.apache.vhost}},
+        {{/if}}
+
+        {{#if app.web.apache.dir}}
+          :dir => %w( {{#each app.web.apache.dir}}{{this}} {{/each}}),
+        {{/if}}
+
+        {{#if app.web.apache.location}}
+          :location => %w( {{#each app.web.apache.location}}{{this}} {{/each}}),
+        {{/if}}
+
+        {{#if app.web.apache.htaccess}}
+          :htaccess => %w( {{#each app.web.apache.htaccess}}{{this}} {{/each}}),
+        {{/if}}
+
+        {{#if app.web.ssl_cert_name}}
+          :cert_name => subst_string('{{app.web.ssl_cert_name}}', app), # likely pulling from databag here
+        {{else}}
+          :cert_name => nil, # use default (wildcard) SSL cert
+        {{/if}}
+
+          :server_name => nil
+        }
+
+        if config[:cert_name]
+            # The cert will tell us what our hostname should be
+            # todo: implement whitelist of authorized domains, do not allow certs for others
+            common_name = base.local_pem_cn('{{app.name}}', config[:cert_name])
+            config[:server_name] = common_name unless common_name.nil? || common_name.start_with?('*')
+        end
+
+        {{app.web.type}}_{{app.style}} chef, app, config
+    end
+
+    def self.apache_reload (chef)
+        Chef::Recipe::Apache.reload(chef)
+    end
+
+end

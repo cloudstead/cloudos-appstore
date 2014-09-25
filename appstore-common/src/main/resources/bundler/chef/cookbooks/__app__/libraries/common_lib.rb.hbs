@@ -1,0 +1,352 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: common_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.define_databag_replacements(hash, base, bagkey, bagvalue)
+        if bagvalue.class == String || bagvalue.class == Fixnum
+            hash["#{base}[#{bagkey}]"] = bagvalue.to_s
+        elsif bagvalue
+            bagvalue.each do |subkey, subvalue|
+              define_databag_replacements hash, "#{base}[#{bagkey}]", subkey, subvalue
+            end
+        end
+    end
+
+    def self.subst_path (value, app)
+        subst(value, app, true)
+    end
+
+    def self.subst_string (value, app)
+        subst(value, app, false)
+    end
+
+    def self.subst (value, app, is_path = true)
+        return nil if value.nil? || value.to_s == ''
+
+        base = Chef::Recipe::Base
+
+        if app
+{{#if app.repo}}
+            value = value.gsub('@repo', "#{app[:run_as_home]}/#{app[:repo_dir]}")
+{{/if}}
+            doc_root = (defined?(app[:doc_root]) && app[:doc_root]) ? app[:doc_root] : '@doc_root_undefined'
+            run_as = (defined?(app[:run_as]) && app[:run_as]) ? app[:run_as] : '@run_as_undefined'
+            run_as_home = (defined?(app[:run_as_home]) && app[:run_as_home]) ? app[:run_as_home] : '@run_as_home_undefined'
+
+            value = value.gsub('@doc_root', doc_root)
+            value = value.gsub('@name', app[:name])
+            value = value.gsub('@ipaddress', app[:ipaddress])
+            value = value.gsub('@hostname', %x(hostname).strip)
+            value = value.gsub('@run_as', run_as)
+            value = value.gsub('@home', run_as_home)
+
+            (0...9).each do |n|
+                value = value.gsub("@uniq[#{n}]", app[:uniq][n])
+                value = value.gsub("@rand[#{n}]", app[:rand][n])
+            end
+
+{{#if app.databags}}
+            app[:databag_replacements].each do |find, replace|
+                value = value.gsub(find, replace.to_s)
+            end
+{{/if}}
+
+{{#if app.groups}}
+    {{#each app.groups}}
+            value = value.gsub('@group[{{group}}]', app[:groups]['{{group}}'][:name])
+    {{/each}}
+{{/if}}
+{{#if app.users}}
+    {{#each app.users}}
+            value = value.gsub('@user[{{user}}]', app[:users]['{{user}}'][:name])
+    {{/each}}
+{{/if}}
+        end
+
+        value = value.gsub('@chef_user', base.chef_user)
+        value = value.gsub('@chef_home', base.chef_user_home)
+        value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
+
+        if defined? Chef::Recipe::Java.java_home
+            java_home = Chef::Recipe::Java.java_home
+            value = value.gsub('@java_home', java_home) unless java_home.nil?
+        end
+
+        if app && !value.start_with?('/') && is_path
+            value = "#{app[:run_as_home]}/#{value}"
+        end
+
+        value
+    end
+
+    def self.group(chef, app, group_name, members_list = nil)
+        if members_list
+            chef.group group_name do
+                action :create
+                members "#{members_list.join(',')}"
+            end
+        else
+            chef.group group_name do
+                action :create
+            end
+        end
+    end
+
+    def self.group_exists? group_name
+        %x(grep '^#{group_name}:' | wc -l).strip
+    end
+
+    def self.user(chef, app, user_name, user_home, group_name, can_login, is_system)
+        if user_home
+            chef.directory user_home do
+                owner user_name
+                action :create
+            end
+        end
+
+        user_shell = can_login ? '/bin/bash' : '/usr/sbin/nologin'
+        chef.user user_name do
+            home user_home
+            gid group_name
+            shell user_shell
+            system is_system
+        end
+    end
+
+    def self.init_user(chef, app)
+
+        can_login = false
+{{#if app.run_as}}
+    {{#if app.run_as.user}}
+        app[:run_as] = '{{app.run_as.user}}'
+    {{/if}}
+
+        can_login = '{{app.run_as.can_login}}' == 'true'
+{{else}}
+    {{#if app.parent}}
+        app[:run_as] = '{{app.parent}}'
+    {{/if}}
+{{/if}}
+        app[:run_as] ||= '{{app.name}}'
+        app[:run_as_home] = "/home/#{app[:run_as]}"
+
+        self.user chef, app, app[:run_as], app[:run_as_home], nil, can_login, false
+
+{{#if app.web.doc_root}}
+        app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
+{{else}}
+        app[:doc_root] = "#{app[:run_as_home]}/#{app[:run_as]}"
+{{/if}}
+    end
+
+    def self.dir (chef, dir, app)
+        dir = subst(dir, app)
+        chef.directory dir do
+            owner app[:run_as]
+            group app[:run_as]
+            mode '0755'
+            action :create
+        end
+        permission(chef, dir, app, app[:run_as], app[:run_as], "u+rx")
+    end
+
+    def self.template_file(chef, template_src, template_dest, app)
+        template_src = File.basename(template_dest) if template_src == '_'
+        template_dest = subst(template_dest, app)
+
+        chef.template template_dest do
+            source "#{template_src}.erb"
+            owner app[:run_as]
+            group app[:run_as]
+            mode '0700'
+            variables ({ :app => app })
+            action :create
+        end
+    end
+
+    def self.symlink(chef, symlink_target, symlink_link, app)
+
+        symlink_link = subst(symlink_link, app)
+
+        target_parts = symlink_target.split
+        if target_parts.first == 'which'
+            # it's a command and they want us to find the path to it
+            command = target_parts.last
+            symlink_target = %x(which #{command}).strip
+            raise "symlink: Command not found: #{command}" if symlink_target.nil? || symlink_target.empty?
+        else
+            # otherwise it's a regular path, perform susbts on it
+            symlink_target = subst(symlink_target, app)
+        end
+
+        # append file name if the link path is a directory
+        symlink_link << "/#{File.basename symlink_target}" if File.directory? symlink_link
+
+        chef.bash "ln -s #{symlink_target} #{symlink_link}" do
+            user 'root'
+            code <<-EOH
+ln -s #{symlink_target} #{symlink_link}
+            EOH
+                not_if { File.exists? symlink_link }
+        end
+    end
+
+    def self.permission(chef, path, app, chown, chgrp, perms, recursive = false)
+        target = app.nil? ? path : subst(path, app)
+        chown_target = chown.nil? ? nil : ( chown.include?('.') ? chown : (chgrp.nil? ? chown : "#{chown}.#{chgrp}") )
+        recursive_flag = recursive ? '-R' : ''
+        if chown_target.nil?
+            unless chgrp.nil?
+                chgrp = subst_string(chgrp, app)
+                chef.bash "apply group=#{chgrp} to #{target}, recursive=#{recursive}" do
+                    user 'root'
+                    code <<-EOH
+if [ ! -e "#{target}" ] ; then
+    touch "#{target}"
+fi
+chgrp #{recursive_flag} #{chgrp} "#{target}"
+                    EOH
+                end
+            end
+        else
+            chown_target = subst_string(chown_target, app)
+            chef.bash "apply ownership=#{chown_target} to #{target}, recursive=#{recursive}" do
+                user 'root'
+                code <<-EOH
+if [ ! -e "#{target}" ] ; then
+    touch "#{target}"
+fi
+chown #{recursive_flag} #{chown_target} "#{target}"
+                EOH
+            end
+        end
+
+        unless perms.nil?
+            chef.bash "apply perms=#{perms} to #{target}, recursive=#{recursive}" do
+                user 'root'
+                code <<-EOH
+if [ ! -e "#{target}" ] ; then
+    touch "#{target}"
+fi
+chmod #{recursive_flag} #{perms} "#{target}"
+                EOH
+            end
+        end
+    end
+
+    def self.move(chef, to, from, app)
+        to = subst(to, app)
+        from = subst(from, app)
+        check = to
+        check = check + "/#{File.basename from}" if File.directory? to
+
+        chef.bash "mv #{from} #{to}" do
+            user 'root'
+            code <<-EOH
+# check is #{check}
+mv #{from} #{to}
+            EOH
+            only_if { %x(ls -1 #{check}).strip.to_i == 0 }
+        end
+    end
+
+    def self.append(chef, data, target, app)
+        target = subst(target, app)
+        chef.bash "appending to #{target}" do
+            user 'root'
+            code <<-EOH
+cat >> #{target} <<EOF
+    #{data.sub('$', '\\\\$')}
+EOF
+            EOH
+            not_if { File.readlines("#{target}").grep(/Regexp.escape(data)/).size > 0 }
+            end
+    end
+
+    def self.exec (chef, app, exec, exec_user, dir, stdin, unless_file)
+
+        exec = subst_string(exec, app)
+        exec_user ||= 'root'
+        exec_user = subst_string(exec_user, app)
+        dir = (dir.to_s == '') ? app[:run_as_home] : subst(dir, app)
+        stdin = subst(stdin, app)
+        unless_file = subst(unless_file, app)
+
+        cmd = (stdin.to_s == '') ? exec : "echo '#{self.subst(stdin)}' | #{exec}"
+
+        chef.bash "exec: #{exec} in #{dir} with stdin #{stdin}" do
+            user 'root'
+            cwd dir
+            code <<-EOH
+if [ "#{exec_user}" = 'root' ] ; then
+    #{cmd}
+else
+    sudo -u #{exec_user} -H #{cmd}
+fi
+            EOH
+            only_if { unless_file.to_s == '' || !File.exists?(unless_file) }
+        end
+
+    end
+
+    def self.logrotate (chef, app, path)
+        base = Chef::Recipe::Base
+        path = subst(path, app)
+        lr_file = "/etc/logrotate.d/#{app[:name]}_#{base.password(path)}"
+        base.logrotate chef, path
+    end
+
+    def self.sysinit (chef, app, command)
+
+        if command.start_with? 'jrun'
+            command_parts = command.split(':')
+            java_class = command_parts[1]
+            java_yml = command_parts[2]
+            java_yml = subst(java_yml, app) unless java_yml.nil?
+            run_as = command_parts[3]
+            run_as = subst_string(run_as, app) unless run_as.nil?
+            run_as ||= app[:run_as]
+
+            java = Chef::Recipe::Java
+            java.define_service(chef, subst('@name', app), run_as, java_class, java_yml)
+
+        else
+            base = Chef::Recipe::Base
+            svc = "{{app.id}}_#{base.password(command)}"
+            command = subst(command, app)
+
+            unless File.exists? "/etc/init.d/#{svc}"
+                chef.template command do
+                    path "/etc/init.d/#{svc}"
+                    source "init.sh.erb"
+                    owner 'root'
+                    group 'root'
+                    mode '0755'
+                    variables({ :command => command, :app => app })
+                    action :create
+                end
+
+                chef.service svc do
+                    pattern command
+                    supports [ :start => true, :stop => true ]
+                    action [ :enable, :start ]
+                end
+            end
+        end
+    end
+
+    def self.service (chef, app, name, pattern, provider = nil)
+        chef.service name do
+            pattern pattern
+            provider provider
+            supports :start => true, :stop => true, :restart => true
+            action [ :enable, :restart ]
+        end
+    end
+
+end

@@ -1,0 +1,45 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: database_rails_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.database_rails_packages (chef, app)
+        chef.package 'libpq-dev' do
+            action :install
+        end
+    end
+
+    def self.database_rails (chef, app, database)
+
+        chef.template "#{rails_dir(app)}/config/database.yml" do
+          owner app[:run_as]
+          group 'root'
+          mode '0600'
+          variables({ :app => app })
+          action :create
+        end
+
+{{#if app.database.options.rake_tasks}}
+        rake_tasks = [ {{#each app.database.options.rake_tasks}}{{safe this}}, {{/each}} ]
+{{else}}
+        rake_tasks = %w( db:schema:load db:seed )
+{{/if}}
+
+        chef.bash "initialize {{app.name}} database via rake tasks: #{rake_tasks}" do
+          user app[:run_as]
+          cwd Chef::Recipe::{{app.chefName}}.rails_dir(app)
+          code <<-EOF
+for task in "#{rake_tasks.join(' ')}" ; do
+  echo "yes" | bundle exec rake ${task} RAILS_ENV=production
+done
+        EOF
+          not_if { database.count_tables(app[:dbname], app[:dbuser], app[:dbpass]) > 0  }
+        end
+
+    end
+
+end

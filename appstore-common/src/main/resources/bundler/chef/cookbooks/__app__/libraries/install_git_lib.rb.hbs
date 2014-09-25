@@ -1,0 +1,32 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: install_git_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.install_git (chef, app)
+        git = Chef::Recipe::Git
+        {{#if app.repo.dir}}
+        app[:repo_dir] = '{{app.repo.dir}}'
+        {{else}}
+        app[:repo_dir] = git.base_name '{{app.repo.url}}'
+        {{/if}}
+
+        git.clone(chef, '{{app.repo.url}}', '{{app.repo.branch}}', app[:run_as], app[:run_as_home], app[:repo_dir])
+
+        {{#if app.supporting_repos}}
+            {{#each app.supporting_repos}}
+                {{#if dir}}
+        dir = '{{dir}}'
+                {{else}}
+        dir = nil
+                {{/if}}
+        git.clone(chef, '{{url}}', '{{branch}}', app[:run_as], app[:run_as_home], dir)
+            {{/each}}
+        {{/if}}
+    end
+
+end

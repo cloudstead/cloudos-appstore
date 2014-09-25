@@ -1,0 +1,19 @@
+name             '{{app.name}}'
+maintainer       '{{app.publisher.maintainer}}'
+maintainer_email '{{app.publisher.maintainer_email}}'
+license          '{{app.publisher.license}}'
+description      '{{app.name}}'
+long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
+version          '0.1.0'
+
+{{#if app.repo}}
+depends 'git'
+{{/if}}
+
+{{#if app.web}}
+depends '{{app.web.type}}'
+{{/if}}
+
+{{#if app.database}}
+depends '{{app.database.type}}'
+{{/if}}
