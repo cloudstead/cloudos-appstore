@@ -25,9 +25,7 @@ public class AppStoreApiClient extends ApiClientBase {
         super(connectionInfo, httpClient);
     }
 
-    public AppStoreApiClient(String baseUri, HttpClient httpClient) {
-        super(baseUri, httpClient);
-    }
+    public AppStoreApiClient(String baseUri, HttpClient httpClient) { super(baseUri, httpClient); }
 
     @Override protected String getTokenHeader() { return H_TOKEN; }
 
@@ -59,9 +57,7 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppStorePublisher.class);
     }
 
-    public void deleteAccount() throws Exception {
-        delete(ACCOUNTS_ENDPOINT);
-    }
+    public void deleteAccount() throws Exception { delete(ACCOUNTS_ENDPOINT); }
 
     public CloudApp defineApp(CloudApp app) throws Exception {
         final RestResponse restResponse = put(APPS_ENDPOINT, toJson(app));
