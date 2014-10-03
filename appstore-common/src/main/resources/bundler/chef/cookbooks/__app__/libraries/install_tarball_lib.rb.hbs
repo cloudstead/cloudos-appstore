@@ -9,7 +9,8 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.install_tarball (chef, app)
         url = subst_string('{{app.tarball.url}}', app)
-        url_parts = /.+\/((.+)\.tar\.([^\/]+))(\/.*)?$/.match(url)
+        url_parts = /.+\/((.+)\.tar\.([^\/]+))(\/.*)?(\?.*)?$/.match(url)
+        url_parts ||= /.+\/((.+)\.tgz)(\/.*)?(\?.*)?$/.match(url)
         base_file = url_parts[1]
         base_dir = url_parts[2]
         compression = url_parts[3]
@@ -23,6 +24,8 @@ class Chef::Recipe::{{app.chefName}}
 
         case compression
         when 'gz'
+          tar_opts = 'xzf'
+        when 'tgz'
           tar_opts = 'xzf'
         when 'bz2'
           tar_opts = 'xjf'
@@ -75,7 +78,7 @@ dest="#{app_lib.subst('{{to}}', app)}"
 dest=$(echo "${dest}" | sed -e 's,/$,,')
 
 mkdir -p ${dest}/
-cp -Rn ${src} ${dest}/
+rsync -ac ${src} ${dest}/
 chown -R #{app[:run_as]} ${dest}
 chmod -R u+rx ${dest}
   {{/each}}
@@ -94,7 +97,7 @@ dest="#{app[:doc_root]}"
 dest=$(echo "${dest}" | sed -e 's,/$,,')
 
 mkdir -p ${dest}/
-cp -Rn ./$(get_tarball_basedir #{tmp} #{base_dir})/* ${dest}/
+rsync -ac ./$(get_tarball_basedir #{tmp} #{base_dir})/* ${dest}/
 chown -R #{app[:run_as]} ${dest}
 chmod -R u+rx ${dest}
 
