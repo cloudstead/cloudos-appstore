@@ -52,6 +52,10 @@ app[:passwords]['{{this}}'] = base.password '{{this}}'
     {{/each}}
 {{/if}}
 
+{{#if app.web.mount}}
+app[:mount] = '{{app.web.mount}}'
+{{/if}}
+
 app[:databag] = {}
 app[:databag_replacements] = {}
 
