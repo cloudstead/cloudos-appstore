@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.http.HttpMethods;
 import org.cobbzilla.util.http.HttpRequestBean;
 import org.cobbzilla.util.http.URIUtil;
+import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.util.xml.XPathUtil;
@@ -113,12 +114,16 @@ public class ConfigurableAppRuntime extends AppRuntimeBase {
     ).trim();
     }
 
+    @Getter(lazy=true) private static final String timezoneName = initTimezoneName();
+    private static String initTimezoneName() { return FileUtil.toStringOrDie("/etc/timezone").trim(); }
+
     protected static String parseMapping(CloudOsAccount account, String value, String appPath) {
         final Map<String, Object> scope = new HashMap<>();
         scope.put("account", account);
         scope.put("emailDomain", getEmailDomain(appPath));
         scope.put("email_domain", getEmailDomain(appPath));
         scope.put("timezone-offset", getTimezoneOffset());
+        scope.put("timezone-name", getTimezoneName());
 
         StringWriter w = new StringWriter();
         final Mustache mustache = getMustache(value);
