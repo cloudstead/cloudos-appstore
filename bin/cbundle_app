@@ -16,6 +16,8 @@ if [ ! -f ${APP_BASE}/cloudos-manifest.json ] ; then
   die "No cloudos-manifest.json found in ${APP_BASE}, skipping"
 fi
 
+APP_BASE=$(cd ${APP_BASE} && pwd)
+
 APP=$(basename ${APP_BASE})
 TARGET=${APP_BASE}/target
 BUNDLE_DIR=${TARGET}/${APP}-bundle
