@@ -4,6 +4,8 @@ import cloudos.appstore.client.AppStoreApiClient;
 import cloudos.appstore.model.*;
 import cloudos.appstore.model.support.ApiToken;
 import cloudos.appstore.model.support.AppStoreAccountRegistration;
+import cloudos.appstore.model.support.RegistrationType;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.wizard.model.HashedPassword;
 import org.cobbzilla.wizard.server.RestServer;
@@ -24,7 +26,7 @@ public class AppStoreTestUtil {
         final String adminToken = appStoreClient.registerAccount(registration).getToken();
         AppStoreAccount admin = appStoreClient.findAccount();
         admin.setAdmin(true);
-        admin.setPassword(new HashedPassword(registration.getPassword()));
+        admin.setHashedPassword(new HashedPassword(registration.getPassword()));
 
         // crack open the application context to access the DAO directly and set the admin flag to true
         final ApplicationContext applicationContext = server.getApplicationContext();
@@ -40,12 +42,18 @@ public class AppStoreTestUtil {
     }
 
     public static AppStoreAccountRegistration buildPublisherRegistration() {
-        final AppStoreAccountRegistration registration = new AppStoreAccountRegistration();
+        final String name = randomName();
         final String password = randomName();
-        registration.setEmail(randomEmail());
-        registration.setPassword(password);
-        registration.setPublisherName(randomName());
-        registration.setPublisherTos(1);
+        final AppStoreAccountRegistration registration = (AppStoreAccountRegistration) new AppStoreAccountRegistration()
+                .setRegistrationType(RegistrationType.publisher)
+                .setTos(true)
+                .setPassword(password)
+                .setEmail(randomEmail())
+                .setMobilePhoneCountryCode(1)
+                .setMobilePhone(RandomStringUtils.randomNumeric(10))
+                .setFirstName(name)
+                .setLastName(name)
+                .setName(name);
         return registration;
     }
 

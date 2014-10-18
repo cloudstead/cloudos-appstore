@@ -1,27 +1,27 @@
 package cloudos.appstore.model.support;
 
+import cloudos.appstore.model.AppStoreAccount;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import cloudos.appstore.ValidationConstants;
+import lombok.experimental.Accessors;
+import org.cobbzilla.util.string.StringUtil;
+import org.cobbzilla.wizard.validation.HasValue;
 import org.cobbzilla.wizard.validation.IsUnique;
 
 @IsUnique(id="uuid", unique="email", daoBean="appStoreAccountDAO", message=ValidationConstants.ERR_EMAIL_NOT_UNIQUE)
-public class AppStoreAccountRegistration {
+@Accessors(chain=true)
+public class AppStoreAccountRegistration extends AppStoreAccount {
 
-    @Getter @Setter private String email;
+    @HasValue(message="err.password.empty")
     @Getter @Setter private String password;
+    @JsonIgnore public boolean hasPassword() { return !StringUtil.empty(password); }
 
-    @JsonIgnore public boolean isPublisher () { return publisherTos != null && publisherTos >= 0; }
-    @Getter @Setter private Integer publisherTos;
-    @Getter @Setter private String publisherName;
+    @Getter @Setter private RegistrationType registrationType;
 
-    @JsonIgnore public boolean isConsumer () { return consumerTos != null && consumerTos >= 0; }
-    @Getter @Setter private Integer consumerTos;
-
-    public boolean hasOneTos () {
-        // must be exactly one. not neither, not both
-        return (isConsumer() || isPublisher()) && !(isConsumer() && isPublisher());
-    }
+    @HasValue(message="err.tos.empty")
+    @Getter @Setter private Boolean tos;
+    public boolean hasTos () { return tos != null && tos; }
 
 }
