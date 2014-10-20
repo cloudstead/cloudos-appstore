@@ -21,9 +21,6 @@ public class AppDatabase {
 
     @Getter @Setter private String schema;
 
-    @Getter @Setter private String here_schema;
-    @JsonIgnore public boolean hasHere_schema () { return !StringUtils.isEmpty(here_schema); }
-
     // only applies to schema or here_schema, not init_command
     @Getter @Setter private String unless;
 

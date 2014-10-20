@@ -190,6 +190,12 @@ app_lib.database self, app
 app_lib.{{app.web.type}} self, app
 {{/if}}
 
+{{#if app.copy}}
+    {{#each app.copy}}
+app_lib.copy self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
 {{#if app.move}}
     {{#each app.move}}
 app_lib.move self, '{{this}}', '{{@key}}', app

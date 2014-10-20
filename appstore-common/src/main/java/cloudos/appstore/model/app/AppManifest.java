@@ -6,10 +6,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.cobbzilla.util.collection.ArrayUtil;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @ToString
 public class AppManifest {
@@ -56,6 +59,7 @@ public class AppManifest {
     @Getter @Setter private String[] dirs;
     @Getter @Setter private Map<String, String> symlinks;
     @Getter @Setter private Map<String, AppPermission> perms = new LinkedHashMap<>();
+    @Getter @Setter private Map<String, String> copy;
     @Getter @Setter private Map<String, String> move;
     @Getter @Setter private Map<String, String> append;
 

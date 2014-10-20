@@ -70,6 +70,7 @@ class Chef::Recipe::{{app.chefName}}
 
         value = value.gsub('@chef_user', base.chef_user)
         value = value.gsub('@chef_home', base.chef_user_home)
+        value = value.gsub('@files', "#{base.chef_user_home}/chef/cookbooks/#{app[:name]}/files/default")
         value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
 
         if defined? Chef::Recipe::Java.java_home
@@ -255,6 +256,17 @@ mv #{from} #{to}
         end
     end
 
+    def self.copy(chef, to, from, app)
+        to = subst(to, app)
+        from = subst(from, app)
+        chef.bash "rsync -avc #{from} #{to}" do
+            user 'root'
+            code <<-EOH
+rsync -avc #{from} #{to}
+            EOH
+        end
+    end
+
     def self.append(chef, data, target, app)
         target = subst(target, app)
         chef.bash "appending to #{target}" do
@@ -265,7 +277,7 @@ cat >> #{target} <<EOF
 EOF
             EOH
             not_if { File.readlines("#{target}").grep(/Regexp.escape(data)/).size > 0 }
-            end
+        end
     end
 
     def self.exec (chef, app, exec, exec_user, dir, stdin, unless_file)

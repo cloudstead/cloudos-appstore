@@ -71,27 +71,16 @@ class Chef::Recipe::{{app.chefName}}
         {{else}}
             database.create_db(chef, dbname, dbuser)
 
-            {{#if app.database.here_schema}}
-          schema_file = "/tmp/{{app.name}}_schema.sql"
-          chef.cookbook_file schema_file do
-            source '{{app.database.here_schema}}'
-            owner 'root'
-            group 'root'
-            mode '0600'
-            action :create
-          end
-          database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
-          File.delete schema_file if File.exists? schema_file
-
-            {{else}}
-              {{#if app.database.schema}}
+            {{#if app.database.schema}}
                 schema_file = app_lib.subst('{{app.database.schema}}', app)
                 schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
                 database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
-              {{/if}}
-
+            {{else}}
+                here_schema = app_lib.subst('@files/{{app.name}}_schema.sql')
+                if File.exists? here_schema
+                    database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
+                end
             {{/if}}
-
         {{/if}}
 
         {{#if app.database.inserts}}

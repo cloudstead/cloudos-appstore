@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.util.system.CommandResult;
+import org.cobbzilla.util.system.CommandShell;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -61,6 +63,22 @@ public class DefaultAppBundler implements AppBundler {
         if (manifest.hasRepo()) templates.add(CHEF_LIBRARIES + "install_git_lib.rb");
         if (manifest.hasTarball()) templates.add(CHEF_LIBRARIES + "install_tarball_lib.rb");
 
+        // Copy all files in files/ to recipe/files/default/
+        // This will pickup and appname_schema.sql (a here-schema), and anything else the app might need at install-time
+        final File localFiles = new File(baseDir, "files");
+        final File chefFilesDir = outputFile(outputBase, CHEF_FILES, name);
+        if (localFiles.exists()) {
+            final File[] files = localFiles.listFiles();
+            if (files == null) throw new IllegalStateException("Invalid 'files' dir, cannot copy: "+localFiles.getAbsolutePath());
+            if (!chefFilesDir.exists() && !chefFilesDir.mkdirs()) throw new IllegalStateException("Error creating files dir: "+chefFilesDir.getAbsolutePath());
+            for (File f : files) {
+                final CommandResult rsync = CommandShell.exec("rsync -avc " + f.getAbsolutePath() + " " + chefFilesDir.getAbsolutePath()+"/");
+                if (rsync.getExitStatus() != 0) {
+                    throw new IllegalStateException("Error copying files (" + f.getAbsolutePath() + "): " + rsync.getStderr());
+                }
+            }
+        }
+
         if (style == AppStyle.rails) {
             templates.add(CHEF_TEMPLATES + "database.yml.erb");
             templates.add(CHEF_TEMPLATES + "Procfile.erb");
@@ -71,12 +89,6 @@ public class DefaultAppBundler implements AppBundler {
         if (manifest.hasDatabase()) {
             templates.add(CHEF_LIBRARIES + "database_lib.rb");
             templates.add(CHEF_LIBRARIES + "database_"+ styleName +"_lib.rb");
-
-            if (manifest.getDatabase().hasHere_schema()) {
-                final String schema = manifest.getDatabase().getHere_schema();
-                final File outputSchemaFile = outputFile(outputBase, CHEF_FILES, name, schema);
-                FileUtils.copyFile(new File(baseDir + "files/" + schema), outputSchemaFile);
-            }
         }
 
         if (manifest.hasWeb()) {
@@ -184,6 +196,10 @@ public class DefaultAppBundler implements AppBundler {
     protected void copyToTemplates(String outputBase, String name, String baseDir, String dirFile) throws IOException {
         final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);
         FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
+    }
+
+    protected File outputFile(String base, String path, String appName) {
+        return outputFile(base, path, appName, "");
     }
 
     protected File outputFile(String base, String path, String appName, String file) {
