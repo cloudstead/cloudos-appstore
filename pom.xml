@@ -25,4 +25,12 @@ For commercial use, please contact cloudstead.io
         <module>appstore-test</module>
     </modules>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.cobbzilla</groupId>
+            <artifactId>cobbzilla-utils</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
 </project>
