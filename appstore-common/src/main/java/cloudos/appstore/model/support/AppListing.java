@@ -24,6 +24,7 @@ public class AppListing {
     @Getter @Setter private String name;
     @Getter @Setter private AppStorePublisher publisher;
     @Getter @Setter private List<AppPrice> prices;
+    @Getter @Setter private AppCommunityData community;
 
     @Getter @Setter private AppFootprint footprint;
     public boolean hasFootprint () { return footprint != null; }
