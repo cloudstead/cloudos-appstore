@@ -70,17 +70,30 @@ class Chef::Recipe::{{app.chefName}}
 
         {{else}}
             database.create_db(chef, dbname, dbuser)
+            schema_file = nil
 
             {{#if app.database.schema}}
+                # Load the schema specified in the manifest
                 schema_file = app_lib.subst('{{app.database.schema}}', app)
                 schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
-                database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
             {{else}}
-                here_schema = app_lib.subst('@files/{{app.name}}_schema.sql')
-                if File.exists? here_schema
-                    database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table)
+                # No schema specified in manifest, look for schema file in standard locations
+                [ '_schema', '-schema', '' ].each do |suffix|
+                    schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
+                    if File.exists? schema_file
+                      chef.cookbook_file "/tmp/{{app.name}}#{suffix}.sql" do
+                        mode '0600'
+                        owner 'root'
+                        group 'root'
+                        action :create
+                      end
+                      schema_file = "/tmp/{{app.name}}#{suffix}.sql"
+                      break
+                    end
                 end
             {{/if}}
+
+            database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table) unless schema_file.nil? || !File.exists?(schema_file)
         {{/if}}
 
         {{#if app.database.inserts}}

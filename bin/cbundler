@@ -1,0 +1,27 @@
+#!/bin/bash
+
+function die () {
+  echo 1>&2 "${1}"
+  exit 1
+}
+
+SCRIPT_BASE=$(cd $(dirname $0) && pwd)
+
+APP_BASE=${1}
+if [ -z "${APP_BASE}" ] ; then
+  die "No app dir specified"
+fi
+APP_BASE=$(cd ${APP_BASE} && pwd)
+
+# Run bundler
+cd ${SCRIPT_BASE}/../appstore-common && \
+mvn exec:java \
+  -Dexec.mainClass=cloudos.appstore.bundler.MultiBundlerMain \
+  -Dexec.args="${APP_BASE}" \
+  1>&2
+if [ $? -ne 0 ] ; then
+  die "Error running multi-bundler on ${APP_BASE}"
+fi
+
+# Print names of app bundle tarballs
+find $(find ${APP_BASE} -type d -name target) -type f -name "*-bundle.tar.gz"

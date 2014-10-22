@@ -215,7 +215,7 @@ chgrp #{recursive_flag} #{chgrp} "#{target}"
                 end
             end
         else
-            chown_target = subst_string(chown_target, app)
+            chown_target = app.nil? ? chown_target : subst_string(chown_target, app)
             chef.bash "apply ownership=#{chown_target} to #{target}, recursive=#{recursive}" do
                 user 'root'
                 code <<-EOH
