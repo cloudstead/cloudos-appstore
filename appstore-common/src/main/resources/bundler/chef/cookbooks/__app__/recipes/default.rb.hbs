@@ -170,15 +170,15 @@ app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe std
 
 app_lib.init_{{app.style}} self, app if defined? app_lib.init_{{app.style}}
 
-{{#if app.templates}}
-    {{#each app.templates}}
-app_lib.template_file self, '{{this}}', '{{@key}}', app
+{{#if app.dirs}}
+    {{#each app.dirs}}
+        app_lib.dir self, '{{this}}', app
     {{/each}}
 {{/if}}
 
-{{#if app.dirs}}
-    {{#each app.dirs}}
-app_lib.dir self, '{{this}}', app
+{{#if app.templates}}
+    {{#each app.templates}}
+app_lib.template_file self, '{{this}}', '{{@key}}', app
     {{/each}}
 {{/if}}
 
