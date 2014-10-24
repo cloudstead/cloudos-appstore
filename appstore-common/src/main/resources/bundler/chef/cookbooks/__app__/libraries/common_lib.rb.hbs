@@ -181,19 +181,16 @@ class Chef::Recipe::{{app.chefName}}
             symlink_target = %x(which #{command}).strip
             raise "symlink: Command not found: #{command}" if symlink_target.nil? || symlink_target.empty?
         else
-            # otherwise it's a regular path, perform susbts on it
+            # otherwise it's a regular path, perform subst on it
             symlink_target = subst(symlink_target, app)
         end
-
-        # append file name if the link path is a directory
-        symlink_link << "/#{File.basename symlink_target}" if File.directory? symlink_link
 
         chef.bash "ln -s #{symlink_target} #{symlink_link}" do
             user 'root'
             code <<-EOH
 ln -s #{symlink_target} #{symlink_link}
             EOH
-                not_if { File.exists? symlink_link }
+            not_if { File.exists? symlink_link }
         end
     end
 
@@ -273,7 +270,7 @@ rsync -avc #{from} #{to}
             user 'root'
             code <<-EOH
 cat >> #{target} <<EOF
-    #{data.sub('$', '\\\\$')}
+    #{data.gsub('$', '\\\\$')}
 EOF
             EOH
             not_if { File.readlines("#{target}").grep(/Regexp.escape(data)/).size > 0 }
