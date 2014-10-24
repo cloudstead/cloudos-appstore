@@ -5,6 +5,8 @@
 # {{app.publisher.packaging_copyright}}
 #
 
+require 'fileutils';
+
 class Chef::Recipe::{{app.chefName}}
 
     def self.database (chef, app)
@@ -80,14 +82,15 @@ class Chef::Recipe::{{app.chefName}}
                 # No schema specified in manifest, look for schema file in standard locations
                 [ '_schema', '-schema', '' ].each do |suffix|
                     schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
+                    # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
                     if File.exists? schema_file
-                      chef.cookbook_file "/tmp/{{app.name}}#{suffix}.sql" do
-                        mode '0600'
-                        owner 'root'
-                        group 'root'
-                        action :create
-                      end
-                      schema_file = "/tmp/{{app.name}}#{suffix}.sql"
+                      tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
+                      File.open(tmp_schema, 'w') { |tmp|
+                        tmp.write(File.open(schema_file, 'r') { |schema| schema.read })
+                      }
+                      FileUtils.chmod(0600, tmp_schema)
+                      FileUtils.chown('root', 'root', tmp_schema);
+                      schema_file = tmp_schema
                       break
                     end
                 end
