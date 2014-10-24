@@ -94,7 +94,7 @@ public class MultiBundlerMain {
         options.setOutputDir(outputDir);
 
         bundler.bundle(options, manifest);
-        log.info("tarball("+appBundleDir+"): "+CommandShell.execScript("cd " + outputDir.getAbsolutePath() + "/.. && tar cvzf "+appBundleDir+".tar.gz "+appBundleDir + " 2>&1"));
+        log.info("tarball("+appBundleDir+"): "+CommandShell.execScript("cd " + outputDir.getAbsolutePath() + " && tar cvzf ../"+appBundleDir+".tar.gz . 2>&1"));
     }
 
 }
