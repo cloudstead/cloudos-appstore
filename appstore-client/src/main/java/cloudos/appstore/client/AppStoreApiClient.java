@@ -1,5 +1,6 @@
 package cloudos.appstore.client;
 
+import cloudos.appstore.model.support.RefreshTokenRequest;
 import org.apache.http.client.HttpClient;
 import cloudos.appstore.model.*;
 import cloudos.appstore.model.support.ApiToken;
@@ -37,9 +38,19 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public ApiToken refreshToken () throws Exception {
-        final ApiToken token = new ApiToken(getToken());
-        final RestResponse restResponse = post(AUTH_ENDPOINT, toJson(token));
+        final RefreshTokenRequest request = new RefreshTokenRequest(new ApiToken(getToken()));
+        final RestResponse restResponse = post(AUTH_ENDPOINT, toJson(request));
         return fromJson(restResponse.json, ApiToken.class);
+    }
+
+    public ApiToken refreshToken (String email, String password) throws Exception {
+        final RefreshTokenRequest request = new RefreshTokenRequest(email, password);
+        final RestResponse restResponse = post(AUTH_ENDPOINT, toJson(request));
+        return fromJson(restResponse.json, ApiToken.class);
+    }
+
+    public boolean deleteToken (String token) throws Exception {
+        return delete(AUTH_ENDPOINT+"/"+token).status == 200;
     }
 
     public AppStoreAccount findAccount () throws Exception {

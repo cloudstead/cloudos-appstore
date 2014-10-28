@@ -9,6 +9,6 @@ public class ApiToken {
 
     @Getter @Setter private String token;
 
-    public void init () { token = UUID.randomUUID().toString(); }
+    public ApiToken init () { token = UUID.randomUUID().toString(); return this; }
 
 }

@@ -44,6 +44,10 @@ public class ValidationConstants {
     public static final String ERR_APP_DESCRIPTION_LENGTH = "err.app.description.length";
     public static final int APP_DESCRIPTION_MAXLEN = 16384;
 
+    public static final String ERR_APP_BLURB_EMPTY = "err.app.blurb.empty";
+    public static final String ERR_APP_BLURB_LENGTH = "err.app.blurb.length";
+    public static final int APP_BLURB_MAXLEN = 200;
+
     public static final String ERR_APP_METADATA_LENGTH = "err.app.metadata.length";
     public static final int APP_METADATA_MAXLEN = 65536;
 
@@ -61,27 +65,28 @@ public class ValidationConstants {
     public static final String ERR_APP_SM_ICON_URL_EMPTY = "err.app.smallIconUrl.empty";
     public static final String ERR_APP_SM_ICON_URL_LENGTH = "err.app.smallIconUrl.length";
     public static final String ERR_APP_SM_ICON_SHA_EMPTY = "err.app.smallIconSha.empty";
-    public static final String ERR_APP_SM_ICON_SHA_INVALID = "err.app.smallIconSha.invalid";
     public static final String ERR_APP_SM_ICON_SHA_LENGTH = "err.app.smallIconSha.length";
 
     public static final String ERR_APP_LG_ICON_URL_EMPTY = "err.app.largeIconUrl.empty";
     public static final String ERR_APP_LG_ICON_URL_LENGTH = "err.app.largeIconUrl.length";
     public static final String ERR_APP_LG_ICON_SHA_EMPTY = "err.app.largeIconSha.empty";
-    public static final String ERR_APP_LG_ICON_SHA_INVALID = "err.app.largeIconSha.invalid";
     public static final String ERR_APP_LG_ICON_SHA_LENGTH = "err.app.largeIconSha.length";
 
-    public static final String ERR_APP_SERVER_CONFIG_URL_EMPTY = "err.app.serverConfigUrl.empty";
-    public static final String ERR_APP_SERVER_CONFIG_URL_LENGTH = "err.app.serverConfigUrl.length";
-    public static final String ERR_APP_SERVER_CONFIG_SHA_EMPTY = "err.app.serverConfigSha.empty";
-    public static final String ERR_APP_SERVER_CONFIG_SHA_INVALID = "err.app.serverConfigSha.invalid";
-    public static final String ERR_APP_SERVER_CONFIG_SHA_LENGTH = "err.app.serverConfigSha.length";
+    public static final String ERR_APP_BUNDLE_URL_LENGTH = "err.app.bundleUrl.length";
+    public static final String ERR_APP_BUNDLE_URL_EMPTY = "err.app.bundleUrl.empty";
+    public static final String ERR_APP_BUNDLE_SHA_EMPTY = "err.app.bundleSha.empty";
+    public static final String ERR_APP_BUNDLE_CONFIG_SHA_LENGTH = "err.app.serverConfigSha.length";
+
+    public static final String ERR_DATA_EMPTY = "err.data.empty";
 
     public static final String ERR_SHA_MISMATCH_PREFIX = "err.sha.mismatch.";
     public static final String ERR_SHA_CALCULATION_PREFIX = "err.sha.calculation.";
+    public static final String ERR_URL_EMPTY = "err.url.empty.";
+    public static final String ERR_SHA_EMPTY = "err.sha.empty.";
     public static final String ERR_URL_INVALID_SCHEME_PREFIX = "err.url.invalidScheme.";
     public static final String SMALL_ICON_URL = "smallIconUrl";
     public static final String LARGE_ICON_URL = "largeIconUrl";
-    public static final String SERVER_CONFIG = "serverConfig";
+    public static final String BUNDLE_URL = "bundleUrl";
 
     public static final String ERR_VERSION_APP_UUID_EMPTY = "err.app.version.app.empty";
     public static final String ERR_VERSION_APP_UUID_LENGTH = "err.app.version.app.length";

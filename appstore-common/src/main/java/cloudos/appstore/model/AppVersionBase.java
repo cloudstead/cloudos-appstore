@@ -3,6 +3,7 @@ package cloudos.appstore.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.IdentifiableBase;
 import org.cobbzilla.wizard.model.SemanticVersion;
@@ -21,7 +22,7 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.UUID_MAXLEN;
 
-@MappedSuperclass
+@MappedSuperclass @Accessors(chain=true)
 public class AppVersionBase extends IdentifiableBase {
 
     @Column(nullable=false, length=UUID_MAXLEN)
@@ -45,20 +46,20 @@ public class AppVersionBase extends IdentifiableBase {
     @Getter @Setter private String status;
 
     @JsonIgnore @Transient
-    public CloudAppStatus getAppStatus() { return CloudAppStatus.valueOf(status); };
-    public void setAppStatus (CloudAppStatus status) { this.status = status.name(); }
+    public CloudAppStatus getAppStatus() { return CloudAppStatus.valueOf(status); }
+    public AppVersionBase setAppStatus (CloudAppStatus status) { this.status = status.name(); return this; }
 
     @Embedded @Valid
     @Getter @Setter private AppMutableData data;
 
-    @HasValue(message=ERR_APP_SERVER_CONFIG_URL_EMPTY)
-    @Size(max=URL_MAXLEN, message=ERR_APP_SERVER_CONFIG_URL_LENGTH)
+    @HasValue(message=ERR_APP_BUNDLE_URL_EMPTY)
+    @Size(max=URL_MAXLEN, message=ERR_APP_BUNDLE_URL_LENGTH)
     @Column(nullable=false, length=URL_MAXLEN)
-    @Getter @Setter private String serverConfigUrl;
+    @Getter @Setter private String bundleUrl;
 
-    @HasValue(message=ERR_APP_SERVER_CONFIG_SHA_EMPTY)
-    @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_SERVER_CONFIG_SHA_LENGTH)
+    @HasValue(message=ERR_APP_BUNDLE_SHA_EMPTY)
+    @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_BUNDLE_CONFIG_SHA_LENGTH)
     @Column(nullable=false, length=HASHEDPASSWORD_MAXLEN)
-    @Getter @Setter private String serverConfigUrlSha;
+    @Getter @Setter private String bundleUrlSha;
 
 }

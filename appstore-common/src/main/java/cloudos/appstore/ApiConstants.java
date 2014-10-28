@@ -17,6 +17,7 @@ public class ApiConstants {
 
     public static final String APP_VERSIONS_ENDPOINT = "/versions";
 
-    // consumer endpoints
-    public static final String CHECKOUT_ENDPOINT = "/checkout"; // for donating to apps
+    // cloud-user endpoints
+    public static final String CLOUDS_ENDPOINT = "/clouds/auth";
+    public static final String CLOUDS_API_ENDPOINT = "/clouds/api";
 }

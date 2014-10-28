@@ -18,8 +18,6 @@ public class AppStoreAccountRegistration extends AppStoreAccount {
     @Getter @Setter private String password;
     @JsonIgnore public boolean hasPassword() { return !StringUtil.empty(password); }
 
-    @Getter @Setter private RegistrationType registrationType;
-
     @HasValue(message="err.tos.empty")
     @Getter @Setter private Boolean tos;
     public boolean hasTos () { return tos != null && tos; }

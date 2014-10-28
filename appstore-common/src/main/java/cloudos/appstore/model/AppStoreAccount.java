@@ -15,20 +15,14 @@ import javax.persistence.Transient;
 public class AppStoreAccount extends AccountBase implements TokenPrincipal {
 
     // Set by ApiAuthFilter
-    @JsonIgnore @Transient
-    @Getter private String apiToken;
+    @JsonIgnore @Transient @Getter private String apiToken;
     public void setApiToken(String apiToken) { this.apiToken = apiToken; }
 
-    @Getter @Setter private Integer publisherTosVersion;
-    @JsonIgnore @Transient public boolean isPublisher () { return publisherTosVersion != null && publisherTosVersion > 0; }
-
-    @Getter @Setter private Integer consumerTosVersion;
-    @JsonIgnore @Transient public boolean isConsumer () { return consumerTosVersion != null && consumerTosVersion> 0; }
+    @Getter @Setter private Integer tosVersion;
 
     public AppStoreAccount populate (AppStoreAccountRegistration reg) {
         super.populate(reg);
-        setPublisherTosVersion(reg.getPublisherTosVersion());
-        setConsumerTosVersion(reg.getConsumerTosVersion());
+        setTosVersion(reg.getTos() ? 1 : null); // todo: get TOS version from TOS service/dao. for now default to version 1
         return this;
     }
 }

@@ -28,4 +28,7 @@ public class AppListing {
 
     @Getter @Setter private AppFootprint footprint;
     public boolean hasFootprint () { return footprint != null; }
+
+    @Getter @Setter private AppInstallStatus installStatus = AppInstallStatus.available;
+
 }

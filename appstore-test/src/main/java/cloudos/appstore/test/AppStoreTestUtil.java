@@ -1,15 +1,14 @@
 package cloudos.appstore.test;
 
 import cloudos.appstore.client.AppStoreApiClient;
-import cloudos.appstore.model.*;
+import cloudos.appstore.model.AppMutableData;
+import cloudos.appstore.model.CloudApp;
+import cloudos.appstore.model.CloudAppStatus;
+import cloudos.appstore.model.CloudAppVersion;
 import cloudos.appstore.model.support.ApiToken;
 import cloudos.appstore.model.support.AppStoreAccountRegistration;
-import cloudos.appstore.model.support.RegistrationType;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cobbzilla.util.io.StreamUtil;
-import org.cobbzilla.wizard.model.HashedPassword;
-import org.cobbzilla.wizard.server.RestServer;
-import org.springframework.context.ApplicationContext;
 
 import java.io.IOException;
 
@@ -19,24 +18,6 @@ import static org.cobbzilla.wizardtest.RandomUtil.randomName;
 
 public class AppStoreTestUtil {
 
-    public static AppStoreTestUser createAdminUser (AppStoreApiClient appStoreClient,
-                                                    RestServer server) throws Exception {
-        final AppStoreAccountRegistration registration = AppStoreTestUtil.buildPublisherRegistration();
-
-        final String adminToken = appStoreClient.registerAccount(registration).getToken();
-        AppStoreAccount admin = appStoreClient.findAccount();
-        admin.setAdmin(true);
-        admin.setHashedPassword(new HashedPassword(registration.getPassword()));
-
-        // crack open the application context to access the DAO directly and set the admin flag to true
-        final ApplicationContext applicationContext = server.getApplicationContext();
-        final Object accountDAO = applicationContext.getBean("appStoreAccountDAO");
-        accountDAO.getClass().getMethod("update", Object.class).invoke(accountDAO, admin);
-
-        appStoreClient.setToken(null);
-        return new AppStoreTestUser(adminToken, admin);
-    }
-
     public static ApiToken registerPublisher(AppStoreApiClient appStoreClient) throws Exception {
         return appStoreClient.registerAccount(buildPublisherRegistration());
     }
@@ -45,7 +26,6 @@ public class AppStoreTestUtil {
         final String name = randomName();
         final String password = randomName();
         final AppStoreAccountRegistration registration = (AppStoreAccountRegistration) new AppStoreAccountRegistration()
-                .setRegistrationType(RegistrationType.publisher)
                 .setTos(true)
                 .setPassword(password)
                 .setEmail(randomEmail())
@@ -90,8 +70,8 @@ public class AppStoreTestUtil {
 
         version.setData(data);
 
-        version.setServerConfigUrl(assetUrl("assets/cloud_files_config.json"));
-        version.setServerConfigUrlSha(sha256_url(version.getServerConfigUrl()));
+        version.setBundleUrl(assetUrl("assets/cloud_files_config.json"));
+        version.setBundleUrlSha(sha256_url(version.getBundleUrl()));
         return version;
     }
 

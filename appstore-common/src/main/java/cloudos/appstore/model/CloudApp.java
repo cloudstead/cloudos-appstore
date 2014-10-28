@@ -2,6 +2,7 @@ package cloudos.appstore.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.cobbzilla.wizard.model.IdentifiableBase;
 import org.cobbzilla.wizard.validation.HasValue;
 
@@ -12,7 +13,7 @@ import javax.validation.constraints.Size;
 import static cloudos.appstore.ValidationConstants.*;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.UUID_MAXLEN;
 
-@Entity
+@Entity @Accessors(chain=true)
 public class CloudApp extends IdentifiableBase {
 
     @HasValue(message=ERR_APP_PUBLISHER_UUID_EMPTY)

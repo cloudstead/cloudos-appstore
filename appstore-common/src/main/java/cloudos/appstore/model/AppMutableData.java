@@ -2,6 +2,7 @@ package cloudos.appstore.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.cobbzilla.wizard.validation.HasValue;
 
 import javax.persistence.Column;
@@ -16,8 +17,13 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
  * Data that can change within a CloudAppVersion that is marked LIVE
  * Changes are limited because PublishedApps may refer to these versions
  */
-@Embeddable
+@Embeddable @Accessors(chain=true)
 public class AppMutableData {
+
+    @HasValue(message=ERR_APP_BLURB_EMPTY)
+    @Size(max=APP_BLURB_MAXLEN, message=ERR_APP_BLURB_LENGTH)
+    @Column(nullable=false)
+    @Getter @Setter private String blurb;
 
     @HasValue(message=ERR_APP_DESCRIPTION_EMPTY)
     @Size(max=APP_DESCRIPTION_MAXLEN, message=ERR_APP_DESCRIPTION_LENGTH)
