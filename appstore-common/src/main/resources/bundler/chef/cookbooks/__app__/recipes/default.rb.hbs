@@ -225,7 +225,7 @@ raise "Cannot create mailboxes, standard email_lib not found" unless defined? Ch
 
 email_lib = Chef::Recipe::Email
   {{#each app.mailboxes}}
-email_lib.create_mailbox self, '{{address}}', app[:users]['vmail'][:name], app[:groups]['vmail'][:name], app[:hostname], {{quoted_or_nil alias_for}}
+email_lib.create_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil alias_for}}
   {{/each}}
 {{/if}}
 
