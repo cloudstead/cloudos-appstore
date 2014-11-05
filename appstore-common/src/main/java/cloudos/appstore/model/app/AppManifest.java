@@ -77,6 +77,8 @@ public class AppManifest {
     @Getter @Setter private String plugin = ConfigurableAppRuntime.class.getName();
 
     @Getter @Setter private AppAuthConfig auth;
+    public boolean hasAuth () { return auth != null; }
+    public boolean hasUserManagement () { return auth != null && auth.getUser_management() != null; }
 
     // the chef cookbooks/recipes to install, backup and restore
     @Getter @Setter private AppChefConfig chef = new AppChefConfig();
@@ -97,8 +99,9 @@ public class AppManifest {
     @JsonIgnore
     public String getPath() {
         switch (style) {
-            case php: return web.hasVhost() ? null : name;
             case rails: return null;
+            case nodejs: return null;
+            case php: return web.hasVhost() ? null : name;
             case java_webapp: return null;
             default: throw new IllegalStateException("getPath: invalid style: "+style);
         }
@@ -109,6 +112,7 @@ public class AppManifest {
         if (web.getMode() == AppWebMode.proxy_root) return "_root_";
         switch (style) {
             case rails: return name;
+            case nodejs: return name;
             case php: return web.hasVhost() ? name : null;
             case java_webapp: return web.getMode().isSeparateHostname() ? name : null;
             default: throw new IllegalStateException("getHostname: invalid style: "+style);

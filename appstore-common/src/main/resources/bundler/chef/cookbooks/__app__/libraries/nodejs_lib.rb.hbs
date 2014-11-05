@@ -1,0 +1,23 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: nodejs_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.init (chef, app)
+
+        %w(node npm libpq-dev).each do |pkg|
+            chef.package pkg do
+                action :install
+            end
+        end
+
+        symlink(chef, '/usr/bin/nodejs', '/usr/bin/node', app)
+
+        init_user chef, app
+    end
+
+end

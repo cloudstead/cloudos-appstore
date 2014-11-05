@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.cobbzilla.util.string.StringUtil;
+
+import static org.cobbzilla.util.string.StringUtil.empty;
 
 @NoArgsConstructor @AllArgsConstructor
 public class AppRuntimeDetails {
@@ -12,9 +13,24 @@ public class AppRuntimeDetails {
     @Getter @Setter private String name;
 
     @Getter @Setter private String path;
-    public boolean hasPath () { return !StringUtil.empty(path); }
+    public boolean hasPath() { return !empty(path); }
 
     @Getter @Setter private String hostname;
-    public boolean hasHostname () { return !StringUtil.empty(hostname); }
+    public boolean hasHostname() { return !empty(hostname); }
+
+    public String getPath(String uriBase) {
+        StringBuilder sb = new StringBuilder();
+        if (hasHostname()) {
+            sb.append(uriBase.replace("://", "://" + getHostname() + "-"));
+        } else {
+            sb.append(uriBase);
+        }
+        if (hasPath()) {
+            // ensure a slash exists between the hostname and the path
+            if (!uriBase.endsWith("/") && !getPath().startsWith("/")) sb.append("/");
+            sb.append(getPath());
+        }
+        return sb.toString();
+    }
 
 }

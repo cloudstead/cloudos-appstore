@@ -1,0 +1,19 @@
+<% app_lib = Chef::Recipe::{{app.chefName}} %>
+handler: rooty.toots.app.AppScriptHandler
+
+params:
+  app: {{app.name}}
+  scripts:
+{{#with app.auth.user_management}}
+    user_exists: <%=app_lib.subst('{{exists}}', @app)%>
+    user_create: <%=app_lib.subst('{{create}}', @app)%>
+    user_delete: <%=app_lib.subst('{{delete}}', @app)%>
+    user_change_password: <%=app_lib.subst('{{change_password}}', @app)%>
+{{/with}}
+  script_digests:
+{{#with app.auth.user_management}}
+    user_exists: <%=%x(cat #{app_lib.subst('{{exists}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    user_create: <%=%x(cat #{app_lib.subst('{{create}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    user_delete: <%=%x(cat #{app_lib.subst('{{delete}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    user_change_password: <%=%x(cat #{app_lib.subst('{{change_password}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+{{/with}}

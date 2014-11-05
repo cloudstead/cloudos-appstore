@@ -39,6 +39,7 @@ app = {
     :mail_user => 'cloudos_system_mailer',
     :mail_password => base.password('system_mailer')
 }
+app[:service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
 
 (0...9).each do |n|
   app[:uniq] << base.password("{{app.name}}_#{n}")
@@ -65,8 +66,8 @@ begin
   app[:databag][:ports].each do |bagkey, bagvalue|
     app_lib.define_databag_replacements app[:databag_replacements], "@databag[ports]", bagkey, bagvalue
   end
-rescue
-  puts '{{app.name}}/ports databag not found'
+rescue => e
+  puts "{{app.name}}/ports databag not found or error reading: #{e}"
 end
 
 # If we have a base databag, define it and populate replacements, then set hostname
@@ -86,8 +87,8 @@ begin
 
   Chef::Recipe::Base.set_hostname self, fqdn
 
-rescue
-  puts '{{app.name}}/base databag not found'
+rescue => e
+  puts "{{app.name}}/base databag not found or error reading: #{e}"
 end
 
 {{#if app.databags}}
@@ -145,7 +146,7 @@ app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil grou
         {{else}}
             members = nil
         {{/if}}
-        app_lib.group self, app, '{{group}}', members
+        app_lib.define_group self, app, '{{group}}', members
     {{/each}}
 {{/if}}
 
@@ -242,6 +243,10 @@ app_lib.permission(self, '@doc_root', app, nil, nil, '-R u+rx') if app[:doc_root
     {{#each app.logrotate}}
 app_lib.logrotate self, app, '{{this}}'
     {{/each}}
+{{/if}}
+
+{{#if app.auth.user_management}}
+app_lib.user_management self, app
 {{/if}}
 
 {{#if app.sysinit}}

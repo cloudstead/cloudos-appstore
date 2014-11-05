@@ -1,9 +1,6 @@
 package cloudos.appstore.bundler;
 
-import cloudos.appstore.model.app.AppManifest;
-import cloudos.appstore.model.app.AppStyle;
-import cloudos.appstore.model.app.AppWebApache;
-import cloudos.appstore.model.app.AppWebType;
+import cloudos.appstore.model.app.*;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
@@ -84,11 +81,24 @@ public class DefaultAppBundler implements AppBundler {
             templates.add(CHEF_TEMPLATES + "Procfile.erb");
         }
 
-        if (manifest.hasSysinit()) templates.add(CHEF_TEMPLATES + "init.sh.erb");
+        if (manifest.hasSysinit()) {
+            // todo: walk the sysinit values, include only the required templates
+            templates.add(CHEF_TEMPLATES + "init.sh.erb");
+            templates.add(CHEF_TEMPLATES + "init_wrapper.sh.erb");
+        }
 
         if (manifest.hasDatabase()) {
             templates.add(CHEF_LIBRARIES + "database_lib.rb");
             templates.add(CHEF_LIBRARIES + "database_"+ styleName +"_lib.rb");
+        }
+
+        if (manifest.hasUserManagement()) {
+            final AppUserManagement userMgmt = manifest.getAuth().getUser_management();
+            templates.add(CHEF_TEMPLATES + "rooty_handler.yml.erb");
+            copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getExists()));
+            copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getCreate()));
+            copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getDelete()));
+            copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getChange_password()));
         }
 
         if (manifest.hasWeb()) {
@@ -192,6 +202,8 @@ public class DefaultAppBundler implements AppBundler {
 
         FileUtil.toFile(new File(outputDir, "cloudos-manifest.json"), JsonUtil.toJson(manifest));
     }
+
+    private String basename(String prefix) { return new File(prefix + ".erb").getName(); }
 
     protected void copyToTemplates(String outputBase, String name, String baseDir, String dirFile) throws IOException {
         final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);

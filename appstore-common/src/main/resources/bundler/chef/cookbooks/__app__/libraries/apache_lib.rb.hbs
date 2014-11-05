@@ -31,6 +31,10 @@ class Chef::Recipe::{{app.chefName}}
           :vhost => :{{app.web.apache.vhost}},
         {{/if}}
 
+        {{#if app.auth.http_auth}}
+          :auth => :{{app.auth.http_auth}},
+        {{/if}}
+
         {{#if app.web.apache.dir}}
           :dir => %w( {{#each app.web.apache.dir}}{{this}} {{/each}}),
         {{/if}}

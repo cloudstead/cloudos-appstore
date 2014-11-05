@@ -24,7 +24,10 @@ public abstract class AppRuntimeBase implements AppRuntime {
     public static final String REFERER = "Referer";
 
     @Getter @Setter protected AppRuntimeDetails details;
+
     @Getter @Setter protected AppAuthConfig authentication;
+    public boolean hasAuthentication() { return authentication != null; }
+    public boolean hasUserManagement() { return hasAuthentication() && authentication.hasUser_management(); }
 
     @Override public boolean isRegistrationPage(String document) { return false; }
 

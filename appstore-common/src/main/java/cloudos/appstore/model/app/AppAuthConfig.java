@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.cobbzilla.util.http.HttpAuthType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +15,13 @@ import java.util.regex.Pattern;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
 public class AppAuthConfig {
+
+    @Getter @Setter
+    HttpAuthType http_auth;
+    public boolean hasHttp_auth () { return http_auth != null; }
+
+    @Getter @Setter AppUserManagement user_management;
+    public boolean hasUser_management () { return user_management != null; }
 
     @Setter private String home_path;
     public String getHome_path () { return empty(home_path) ? "" : home_path; }

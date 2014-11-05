@@ -1,0 +1,25 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: apache_nodejs_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.apache_nodejs (chef, app, config)
+
+        apache = Chef::Recipe::Apache
+        apache.enable_module(chef, 'proxy')
+        apache.enable_module(chef, 'headers')
+
+        config[:mode] ||= :proxy
+
+        ports_bag = chef.data_bag_item('{{app.name}}', 'ports')
+        app[:port] = config[:port] = ports_bag['primary']
+        app[:admin_port] = config[:admin_port] = ports_bag['admin']
+
+        apache.define_app(chef, '{{app.name}}', config)
+    end
+
+end

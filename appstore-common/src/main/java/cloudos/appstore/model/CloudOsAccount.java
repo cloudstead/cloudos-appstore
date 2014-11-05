@@ -5,4 +5,5 @@ public interface CloudOsAccount {
     public String getName();
     public String getPassword();
 
+    public boolean isAdmin();
 }

@@ -82,10 +82,22 @@ class Chef::Recipe::{{app.chefName}}
             value = "#{app[:run_as_home]}/#{value}"
         end
 
+        # Look for hash function prefixes and process their innards
+        { '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) } }.each do |hfunc, hasher|
+            prefix = "#{hfunc}("
+            found = value.index prefix
+            while found
+                closing_paren = value.index ')', found+1
+                inner_value = value[found + prefix.length, closing_paren - found - prefix.length]
+                value = value.sub("#{prefix}#{inner_value})", hasher(inner_value))
+                found = value.index prefix
+            end
+        end
+
         value
     end
 
-    def self.group(chef, app, group_name, members_list = nil)
+    def self.define_group(chef, app, group_name, members_list = nil)
         if members_list
             chef.group group_name do
                 action :create
@@ -141,7 +153,7 @@ class Chef::Recipe::{{app.chefName}}
 {{#if app.web.doc_root}}
         app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
 {{else}}
-        app[:doc_root] = "#{app[:run_as_home]}/#{app[:run_as]}"
+        app[:doc_root] = "#{app[:run_as_home]}/{{app.name}}"
 {{/if}}
     end
 
@@ -311,6 +323,8 @@ fi
     end
 
     def self.sysinit (chef, app, command)
+        svc = app[:service_name]
+        init_svc = "/etc/init.d/#{svc}"
 
         if command.start_with? 'jrun'
             command_parts = command.split(':')
@@ -324,15 +338,38 @@ fi
             java = Chef::Recipe::Java
             java.define_service(chef, subst('@name', app), run_as, java_class, java_yml)
 
+        elsif command.start_with? 'wrap'
+            command_parts = command.split(':')
+            script = subst(command_parts[1], app)
+            pattern = subst_string(command_parts[2], app)
+            pattern ||= script
+            run_as = command_parts[3]
+            run_as = subst_string(run_as, app) unless run_as.nil?
+            run_as ||= app[:run_as]
+
+            unless File.exists? init_svc
+                chef.template init_svc do
+                    source "init_wrapper.sh.erb"
+                    owner 'root'
+                    group 'root'
+                    mode '0755'
+                    variables({ :script => script, :app => app, :pattern => pattern, :run_as => run_as })
+                    action :create
+                end
+
+                chef.service app[:service_name] do
+                    pattern pattern
+                    supports [ :start => true, :stop => true ]
+                    action [ :enable, :start ]
+                end
+        end
+
         else
-            base = Chef::Recipe::Base
-            svc = "{{app.id}}_#{base.password(command)}"
             command = subst(command, app)
 
-            unless File.exists? "/etc/init.d/#{svc}"
-                chef.template command do
-                    path "/etc/init.d/#{svc}"
-                    source "init.sh.erb"
+            unless File.exists? init_svc
+                chef.template init_svc do
+                    source 'init.sh.erb'
                     owner 'root'
                     group 'root'
                     mode '0755'
@@ -358,4 +395,24 @@ fi
         end
     end
 
+    def self.user_management (chef, app)
+        {{#each app.auth.user_management.templates}}
+        script = subst('{{this}}', app)
+        chef.template script do
+            owner app[:run_as]
+            mode '0744'
+            variables({ :app => app })
+            action :create
+        end
+        {{/each}}
+
+        chef.template "/etc/rooty_handlers/#{app[:name]}_user_mgmt.yml" do
+            source 'rooty_handler.yml.erb'
+            owner 'root'
+            group 'root'
+            mode '0400'
+            variables({ :app => app })
+            action :create
+        end
+    end
 end

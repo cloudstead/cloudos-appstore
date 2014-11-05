@@ -25,5 +25,7 @@ public interface AppRuntime {
 
     public AppAuthConfig getAuthentication();
     public AppRuntime setAuthentication(AppAuthConfig authentication);
+    public boolean hasAuthentication ();
+    public boolean hasUserManagement ();
 
 }
