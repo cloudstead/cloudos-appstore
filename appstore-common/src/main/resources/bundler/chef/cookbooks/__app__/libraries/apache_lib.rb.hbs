@@ -13,7 +13,12 @@ class Chef::Recipe::{{app.chefName}}
 
         {{#if app.web.apache.mods}}
           {{#each app.web.apache.mods}}
-            apache.enable_module(chef, '{{this}}')
+            mod_name = '{{this}}'
+            if mod_name.start_with? '@'
+                mod_name = mod_name[1..mod_name.length-1]
+                apache.new_module(chef, mod_name)
+            end
+            apache.enable_module(chef, mod_name)
           {{/each}}
         {{/if}}
 
