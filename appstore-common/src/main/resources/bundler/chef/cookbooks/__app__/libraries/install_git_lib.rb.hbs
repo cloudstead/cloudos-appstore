@@ -20,7 +20,7 @@ class Chef::Recipe::{{app.chefName}}
         {{#if app.supporting_repos}}
             {{#each app.supporting_repos}}
                 {{#if dir}}
-        dir = '{{dir}}'
+        dir = subst('{{dir}}', app)
                 {{else}}
         dir = nil
                 {{/if}}
