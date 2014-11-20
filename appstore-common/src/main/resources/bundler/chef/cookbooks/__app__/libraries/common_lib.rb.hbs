@@ -406,6 +406,13 @@ fi
         end
         {{/each}}
 
+        chef.directory '/etc/rooty_handlers' do
+            owner 'root'
+            group 'root'
+            mode '0700'
+            action :create
+        end
+
         chef.template "/etc/rooty_handlers/#{app[:name]}_user_mgmt.yml" do
             source 'rooty_handler.yml.erb'
             owner 'root'

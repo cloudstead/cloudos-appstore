@@ -5,9 +5,22 @@ import lombok.Getter;
 import lombok.Setter;
 import org.cobbzilla.util.security.HashType;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.cobbzilla.util.string.StringUtil.empty;
+
 public class AppUserManagement {
 
-    @JsonIgnore public String[] getTemplates () { return new String[] {exists, create, delete, change_password};  }
+    @JsonIgnore @Getter(lazy=true) private final List<String> templates = initTemplates();
+    private List<String> initTemplates () {
+        final List<String> templates = new ArrayList<>();
+        if (!empty(exists)) templates.add(exists);
+        if (!empty(create)) templates.add(create);
+        if (!empty(delete)) templates.add(delete);
+        if (!empty(change_password)) templates.add(change_password);
+        return templates;
+    }
 
     @Getter @Setter private String exists;
     @Getter @Setter private String create;

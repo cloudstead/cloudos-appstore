@@ -203,11 +203,13 @@ public class DefaultAppBundler implements AppBundler {
         FileUtil.toFile(new File(outputDir, "cloudos-manifest.json"), JsonUtil.toJson(manifest));
     }
 
-    private String basename(String prefix) { return new File(prefix + ".erb").getName(); }
+    private String basename(String prefix) { return prefix == null ? null : new File(prefix + ".erb").getName(); }
 
     protected void copyToTemplates(String outputBase, String name, String baseDir, String dirFile) throws IOException {
-        final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);
-        FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
+        if (dirFile != null) {
+            final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);
+            FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
+        }
     }
 
     protected File outputFile(String base, String path, String appName) {
