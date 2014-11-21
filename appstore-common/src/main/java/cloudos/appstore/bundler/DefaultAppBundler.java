@@ -63,19 +63,10 @@ public class DefaultAppBundler implements AppBundler {
 
         // Copy all files in files/ to recipe/files/default/
         // This will pickup and appname_schema.sql (a here-schema), and anything else the app might need at install-time
-        final File localFiles = new File(baseDir, "files");
-        final File chefFilesDir = outputFile(outputBase, CHEF_FILES, name);
-        if (localFiles.exists()) {
-            final File[] files = localFiles.listFiles();
-            if (files == null) throw new IllegalStateException("Invalid 'files' dir, cannot copy: "+localFiles.getAbsolutePath());
-            if (!chefFilesDir.exists() && !chefFilesDir.mkdirs()) throw new IllegalStateException("Error creating files dir: "+chefFilesDir.getAbsolutePath());
-            for (File f : files) {
-                final CommandResult rsync = CommandShell.exec("rsync -avc " + f.getAbsolutePath() + " " + chefFilesDir.getAbsolutePath()+"/");
-                if (rsync.getExitStatus() != 0) {
-                    throw new IllegalStateException("Error copying files (" + f.getAbsolutePath() + "): " + rsync.getStderr());
-                }
-            }
-        }
+        copy(options, manifest, "files");
+
+        // Copy extra recipes
+        copy(options, manifest, "recipes");
 
         if (style == AppStyle.rails) {
             templates.add(CHEF_TEMPLATES + "database.yml.erb");
@@ -204,11 +195,46 @@ public class DefaultAppBundler implements AppBundler {
         FileUtil.toFile(new File(outputDir, "cloudos-manifest.json"), JsonUtil.toJson(manifest));
     }
 
-    private String basename(String prefix) { return new File(prefix + ".erb").getName(); }
+    private void copy(BundlerOptions options, AppManifest manifest, String assetType) throws IOException {
+
+        final String name = manifest.getName();
+        final String baseDir = options.getManifest().getParentFile().getAbsolutePath() + "/";
+        final File outputDir = options.getOutputDir();
+        final String outputBase = outputDir.getAbsolutePath() + "/";
+
+        final File localDir = new File(baseDir, assetType);
+        final File chefDir = outputFile(outputBase, getPath(assetType), name);
+
+        if (localDir.exists()) {
+            final File[] files = localDir.listFiles();
+            if (files == null) throw new IllegalStateException("Invalid '"+assetType+"' dir, cannot copy: "+localDir.getAbsolutePath());
+            if (!chefDir.exists() && !chefDir.mkdirs()) throw new IllegalStateException("Error creating "+assetType+"s dir: "+chefDir.getAbsolutePath());
+            for (File f : files) {
+                final CommandResult rsync = CommandShell.exec("rsync -avc " + f.getAbsolutePath() + " " + chefDir.getAbsolutePath() + "/");
+                if (rsync.getExitStatus() != 0) {
+                    throw new IllegalStateException("Error copying "+assetType+"s (" + f.getAbsolutePath() + "): " + rsync.getStderr());
+                }
+            }
+        }
+    }
+
+    private String getPath(String assetType) {
+        switch (assetType) {
+            case "files": return CHEF_FILES;
+            case "recipes": return CHEF_RECIPES;
+            case "libraries": return CHEF_LIBRARIES;
+            case "templates": return CHEF_TEMPLATES;
+        }
+        throw new IllegalArgumentException("getPath: unknown assetType: "+assetType);
+    }
+
+    private String basename(String prefix) { return prefix == null ? null : new File(prefix + ".erb").getName(); }
 
     protected void copyToTemplates(String outputBase, String name, String baseDir, String dirFile) throws IOException {
-        final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);
-        FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
+        if (dirFile != null) {
+            final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);
+            FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
+        }
     }
 
     protected File outputFile(String base, String path, String appName) {
