@@ -1,0 +1,42 @@
+#
+# Cookbook Name:: {{app.name}}
+# Recipe:: restore
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+{{#if app.database}}
+database = Chef::Recipe::{{app.database.chefType}}
+dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
+{{#if app.database.dbname}}
+dbname = app[:dbname] = '{{ident app.database.dbname}}'
+{{/if}}
+{{#if app.database.dbuser}}
+    dbuser = app[:dbuser] = '{{ident app.database.dbuser}}'
+{{/if}}
+{{#if app.parent}}
+    dbname ||= app[:dbname] ||= '{{ident app.parent}}'
+    dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
+{{else}}
+    default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+    dbname ||= app[:dbname] ||= default_db_val
+{{/if}}
+dbpass = app[:dbpass] = base.password("db_#{dbname}")
+{{/if}}
+
+bash "restore {{app.name}}" do
+user "root"
+cwd "<%=@restore_dir%>"
+code <<-EOF
+echo "restoring files from backup at <%=@restore_dir%>"
+cp -rpf * /
+EOF
+end
+
+{{#if app.database}}
+database.drop_db(chef, dbname)
+database.create_db(chef, dbname, dbuser)
+database.initialize_db(chef, "<%=@restore_dir%>/tmp/<%=@dumpfile%>", dbuser, dbpass, dbname)
+{{/if}}
+
+
