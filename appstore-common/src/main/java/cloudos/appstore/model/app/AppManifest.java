@@ -8,7 +8,10 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 import org.cobbzilla.util.collection.ArrayUtil;
+import org.cobbzilla.util.io.FileUtil;
+import org.cobbzilla.util.json.JsonUtil;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,19 +20,36 @@ import java.util.Map;
 @ToString
 public class AppManifest {
 
+    public static final String CLOUDOS_MANIFEST_JSON = "cloudos-manifest.json";
+    public static final String PLUGIN_JAR = "plugin.jar";
+
+    public static AppManifest load(File file) {
+        final File manifestFile = file.isDirectory() ? new File(file, AppManifest.CLOUDOS_MANIFEST_JSON) : file;
+        return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(manifestFile), AppManifest.class);
+    }
+
     @Getter @Setter private String name;
     @JsonIgnore public String getChefName () { return StringUtils.capitalize(getId()); }
 
     @JsonIgnore @Getter(lazy=true) private final String id = initId();
-    private String initId () { return getName().replace('-', '_').replaceAll("\\W", ""); }
+    private String initId () { return scrub(getName()); }
+
+    public static String scrub(String string) { return string == null ? null : string.replace('-', '_').replaceAll("\\W", ""); }
+
+    public static String scrubDirname(String string) { return string == null ? null : string.replaceAll("[^a-zA-Z_0-9\\.\\-]", ""); }
 
     @Getter @Setter private String version;
+
+    @JsonIgnore public String getScrubbedName () { return scrubDirname(getName()); }
+    @JsonIgnore public String getScrubbedVersion () { return scrubDirname(getVersion()); }
+
     @Getter @Setter private AppStyle style;
     @Getter @Setter private String parent;
     @Getter @Setter private AppUser run_as;
     @Getter @Setter private AppPublisher publisher;
 
     @Getter @Setter private AppDatabagDef[] databags;
+    public boolean hasDatabags () { return databags != null && databags.length > 0; }
 
     @Getter @Setter private String[] packages;
     @Getter @Setter private String[] passwords;
