@@ -20,11 +20,14 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
 
+import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
+
 @Slf4j
 public class DefaultAppBundler implements AppBundler {
 
     public static final String APP = "__app__";
     public static final String COOKBOOK = "chef/cookbooks/"+APP+"/";
+    public static final String DATABAG_DIR = "chef/data_bags/"+APP+"/";
     public static final String CHEF_METADATA = COOKBOOK + "metadata.rb";
     public static final String CHEF_README = COOKBOOK + "README.md";
     public static final String CHEF_RECIPES = COOKBOOK + "recipes/";
@@ -192,7 +195,16 @@ public class DefaultAppBundler implements AppBundler {
             manifest.addLogrotate("@repo/log/*.log");
         }
 
-        FileUtil.toFile(new File(outputDir, "cloudos-manifest.json"), JsonUtil.toJson(manifest));
+        final File manifestFile = new File(outputDir, CLOUDOS_MANIFEST_JSON);
+        FileUtil.toFile(manifestFile, JsonUtil.toJson(manifest));
+
+        // Put a copy of the manifest under data_bags
+        final File manifestCopy = outputFile(outputBase, DATABAG_DIR, name, CLOUDOS_MANIFEST_JSON);
+        final File databagDir = manifestCopy.getParentFile();
+        if (!databagDir.exists() && !databagDir.mkdirs()) {
+            throw new IllegalStateException("error creating directory: "+databagDir.getAbsolutePath());
+        }
+        FileUtils.copyFile(manifestFile, new File(databagDir, CLOUDOS_MANIFEST_JSON));
     }
 
     private void copy(BundlerOptions options, AppManifest manifest, String assetType) throws IOException {
