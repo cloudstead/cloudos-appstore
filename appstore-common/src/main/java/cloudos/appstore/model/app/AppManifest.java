@@ -1,5 +1,6 @@
 package cloudos.appstore.model.app;
 
+import cloudos.appstore.model.AppMutableData;
 import cloudos.appstore.model.AppRuntimeDetails;
 import cloudos.appstore.model.ConfigurableAppRuntime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -47,6 +48,8 @@ public class AppManifest {
     @Getter @Setter private String parent;
     @Getter @Setter private AppUser run_as;
     @Getter @Setter private AppPublisher publisher;
+    @Getter @Setter private boolean interactive = false;
+    @Getter @Setter private AppMutableData assets;
 
     @Getter @Setter private AppDatabagDef[] databags;
     public boolean hasDatabags () { return databags != null && databags.length > 0; }
@@ -113,28 +116,32 @@ public class AppManifest {
 
     @JsonIgnore
     public AppRuntimeDetails getInstalledAppDetails () {
-        return new AppRuntimeDetails(name, getPath(), getHostname());
+        return new AppRuntimeDetails(name, getPath(), getHostname(), isInteractive(), getAssets());
     }
 
     @JsonIgnore
     public String getPath() {
+        if (!isInteractive()) return null;
         switch (style) {
             case rails: return null;
             case nodejs: return null;
             case php: return web.hasVhost() ? null : name;
             case java_webapp: return null;
+            case system: return null;
             default: throw new IllegalStateException("getPath: invalid style: "+style);
         }
     }
 
     @JsonIgnore
     public String getHostname() {
+        if (!isInteractive()) return null;
         if (web.getMode() == AppWebMode.proxy_root) return "_root_";
         switch (style) {
             case rails: return name;
             case nodejs: return name;
             case php: return web.hasVhost() ? name : null;
             case java_webapp: return web.getMode().isSeparateHostname() ? name : null;
+            case system: return null;
             default: throw new IllegalStateException("getHostname: invalid style: "+style);
         }
     }

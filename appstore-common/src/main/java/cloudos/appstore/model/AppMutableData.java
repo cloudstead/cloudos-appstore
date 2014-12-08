@@ -33,6 +33,14 @@ public class AppMutableData {
     @Size(max=APP_METADATA_MAXLEN, message=ERR_APP_METADATA_LENGTH)
     @Getter @Setter private String metadata;
 
+    @Size(max=URL_MAXLEN, message=ERR_APP_TB_ICON_URL_LENGTH)
+    @Column(nullable=false, length=URL_MAXLEN)
+    @Getter @Setter private String taskBarIconUrl;
+
+    @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_TB_ICON_SHA_LENGTH)
+    @Column(length=HASHEDPASSWORD_MAXLEN)
+    @Getter @Setter private String taskBarIconUrlSha;
+
     @HasValue(message=ERR_APP_SM_ICON_URL_EMPTY)
     @Size(max=URL_MAXLEN, message=ERR_APP_SM_ICON_URL_LENGTH)
     @Column(nullable=false, length=URL_MAXLEN)

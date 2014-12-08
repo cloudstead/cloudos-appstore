@@ -20,7 +20,6 @@ import javax.validation.constraints.Size;
 import static cloudos.appstore.ValidationConstants.*;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
-import static org.cobbzilla.wizard.model.BasicConstraintConstants.UUID_MAXLEN;
 
 @MappedSuperclass @Accessors(chain=true)
 public class AppVersionBase extends IdentifiableBase {
@@ -48,6 +47,8 @@ public class AppVersionBase extends IdentifiableBase {
     @JsonIgnore @Transient
     public CloudAppStatus getAppStatus() { return CloudAppStatus.valueOf(status); }
     public AppVersionBase setAppStatus (CloudAppStatus status) { this.status = status.name(); return this; }
+
+    @Getter @Setter private boolean interactive;
 
     @Embedded @Valid
     @Getter @Setter private AppMutableData data;

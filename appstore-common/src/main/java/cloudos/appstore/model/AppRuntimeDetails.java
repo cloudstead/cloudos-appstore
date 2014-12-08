@@ -18,7 +18,14 @@ public class AppRuntimeDetails {
     @Getter @Setter private String hostname;
     public boolean hasHostname() { return !empty(hostname); }
 
+    @Getter @Setter private boolean interactive;
+
+    @Getter @Setter private AppMutableData assets;
+
     public String getPath(String uriBase) {
+
+        if (!isInteractive()) throw new IllegalArgumentException("app '"+name+"' is not interactive");
+
         StringBuilder sb = new StringBuilder();
         if (hasHostname()) {
             sb.append(uriBase.replace("://", "://" + getHostname() + "-"));

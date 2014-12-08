@@ -28,4 +28,9 @@ public class AppUserManagement {
     @Getter @Setter private String change_password;
     @Getter @Setter private HashType password_hash = HashType.sha256;
 
+    @JsonIgnore public boolean hasUserExists() { return !empty(exists); }
+    @JsonIgnore public boolean hasUserCreate() { return !empty(create); }
+    @JsonIgnore public boolean hasUserDelete() { return !empty(delete); }
+    @JsonIgnore public boolean hasChangePassword() { return !empty(change_password); }
+
 }

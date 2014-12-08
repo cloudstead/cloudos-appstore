@@ -62,6 +62,9 @@ public class ValidationConstants {
 
     public static final String ERR_APP_STATUS_INVALID = "err.app.status.invalid";
 
+    public static final String ERR_APP_TB_ICON_URL_LENGTH = "err.app.taskbarIconUrl.length";
+    public static final String ERR_APP_TB_ICON_SHA_LENGTH = "err.app.taskbarIconSha.length";
+
     public static final String ERR_APP_SM_ICON_URL_EMPTY = "err.app.smallIconUrl.empty";
     public static final String ERR_APP_SM_ICON_URL_LENGTH = "err.app.smallIconUrl.length";
     public static final String ERR_APP_SM_ICON_SHA_EMPTY = "err.app.smallIconSha.empty";
