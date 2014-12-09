@@ -20,4 +20,8 @@ public class ApiConstants {
     // cloud-user endpoints
     public static final String CLOUDS_ENDPOINT = "/clouds/auth";
     public static final String CLOUDS_API_ENDPOINT = "/clouds/api";
+
+    // admin endpoints
+    public static final String SEARCH_ENDPOINT = "/admin/search"; // for searching everything but the app store
+
 }
