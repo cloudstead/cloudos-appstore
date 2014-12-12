@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum AppStoreObjectType {
 
-    account, publisher, cloud;
+    account, publisher, cloud, app;
 
     @JsonCreator public static AppStoreObjectType create(String value) { return valueOf(value.toLowerCase()); }
 
