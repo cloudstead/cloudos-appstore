@@ -31,7 +31,7 @@ run_as = init_bag['cloudos']['run_as']
 # to the version we're backed up for
 
 app_metadata = JSON.parse(File.read('/home/#{run_as}/app-repository/{{app.name}}/metadata.json'))
-active_version = app_metadata.active_version
+active_version = app_metadata['active_version']
 if active_version != '{{app.version}}'
     Chef::Application.fatal!('Restore failed. The currently active version of {{app.name}} is #{active_version};
 the restore recipe supports version {{app.version}}. It may be possible to reinstall {{app.name}} v{{app.version}} from
