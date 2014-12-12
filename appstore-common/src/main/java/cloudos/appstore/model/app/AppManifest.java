@@ -18,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cobbzilla.util.string.StringUtil.empty;
+
 @ToString
 public class AppManifest {
 
@@ -46,6 +48,8 @@ public class AppManifest {
 
     @Getter @Setter private AppStyle style;
     @Getter @Setter private String parent;
+    @JsonIgnore public boolean hasParent () { return !empty(parent); }
+
     @Getter @Setter private AppUser run_as;
     @Getter @Setter private AppPublisher publisher;
     @Getter @Setter private boolean interactive = false;
@@ -114,13 +118,17 @@ public class AppManifest {
         return defaultRunlist;
     }
 
+    @Setter private String path;
+
+    public String getPath() { return empty(path) ? getDefaultPath() : path; }
+
     @JsonIgnore
     public AppRuntimeDetails getInstalledAppDetails () {
         return new AppRuntimeDetails(name, getPath(), getHostname(), isInteractive(), getAssets());
     }
 
     @JsonIgnore
-    public String getPath() {
+    public String getDefaultPath() {
         if (!isInteractive()) return null;
         switch (style) {
             case rails: return null;

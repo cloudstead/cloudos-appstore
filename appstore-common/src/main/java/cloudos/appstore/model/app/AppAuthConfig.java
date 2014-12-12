@@ -27,7 +27,7 @@ public class AppAuthConfig {
     public String getHome_path () { return empty(home_path) ? "" : home_path; }
 
     @Getter @Setter private Map<String, String> login_fields = new HashMap<>();
-    @Getter @Setter private String login_path;
+    @Getter @Setter private String login_path = "";
 
     // how we recognize a login page. default is the presence of the names of the login fields
     @Setter private List<String> login_page_markers = new ArrayList<>();

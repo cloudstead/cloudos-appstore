@@ -37,7 +37,15 @@ public class AppRuntimeDetails {
             if (!uriBase.endsWith("/") && !getPath().startsWith("/")) sb.append("/");
             sb.append(getPath());
         }
-        return sb.toString();
+
+
+        final String path = sb.toString();
+        return path.endsWith("/") ? path : path+"/";
     }
 
+    public void mergeParent(AppRuntimeDetails parent) {
+        if (parent.hasPath()) path = parent.getPath() + path;
+        setHostname(parent.getHostname());
+        interactive = parent.isInteractive();
+    }
 }
