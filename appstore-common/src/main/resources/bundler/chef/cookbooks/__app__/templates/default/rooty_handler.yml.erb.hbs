@@ -5,15 +5,31 @@ params:
   app: {{app.name}}
   scripts:
 {{#with app.auth.user_management}}
+    {{#if exists}}
     user_exists: <%=app_lib.subst('{{exists}}', @app)%>
+    {{/if}}
+    {{#if create}}
     user_create: <%=app_lib.subst('{{create}}', @app)%>
+    {{/if}}
+    {{#if delete}}
     user_delete: <%=app_lib.subst('{{delete}}', @app)%>
+    {{/if}}
+    {{#if change_password}}
     user_change_password: <%=app_lib.subst('{{change_password}}', @app)%>
+    {{/if}}
 {{/with}}
   script_digests:
 {{#with app.auth.user_management}}
+    {{#if exists}}
     user_exists: <%=%x(cat #{app_lib.subst('{{exists}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    {{/if}}
+    {{#if create}}
     user_create: <%=%x(cat #{app_lib.subst('{{create}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    {{/if}}
+    {{#if delete}}
     user_delete: <%=%x(cat #{app_lib.subst('{{delete}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    {{/if}}
+    {{#if change_password}}
     user_change_password: <%=%x(cat #{app_lib.subst('{{change_password}}', @app)} | shasum -a 256 | awk '{print $1}').strip%>
+    {{/if}}
 {{/with}}
