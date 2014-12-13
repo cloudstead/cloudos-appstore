@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: {{app.name}}
+# Cookbook Name:: {{app.name}} v{{app.version}}
 # Recipe:: backup
 #
 # {{app.publisher.packaging_copyright}}
@@ -24,11 +24,9 @@ dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
 {{#if app.database.dbname}}
 dbname = app[:dbname] = '{{ident app.database.dbname}}'
 {{/if}}
-
 {{#if app.parent}}
 dbname ||= app[:dbname] ||= '{{ident app.parent}}'
 {{/if}}
-
 {{/if}}
 backup_dir = "/var/cloudos/backup/{{app.name}}"
 
@@ -37,7 +35,7 @@ run_as = init_bag['cloudos']['run_as']
 
 {{#if app.backup.pre}}
     {{#each app.backup.pre}}
-        app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
 
@@ -110,13 +108,17 @@ KEY="/home/${RUNAS}/.backup-key"
 
 echo "creating backup tarball at ${BACKUP_DIR}/${TARBALL}"
 
-tar cjfp $BACKUP_DIR/$TARBALL #{app[:doc_root]} restore restore.json restore-solo.rb
+# add manifest in app_chef_dir/databags/whatever
+tar cjfp $BACKUP_DIR/$TARBALL restore restore.json restore-solo.rb
 
 {{#if app.backup.files}}
-echo "adding supplementary files to backup tarball"
+echo "adding manifest-specified files to backup tarball"
     {{#each app.backup.files}}
-tar rjfp $BACKUP_DIR/$TARBALL {{safe path}}
+tar rjfp $BACKUP_DIR/$TARBALL {{safe this}}
     {{/each}}
+{{else}}
+echo "adding doc_root to backup tarball"
+tar rjfp $BACKUP_DIR/$TARBALL #{app[:doc_root]}
 {{/if}}
 
 {{#if app.database}}
@@ -129,7 +131,7 @@ openssl enc -e -aes256 -pass file:$KEY -in $BACKUP_DIR/$TARBALL -out $BACKUP_DIR
 if [ -f $BACKUP_DIR/$TARBALL ] ; then
 echo "backup tarball created"
 {{#if app.database}}
-    rm -rf tmp
+rm -rf tmp
 {{/if}}
 rm -rf restore
 rm restore.json
@@ -148,6 +150,6 @@ end
 
 {{#if app.backup.post}}
     {{#each app.backup.post}}
-        app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
