@@ -94,6 +94,7 @@ public class AppManifest {
 
     @Getter @Setter private String[] sysinit;
     public boolean hasSysinit () { return sysinit != null && sysinit.length > 0; }
+    public void addSysinit (String spec) { sysinit = ArrayUtil.append(sysinit, spec); }
 
     @Getter @Setter private AppService[] services;
 

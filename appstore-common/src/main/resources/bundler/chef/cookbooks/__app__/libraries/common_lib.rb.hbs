@@ -129,6 +129,13 @@ class Chef::Recipe::{{app.chefName}}
             shell user_shell
             system is_system
         end
+
+        chef.bash "chown #{user_name} #{user_home}" do
+            user 'root'
+            code <<-EOH
+chown #{user_name} #{user_home}
+            EOH
+        end
     end
 
     def self.init_user(chef, app)

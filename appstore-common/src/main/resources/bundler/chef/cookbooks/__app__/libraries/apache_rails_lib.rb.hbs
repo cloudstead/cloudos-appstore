@@ -31,9 +31,8 @@ class Chef::Recipe::{{app.chefName}}
           user 'root'
           cwd "#{app[:run_as_home]}/{{app.name}}"
           code <<-EOF
-foreman export --user #{app[:run_as]} --log $(pwd)/log/ upstart /etc/init
+export PORT=#{app[:port]} ; foreman export --user #{app[:run_as]} --log $(pwd)/log/ upstart /etc/init
         EOF
-        not_if { File.exists? "/etc/init/app-{{app.name}}.conf"  }
         end
 
         chef.bash 'start {{app.name}} app' do
