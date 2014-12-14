@@ -84,8 +84,6 @@ group "root"
 mode 0644
 end
 
-{{#if app.database}}
-full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
 directory "#{backup_dir}/tmp" do
 owner "root"
 group "root"
@@ -93,6 +91,9 @@ mode 0644
 recursive true
 action :create
 end
+
+{{#if app.database}}
+full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
 database.dump(chef,dbname,full_dumpfile)
 {{/if}}
 
@@ -108,7 +109,6 @@ KEY="/home/${RUNAS}/.backup-key"
 
 echo "creating backup tarball at ${BACKUP_DIR}/${TARBALL}"
 
-# add manifest in app_chef_dir/databags/whatever
 tar cjfp $BACKUP_DIR/$TARBALL restore restore.json restore-solo.rb
 
 {{#if app.backup.files}}
