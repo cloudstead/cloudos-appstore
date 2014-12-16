@@ -110,6 +110,9 @@ public class AppManifest {
     // the chef cookbooks/recipes to install, backup and restore
     @Getter @Setter private AppChefConfig chef = new AppChefConfig();
 
+    @Getter @Setter private AppBackupConfig backup = new AppBackupConfig();
+    @Getter @Setter private AppRestoreConfig restore = new AppRestoreConfig();
+
     @JsonIgnore
     public List<String> getChefInstallRunlist () {
         if (!chef.getInstall().isEmpty()) return chef.getInstall();
