@@ -19,7 +19,7 @@ base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 
 timestamp = Time.new.strftime("%Y-%m-%d-%H%M%S")
-tarball = "{{app.name}}-#{timestamp}.tar.bz2"
+tarball = "{{app.name}}-#{timestamp}.tar"
 restorefile = "restore-{{app.name}}-#{timestamp}.rb"
 {{#if app.database}}
 database = Chef::Recipe::{{app.database.chefType}}
@@ -120,24 +120,26 @@ KEY="/home/${RUNAS}/.backup-key"
 
 echo "creating backup tarball at ${BACKUP_DIR}/${TARBALL}"
 
-tar cjfp $BACKUP_DIR/$TARBALL restore restore.json restore-solo.rb
+tar cfp $BACKUP_DIR/$TARBALL restore restore.json restore-solo.rb
 
 {{#if app.backup.files}}
 echo "adding manifest-specified files to backup tarball"
-tar rjfp $BACKUP_DIR/$TARBALL #{filelist}
+tar rfp $BACKUP_DIR/$TARBALL #{filelist}
 {{else}}
 echo "adding doc_root to backup tarball"
-tar rjfp $BACKUP_DIR/$TARBALL #{app[:doc_root]}
+tar rfp $BACKUP_DIR/$TARBALL #{app[:doc_root]}
 {{/if}}
 
 {{#if app.database}}
 echo "adding database dump to backup tarball"
-tar rjfp $BACKUP_DIR/$TARBALL #{full_dumpfile}
+tar rfp $BACKUP_DIR/$TARBALL #{full_dumpfile}
 {{/if}}
 
-openssl enc -e -aes256 -pass file:$KEY -in $BACKUP_DIR/$TARBALL -out $BACKUP_DIR/$TARBALL.enc
+bzip2 $BACKUP_DIR/$TARBALL
 
-if [ -f $BACKUP_DIR/$TARBALL ] ; then
+openssl enc -e -aes256 -pass file:$KEY -in $BACKUP_DIR/$TARBALL.bz2 -out $BACKUP_DIR/$TARBALL.enc
+
+if [ -f $BACKUP_DIR/$TARBALL.bz2 ] ; then
 echo "backup tarball created"
 {{#if app.database}}
 rm -rf tmp
