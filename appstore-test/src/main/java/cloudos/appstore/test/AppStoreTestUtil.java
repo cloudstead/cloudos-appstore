@@ -58,6 +58,7 @@ public class AppStoreTestUtil {
         final CloudAppVersion version = new CloudAppVersion();
         version.setApp(app.getUuid());
         version.setAppStatus(CloudAppStatus.NEW);
+        version.setInteractive(app.hashCode() % 4 > 1);
 
         final AppMutableData data = new AppMutableData();
         data.setDescription(randomName(1000));
@@ -67,6 +68,11 @@ public class AppStoreTestUtil {
 
         data.setLargeIconUrl(assetUrl("assets/cloud_files_small.jpg"));
         data.setLargeIconUrlSha(sha256_url(data.getLargeIconUrl()));
+
+        if (version.isInteractive()) {
+            data.setTaskbarIconUrl(data.getSmallIconUrl());
+            data.setTaskbarIconUrlSha(data.getSmallIconUrlSha());
+        }
 
         version.setData(data);
 

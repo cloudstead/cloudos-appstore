@@ -53,7 +53,9 @@ public class AppManifest {
     @Getter @Setter private AppUser run_as;
     @Getter @Setter private AppPublisher publisher;
     @Getter @Setter private boolean interactive = false;
+
     @Getter @Setter private AppMutableData assets;
+    @JsonIgnore public boolean hasAssets () { return assets != null; }
 
     @Getter @Setter private AppDatabagDef[] databags;
     public boolean hasDatabags () { return databags != null && databags.length > 0; }
