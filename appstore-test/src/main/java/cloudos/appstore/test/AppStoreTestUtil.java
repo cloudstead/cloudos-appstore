@@ -8,6 +8,7 @@ import cloudos.appstore.model.CloudAppVersion;
 import cloudos.appstore.model.support.ApiToken;
 import cloudos.appstore.model.support.AppStoreAccountRegistration;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.cobbzilla.util.io.StreamUtil;
 
 import java.io.IOException;
@@ -58,9 +59,10 @@ public class AppStoreTestUtil {
         final CloudAppVersion version = new CloudAppVersion();
         version.setApp(app.getUuid());
         version.setAppStatus(CloudAppStatus.NEW);
-        version.setInteractive(app.hashCode() % 4 > 1);
+        version.setInteractive(RandomUtils.nextInt(0, 1) == 1);
 
         final AppMutableData data = new AppMutableData();
+        data.setBlurb(randomName(50));
         data.setDescription(randomName(1000));
 
         data.setSmallIconUrl(assetUrl("assets/cloud_files_small.jpg"));
