@@ -15,8 +15,11 @@
 # restore-solo.rb   chef-solo config to restore just these data
 # restore.json      chef-solo runlist for just these data
 
+base = Chef::Recipe::Base
+app_lib = Chef::Recipe::{{app.chefName}}
+
 timestamp = Time.new.strftime("%Y-%m-%d-%H%M%S")
-tarball = "{{app.name}}-#{timestamp}.tar.bz2"
+tarball = "{{app.name}}-#{timestamp}.tar"
 restorefile = "restore-{{app.name}}-#{timestamp}.rb"
 {{#if app.database}}
 database = Chef::Recipe::{{app.database.chefType}}
@@ -61,7 +64,7 @@ owner "root"
 group "root"
 mode 0644
 variables({
-:backup_dir => backup_dir {{#if app.database}},
+:restore_dir => backup_dir {{#if app.database}},
 :dumpfile => dumpfile
 {{/if}}
 })
@@ -84,8 +87,6 @@ group "root"
 mode 0644
 end
 
-{{#if app.database}}
-full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
 directory "#{backup_dir}/tmp" do
 owner "root"
 group "root"
@@ -93,7 +94,18 @@ mode 0644
 recursive true
 action :create
 end
+
+{{#if app.database}}
+full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
 database.dump(chef,dbname,full_dumpfile)
+{{/if}}
+
+{{#if app.backup.files}}
+backup_files = []
+    {{#each app.backup.files}}
+backup_files << app_lib.subst('{{this}}',app)
+    {{/each}}
+filelist = backup_files.join(" ")
 {{/if}}
 
 bash "back up {{app.name}} data & files" do
@@ -108,27 +120,26 @@ KEY="/home/${RUNAS}/.backup-key"
 
 echo "creating backup tarball at ${BACKUP_DIR}/${TARBALL}"
 
-# add manifest in app_chef_dir/databags/whatever
-tar cjfp $BACKUP_DIR/$TARBALL restore restore.json restore-solo.rb
+tar cfp $BACKUP_DIR/$TARBALL restore restore.json restore-solo.rb
 
 {{#if app.backup.files}}
 echo "adding manifest-specified files to backup tarball"
-    {{#each app.backup.files}}
-tar rjfp $BACKUP_DIR/$TARBALL {{safe this}}
-    {{/each}}
+tar rfp $BACKUP_DIR/$TARBALL #{filelist}
 {{else}}
 echo "adding doc_root to backup tarball"
-tar rjfp $BACKUP_DIR/$TARBALL #{app[:doc_root]}
+tar rfp $BACKUP_DIR/$TARBALL #{app[:doc_root]}
 {{/if}}
 
 {{#if app.database}}
 echo "adding database dump to backup tarball"
-tar rjfp $BACKUP_DIR/$TARBALL #{full_dumpfile}
+tar rfp $BACKUP_DIR/$TARBALL #{full_dumpfile}
 {{/if}}
 
-openssl enc -e -aes256 -pass file:$KEY -in $BACKUP_DIR/$TARBALL -out $BACKUP_DIR/$TARBALL.enc
+bzip2 $BACKUP_DIR/$TARBALL
 
-if [ -f $BACKUP_DIR/$TARBALL ] ; then
+openssl enc -e -aes256 -pass file:$KEY -in $BACKUP_DIR/$TARBALL.bz2 -out $BACKUP_DIR/$TARBALL.enc
+
+if [ -f $BACKUP_DIR/$TARBALL.bz2 ] ; then
 echo "backup tarball created"
 {{#if app.database}}
 rm -rf tmp

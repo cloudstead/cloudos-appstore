@@ -5,6 +5,12 @@
 # {{app.publisher.packaging_copyright}}
 #
 
+# NB: this recipe assumes that the backup tarball has already been downloaded and
+# unzipped into restore_dir
+
+base = Chef::Recipe::Base
+app_lib = Chef::Recipe::{{app.chefName}}
+
 {{#if app.database}}
 database = Chef::Recipe::{{app.database.chefType}}
 dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
@@ -53,16 +59,15 @@ cp -rpf * /
 EOF
 end
 
-{{#if app.restore.post}}
-    {{#each app.backup.post}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
-    {{/each}}
-{{/if}}
-
 {{#if app.database}}
 database.drop_db(chef, dbname)
 database.create_db(chef, dbname, dbuser)
 database.initialize_db(chef, "<%=@restore_dir%>/tmp/<%=@dumpfile%>", dbuser, dbpass, dbname)
 {{/if}}
 
+{{#if app.restore.post}}
+    {{#each app.backup.post}}
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+    {{/each}}
+{{/if}}
 
