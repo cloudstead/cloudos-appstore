@@ -60,6 +60,10 @@ public class DefaultAppBundler implements AppBundler {
         templates.add(CHEF_LIBRARIES + "common_lib.rb");
         templates.add(CHEF_LIBRARIES + styleName + "_lib.rb");
         templates.add(CHEF_RECIPES + "backup.rb");
+        templates.add(CHEF_RECIPES + "lib.rb");
+        templates.add(CHEF_TEMPLATES + "restore.rb.erb");
+        templates.add(CHEF_TEMPLATES + "restore-json.erb");
+        templates.add(CHEF_TEMPLATES + "restore-solo.rb.erb");
 
         if (manifest.hasRepo()) templates.add(CHEF_LIBRARIES + "install_git_lib.rb");
         if (manifest.hasTarball()) templates.add(CHEF_LIBRARIES + "install_tarball_lib.rb");
@@ -159,7 +163,7 @@ public class DefaultAppBundler implements AppBundler {
 
         handlebars.registerHelper("safe", new Helper<Object>() {
             public CharSequence apply(Object src, Options options) {
-                return src == null || src.toString().isEmpty() ? "" : new Handlebars.SafeString(src.toString().replace("'", "\\'"));
+                return src == null || src.toString().isEmpty() ? "" : new Handlebars.SafeString(src.toString().replace("'", "\\'").replace("\"", "\\\""));
             }
         });
         handlebars.registerHelper("quoted_or_nil", new Helper<Object>() {

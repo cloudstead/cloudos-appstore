@@ -18,86 +18,91 @@
 base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 
+app = app_lib.define_app self
+
 timestamp = Time.new.strftime("%Y-%m-%d-%H%M%S")
 tarball = "{{app.name}}-#{timestamp}.tar"
 restorefile = "restore-{{app.name}}-#{timestamp}.rb"
 {{#if app.database}}
 database = Chef::Recipe::{{app.database.chefType}}
 dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
-{{#if app.database.dbname}}
+  {{#if app.database.dbname}}
 dbname = app[:dbname] = '{{ident app.database.dbname}}'
-{{/if}}
-{{#if app.parent}}
+  {{/if}}
+  {{#if app.parent}}
 dbname ||= app[:dbname] ||= '{{ident app.parent}}'
-{{/if}}
+  {{/if}}
+
+default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+dbname ||= app[:dbname] ||= default_db_val
+
 {{/if}}
 backup_dir = "/var/cloudos/backup/{{app.name}}"
 
-init_bag = data_bag_item('cloudos', 'cloudos-init')
-run_as = init_bag['cloudos']['run_as']
+init_bag = data_bag_item('cloudos', 'init')
+run_as = init_bag['run_as']
 
 {{#if app.backup.pre}}
     {{#each app.backup.pre}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
 
 directory backup_dir do
-owner "root"
-group "root"
-mode 0644
-recursive true
-action :create
+    owner "root"
+    group "root"
+    mode 0644
+    recursive true
+    action :create
 end
 
 directory "#{backup_dir}/restore/recipes" do
-owner "root"
-group "root"
-mode 0644
-recursive true
-action :create
+    owner "root"
+    group "root"
+    mode 0644
+    recursive true
+    action :create
 end
 
 template "#{backup_dir}/restore/recipes/#{restorefile}" do
-source "restore.erb"
-owner "root"
-group "root"
-mode 0644
-variables({
-:restore_dir => backup_dir {{#if app.database}},
-:dumpfile => dumpfile
-{{/if}}
-})
+    source "restore.rb.erb"
+    owner "root"
+    group "root"
+    mode 0644
+    variables({
+        :restore_dir => backup_dir {{#if app.database}},
+        :dumpfile => dumpfile{{/if}}
+    })
 end
 
 template "#{backup_dir}/restore.json" do
-source "restore-json.erb"
-owner "root"
-group "root"
-mode 0644
-variables({
-:recipe => "restore-{{app.name}}-#{timestamp}"
-})
+    source "restore-json.erb"
+    owner "root"
+    group "root"
+    mode 0644
+    variables({
+        :recipe => "restore-{{app.name}}-#{timestamp}"
+    })
 end
 
 template "#{backup_dir}/restore-solo.rb" do
-source "restore-solo.erb"
-owner "root"
-group "root"
-mode 0644
+    source "restore-solo.rb.erb"
+    owner "root"
+    group "root"
+    mode 0644
 end
 
 directory "#{backup_dir}/tmp" do
-owner "root"
-group "root"
-mode 0644
-recursive true
-action :create
+    owner "root"
+    group "root"
+    mode 0644
+    recursive true
+    action :create
 end
 
 {{#if app.database}}
 full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
-database.dump(chef,dbname,full_dumpfile)
+database.dump self, dbname, full_dumpfile
 {{/if}}
 
 {{#if app.backup.files}}
@@ -109,14 +114,15 @@ filelist = backup_files.join(" ")
 {{/if}}
 
 bash "back up {{app.name}} data & files" do
-user "root"
-cwd backup_dir
-code <<-EOF
+    user "root"
+    cwd backup_dir
+    code <<-EOF
 TIMESTAMP="#{timestamp}"
 BACKUP_DIR=#{backup_dir}
 TARBALL="#{tarball}"
 RUNAS="#{run_as}"
-KEY="/home/${RUNAS}/.backup-key"
+#KEY="/home/${RUNAS}/.backup-key"
+KEY="/etc/.cloudos"
 
 echo "creating backup tarball at ${BACKUP_DIR}/${TARBALL}"
 
@@ -140,27 +146,27 @@ bzip2 $BACKUP_DIR/$TARBALL
 openssl enc -e -aes256 -pass file:$KEY -in $BACKUP_DIR/$TARBALL.bz2 -out $BACKUP_DIR/$TARBALL.enc
 
 if [ -f $BACKUP_DIR/$TARBALL.bz2 ] ; then
-echo "backup tarball created"
+  echo "backup tarball created"
 {{#if app.database}}
-rm -rf tmp
+  rm -rf tmp
 {{/if}}
-rm -rf restore
-rm restore.json
-rm restore-solo.rb
-if [ -f $BACKUP_DIR/$TARBALL.enc ] ; then
-echo "backup tarball encrypted"
-rm $BACKUP_DIR/$TARBALL
-fi
+  rm -rf restore
+  rm restore.json
+  rm restore-solo.rb
+  if [ -f $BACKUP_DIR/$TARBALL.enc ] ; then
+    echo "backup tarball encrypted"
+    rm $BACKUP_DIR/$TARBALL.bz2
+  fi
 else
-# should we clean up the db dump in this case?
-echo "couldn't create tarball"
-exit 1
+  # should we clean up the db dump in this case?
+  echo "couldn't create tarball"
+  exit 1
 fi
 EOF
 end
 
 {{#if app.backup.post}}
     {{#each app.backup.post}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}

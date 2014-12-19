@@ -11,6 +11,8 @@
 base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 
+app = app_lib.define_app self
+
 {{#if app.database}}
 database = Chef::Recipe::{{app.database.chefType}}
 dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
@@ -23,10 +25,11 @@ dbuser = app[:dbuser] = '{{ident app.database.dbuser}}'
     {{#if app.parent}}
 dbname ||= app[:dbname] ||= '{{ident app.parent}}'
 dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
-    {{else}}
-default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
-dbname ||= app[:dbname] ||= default_db_val
     {{/if}}
+
+default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+dbname ||= app[:dbname] ||= default_db_val
+
 dbpass = app[:dbpass] = base.password("db_#{dbname}")
 {{/if}}
 
@@ -51,9 +54,9 @@ app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe std
 {{/if}}
 
 bash "restore {{app.name}}" do
-user "root"
-cwd "<%=@restore_dir%>"
-code <<-EOF
+  user "root"
+  cwd "<%=@restore_dir%>"
+  code <<-EOF
 echo "restoring files from backup at <%=@restore_dir%>"
 cp -rpf * /
 EOF

@@ -28,77 +28,7 @@ base.local_certs('{{app.name}}').each do |cert_name|
   Chef::Recipe::Java.install_cert(self, cert_name, base.pem_path(cert_name)) if defined? Chef::Recipe::Java.install_cert
 end
 
-app = {
-    :name => '{{app.name}}',
-    :hostname => %x(hostname).strip,
-    :ipaddress => node['ipaddress'],
-    :uniq => [],
-    :rand => [],
-    :chef_user => base.chef_user,
-    :chef_user_home => base.chef_user_home,
-    :mail_user => 'cloudos_system_mailer',
-    :mail_password => base.password('system_mailer')
-}
-app[:service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
-
-(0...9).each do |n|
-  app[:uniq] << base.password("{{app.name}}_#{n}")
-  app[:rand] << SecureRandom.hex(64)
-end
-
-{{#if app.passwords}}
-app[:passwords] = {}
-    {{#each app.passwords}}
-app[:passwords]['{{this}}'] = base.password '{{this}}'
-    {{/each}}
-{{/if}}
-
-{{#if app.web.mount}}
-app[:mount] = '{{app.web.mount}}'
-{{/if}}
-
-app[:databag] = {}
-app[:databag_replacements] = {}
-
-# If we have a ports databag, define it and populate replacements
-begin
-  app[:databag][:ports] = data_bag_item('{{app.name}}', 'ports')
-  app[:databag][:ports].each do |bagkey, bagvalue|
-    app_lib.define_databag_replacements app[:databag_replacements], "@databag[ports]", bagkey, bagvalue
-  end
-rescue => e
-  puts "{{app.name}}/ports databag not found or error reading: #{e}"
-end
-
-# If we have a base databag, define it and populate replacements, then set hostname
-begin
-  app[:databag][:base] = data_bag_item('{{app.name}}', 'base')
-  app[:databag][:base].each do |bagkey, bagvalue|
-    app_lib.define_databag_replacements app[:databag_replacements], "@databag[base]", bagkey, bagvalue
-  end
-
-  # set the hostname based on values in the base databag
-  hostname = app[:databag][:base]['hostname']
-  parent_domain = app[:databag][:base]['parent_domain']
-  fqdn = "#{hostname}.#{parent_domain}"
-
-  # But only if we are already this hostname -- the install.sh script should set the hostname for us
-  raise "Please run with install.sh: system hostname (#{app[:hostname]}) didn't match base databag value (#{fqdn})" unless app[:hostname] == fqdn
-
-  Chef::Recipe::Base.set_hostname self, fqdn
-
-rescue => e
-  puts "{{app.name}}/base databag not found or error reading: #{e}"
-end
-
-{{#if app.databags}}
-  {{#each app.databags}}
-app[:databag][:{{ident name}}] = data_bag_item('{{app.name}}', '{{name}}')
-app[:databag][:{{ident name}}].each do |bagkey, bagvalue|
-    app_lib.define_databag_replacements app[:databag_replacements], "@databag[{{ident name}}]", bagkey, bagvalue
-end
-  {{/each}}
-{{/if}}
+app = app_lib.define_app self
 
 {{#if app.packages}}
   {{#each app.packages}}
