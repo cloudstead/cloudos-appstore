@@ -44,7 +44,7 @@ public class AppRuntimeDetails {
     }
 
     public void mergeParent(AppRuntimeDetails parent) {
-        if (parent.hasPath()) path = parent.getPath() + path;
+        if (parent.hasPath()) path = parent.getPath() + (empty(path) ? "" : path);
         setHostname(parent.getHostname());
         interactive = parent.isInteractive();
     }

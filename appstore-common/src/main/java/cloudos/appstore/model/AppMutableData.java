@@ -1,15 +1,28 @@
 package cloudos.appstore.model;
 
+import cloudos.appstore.model.app.AppLayout;
+import cloudos.appstore.model.app.AppManifest;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.cobbzilla.util.http.HttpUtil;
+import org.cobbzilla.util.http.URIUtil;
+import org.cobbzilla.util.io.FileUtil;
+import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.util.reflect.ReflectionUtil;
+import org.cobbzilla.util.security.ShaUtil;
 import org.cobbzilla.wizard.validation.HasValue;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.validation.constraints.Size;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+
 import static cloudos.appstore.ValidationConstants.*;
+import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
 
@@ -19,6 +32,8 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
  */
 @Embeddable @Accessors(chain=true)
 public class AppMutableData {
+
+    public static final String[] APP_ASSETS = {"taskbarIcon", "smallIcon", "largeIcon"};
 
     @HasValue(message=ERR_APP_BLURB_EMPTY)
     @Size(max=APP_BLURB_MAXLEN, message=ERR_APP_BLURB_LENGTH)
@@ -60,5 +75,74 @@ public class AppMutableData {
     @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_LG_ICON_SHA_LENGTH)
     @Column(nullable=false, length=HASHEDPASSWORD_MAXLEN)
     @Getter @Setter private String largeIconUrlSha;
+
+    public static boolean isValidImageExtention(String ext) {
+        for (String validExt : AppLayout.ASSET_IMAGE_EXTS) {
+            if (ext.equals(validExt)) return true;
+        }
+        return false;
+    }
+
+    public static void downloadAssetsAndUpdateManifest(AppManifest manifest, AppLayout layout, String urlBase) throws Exception {
+        boolean assetChanged = false;
+        for (String asset : APP_ASSETS) {
+            assetChanged = downloadAssetAndUpdateManifest(manifest, asset, layout, urlBase) || assetChanged;
+        }
+        if (assetChanged) {
+            // rewrite manifest with new asset URLs
+            FileUtil.toFileOrDie(layout.getManifest(), JsonUtil.toJson(manifest));
+        }
+    }
+
+    public static boolean downloadAssetAndUpdateManifest(AppManifest manifest, String asset, AppLayout layout, String urlBase) {
+        // does the manifest define this asset?
+        File assetFile = null;
+        String sha = null;
+        AppMutableData assets = manifest.getAssets();
+        if (assets != null) {
+            final Object value = ReflectionUtil.get(assets, asset + "Url");
+            final Object shaValue = ReflectionUtil.get(assets, asset + "UrlSha");
+            if (value != null) {
+                // only update http:// and https:// asset URLs that do not start with the urlBase
+                final String assetUrl = value.toString();
+                if (!assetUrl.startsWith("http://") || assetUrl.startsWith("https://") || assetUrl.startsWith(urlBase)) {
+                    return false;
+                }
+
+                final String ext = URIUtil.getFileExt(assetUrl);
+                if (!isValidImageExtention(ext)) {
+                    throw new IllegalStateException("Invalid file extension for asset (must be one of: "+ Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) +"): "+assetUrl);
+                }
+                assetFile = new File(layout.getChefFilesDir(), asset + "." + ext);
+                final File parent = assetFile.getParentFile();
+                if (!parent.exists() && !parent.mkdirs()) throw new IllegalStateException("Error creating directory: "+ parent.getAbsolutePath());
+
+                try {
+                    HttpUtil.url2file(assetUrl, assetFile);
+                } catch (IOException e) {
+                    throw new IllegalStateException("Asset (" + asset + ") could not be loaded from: " + assetUrl, e);
+                }
+                if (!empty(shaValue)) sha = shaValue.toString();
+            }
+        }
+
+        // no asset URL defined, check the app cookbook's "files/default" directory for a default asset
+        if (assetFile == null) assetFile = layout.findDefaultAsset(asset);
+
+        if (assetFile == null) return false;
+
+        // calculate sha, validate if manifest specified one
+        final String fileSha = ShaUtil.sha256_file(assetFile);
+        if (!empty(sha) && !fileSha.equals(sha)) throw new IllegalStateException("Asset (" + assetFile.getAbsolutePath() + " had an invalid SHA sum");
+
+        if (assets == null) {
+            assets = new AppMutableData();
+            manifest.setAssets(assets);
+        }
+
+        ReflectionUtil.set(assets, asset + "Url", urlBase + manifest.getScrubbedName() + "/" + assetFile.getName());
+        ReflectionUtil.set(assets, asset + "UrlSha", fileSha);
+        return true;
+    }
 
 }

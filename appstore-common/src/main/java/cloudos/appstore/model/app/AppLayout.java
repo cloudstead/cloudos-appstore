@@ -68,7 +68,7 @@ public class AppLayout {
     public File getChefCookbooksDir() { return new File(getChefDir(), "cookbooks"); }
 
     // versionDir/chef/cookbooks/app
-    public File getChefAppCookbookDir() { return new File(getChefCookbooksDir(), versionDir.getName()); }
+    public File getChefAppCookbookDir() { return new File(getChefCookbooksDir(), appDir.getName()); }
 
     // versionDir/chef/cookbooks/app/files/default
     public File getChefFilesDir() { return new File(new File(getChefAppCookbookDir(), "files"), "default"); }
