@@ -37,7 +37,7 @@ default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name
 dbname ||= app[:dbname] ||= default_db_val
 
 {{/if}}
-backup_dir = "/var/cloudos/backup/{{app.name}}"
+backup_dir = app[:backup_dir] = "/var/cloudos/backup/{{app.name}}"
 
 init_bag = data_bag_item('cloudos', 'init')
 run_as = init_bag['run_as']

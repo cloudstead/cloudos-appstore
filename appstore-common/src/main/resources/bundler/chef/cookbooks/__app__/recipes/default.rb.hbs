@@ -30,12 +30,24 @@ end
 
 app = app_lib.define_app self
 
+{{#if app.pre_package}}
+  {{#each app.pre_package}}
+      app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+  {{/each}}
+{{/if}}
+
 {{#if app.packages}}
   {{#each app.packages}}
 package '{{this}}' do
   action :install
 end
   {{/each}}
+{{/if}}
+
+{{#if app.post_package}}
+    {{#each app.post_package}}
+        app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+    {{/each}}
 {{/if}}
 
 # init and init_{{app.style}} (a few lines down) are defined in libraries/{{app.style}}_lib.rb
@@ -188,9 +200,9 @@ app_lib.sysinit self, app, '{{this}}'
 {{#if app.services}}
     {{#each app.services}}
         {{#if chefProvider}}
-app_lib.service self, app, '{{name}}', '{{pattern}}', {{chefProvider}}
+app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
         {{else}}
-app_lib.service self, app, '{{name}}', '{{pattern}}'
+app_lib.service self, app, '{{name}}', '{{safe pattern}}'
         {{/if}}
     {{/each}}
 {{/if}}

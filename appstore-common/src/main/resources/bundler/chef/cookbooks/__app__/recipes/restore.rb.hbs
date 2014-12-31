@@ -73,4 +73,3 @@ database.initialize_db(chef, "<%=@restore_dir%>/tmp/<%=@dumpfile%>", dbuser, dbp
 app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
-

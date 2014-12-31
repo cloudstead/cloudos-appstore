@@ -60,7 +60,10 @@ public class AppManifest {
     @Getter @Setter private AppDatabagDef[] databags;
     public boolean hasDatabags () { return databags != null && databags.length > 0; }
 
+    @Getter @Setter private AppShellCommand[] pre_package;
     @Getter @Setter private String[] packages;
+    @Getter @Setter private AppShellCommand[] post_package;
+
     @Getter @Setter private String[] passwords;
     @Getter @Setter private AppGroup[] groups;
     @Getter @Setter private AppUser[] users;
