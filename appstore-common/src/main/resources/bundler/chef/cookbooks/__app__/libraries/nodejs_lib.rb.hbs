@@ -16,8 +16,6 @@ class Chef::Recipe::{{app.chefName}}
         end
 
         symlink(chef, '/usr/bin/nodejs', '/usr/bin/node', app)
-
-        init_user chef, app
     end
 
 end
