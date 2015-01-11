@@ -64,8 +64,10 @@ bash "restore {{app.name}}" do
 echo "restoring files from backup at #{backup_dir}"
 rsync -avzc --exclude="*.enc" ./* /
 
-# ensure that backup_dir and /tmp keep proper permissions
-chmod 1777 /tmp
+# ensure that backup_dir, /etc and /tmp maintain proper ownership and permissions
+chmod 1777 /tmp && chown root.root /tmp
+chmod  755 /etc && chown root.root /etc
+chmod  755 /var && chown root.root /var
 chown -R #{base.chef_user} #{backup_dir}
 EOF
 end
