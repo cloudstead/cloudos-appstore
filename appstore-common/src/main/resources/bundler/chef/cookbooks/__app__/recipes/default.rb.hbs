@@ -181,6 +181,9 @@ app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe std
 # ensure doc root is owned by / readable by apache user
 app_lib.permission(self, '@doc_root', app, nil, nil, '-R u+rx') if app[:doc_root]
 
+# ensure doc root base world readable/listable
+app_lib.permission(self, '@doc_root', app, nil, nil, 'a+rx') if app[:doc_root]
+
 {{#if app.logrotate}}
     {{#each app.logrotate}}
 app_lib.logrotate self, app, '{{this}}'

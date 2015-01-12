@@ -321,9 +321,17 @@ ln -s #{symlink_target} #{symlink_link}
                     user 'root'
                     code <<-EOH
 if [ ! -e "#{target}" ] ; then
+  # but only if the target does not contain an asterisk...
+  if echo x"#{target}" | grep '*' > /dev/null ; then
+    echo "permission: target #{target} contains asterisk, not touching"
+    chgrp #{recursive_flag} #{chgrp} #{target}
+  else
     touch "#{target}"
+    chgrp #{recursive_flag} #{chgrp} "#{target}"
+  fi
+else
+  chgrp #{recursive_flag} #{chgrp} "#{target}"
 fi
-chgrp #{recursive_flag} #{chgrp} "#{target}"
                     EOH
                 end
             end
@@ -333,9 +341,17 @@ chgrp #{recursive_flag} #{chgrp} "#{target}"
                 user 'root'
                 code <<-EOH
 if [ ! -e "#{target}" ] ; then
+  # but only if the target does not contain an asterisk...
+  if echo x"#{target}" | grep '*' > /dev/null ; then
+    echo "permission: target #{target} contains asterisk, not touching"
+    chown #{recursive_flag} #{chown_target} #{target}
+  else
     touch "#{target}"
+    chown #{recursive_flag} #{chown_target} "#{target}"
+  fi
+else
+  chown #{recursive_flag} #{chown_target} "#{target}"
 fi
-chown #{recursive_flag} #{chown_target} "#{target}"
                 EOH
             end
         end
@@ -345,9 +361,17 @@ chown #{recursive_flag} #{chown_target} "#{target}"
                 user 'root'
                 code <<-EOH
 if [ ! -e "#{target}" ] ; then
+  # but only if the target does not contain an asterisk...
+  if echo x"#{target}" | grep '*' > /dev/null ; then
+    echo "permission: target #{target} contains asterisk, not touching"
+    chmod #{recursive_flag} #{perms} #{target}
+  else
     touch "#{target}"
+    chmod #{recursive_flag} #{perms} "#{target}"
+  fi
+else
+  chmod #{recursive_flag} #{perms} "#{target}"
 fi
-chmod #{recursive_flag} #{perms} "#{target}"
                 EOH
             end
         end

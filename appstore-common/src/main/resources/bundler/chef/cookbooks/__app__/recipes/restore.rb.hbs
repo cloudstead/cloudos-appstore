@@ -63,14 +63,26 @@ bash "restore {{app.name}}" do
   cwd backup_dir
   code <<-EOF
 echo "restoring files from backup at #{backup_dir}"
+
+for rootdir in etc var ; do
+  if [ -d ./${rootdir} ] ; then
+    chown -R root.root ./${rootdir}
+  fi
+done
+if [ -d ./home ] ; then
+  chown -R #{app[:run_as]} ./${rootdir}
+fi
+
 rsync -avzc --exclude="*.enc" ./* /
 
-# ensure that backup_dir, /etc and /tmp maintain proper ownership and permissions
+# ensure that backup_dir, /tmp /etc /var and /home maintain proper ownership and permissions
 chmod 1777 /tmp && chown root.root /tmp
-chmod  755 /etc && chown root.root /etc
-chmod  755 /var && chown root.root /var
+for rootdir in /etc /var /home ; do
+  chmod 755 ${rootdir} && chown root.root ${rootdir}
+done
 chown -R #{base.chef_user} #{backup_dir}
 EOF
+
 end
 
 {{#if app.database}}

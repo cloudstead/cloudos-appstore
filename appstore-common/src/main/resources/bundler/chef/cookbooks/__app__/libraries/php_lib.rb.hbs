@@ -43,6 +43,9 @@ class Chef::Recipe::{{app.chefName}}
                 app[:doc_root] = '/var/www/{{app.name}}'
             {{/if}}
         {{/if}}
+
+        permission(chef, '/var/www', app, 'root.root', nil, "755")
+        permission(chef, app[:doc_root], app, app[:run_as], app[:run_as], "755")
     end
 
 end
