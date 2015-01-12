@@ -12,6 +12,7 @@ base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 
 app = app_lib.define_app self
+app_lib.init self, app
 
 timestamps_bag = data_bag_item('restore', 'timestamps')
 timestamp = app[:backup_timestamp] = timestamps_bag['{{app.name}}']

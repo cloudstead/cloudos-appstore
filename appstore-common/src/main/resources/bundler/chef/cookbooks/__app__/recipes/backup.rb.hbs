@@ -14,6 +14,7 @@ base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 
 app = app_lib.define_app self
+app_lib.init self, app
 
 timestamp = app[:backup_timestamp] = Time.new.strftime("%Y-%m-%d-%H%M%S")
 backup_dir = app[:backup_dir] = "/var/cloudos/backup/{{app.name}}"
@@ -72,7 +73,7 @@ backup_files << app_lib.subst('{{this}}',app)
 filelist = backup_files.join(" ")
 {{/if}}
 
-bash "back up {{app.name}} data & files" do
+bash "back up {{app.name}} data & files (with doc_root=#{app[:doc_root]})" do
     user "root"
     cwd backup_dir
     code <<-EOF
