@@ -48,6 +48,10 @@ public class AppMutableData {
     @Size(max=APP_METADATA_MAXLEN, message=ERR_APP_METADATA_LENGTH)
     @Getter @Setter private String metadata;
 
+    @Size(max=APP_TB_ICON_ALT_TEXT_LENGTH, message=ERR_APP_TB_ICON_ALT_TEXT_LENGTH)
+    @Column(length=APP_TB_ICON_ALT_TEXT_LENGTH)
+    @Getter @Setter private String taskbarIconAltText;
+
     @Size(max=URL_MAXLEN, message=ERR_APP_TB_ICON_URL_LENGTH)
     @Column(length=URL_MAXLEN)
     @Getter @Setter private String taskbarIconUrl;
@@ -98,32 +102,36 @@ public class AppMutableData {
         // does the manifest define this asset?
         File assetFile = null;
         String sha = null;
+
         AppMutableData assets = manifest.getAssets();
-        if (assets != null) {
-            final Object value = ReflectionUtil.get(assets, asset + "Url");
-            final Object shaValue = ReflectionUtil.get(assets, asset + "UrlSha");
-            if (value != null) {
-                // only update http:// and https:// asset URLs that do not start with the urlBase
-                final String assetUrl = value.toString();
-                if (!assetUrl.startsWith("http://") || assetUrl.startsWith("https://") || assetUrl.startsWith(urlBase)) {
-                    return false;
-                }
+        if (assets == null) {
+            assets = new AppMutableData();
+            manifest.setAssets(assets);
+        }
 
-                final String ext = URIUtil.getFileExt(assetUrl);
-                if (!isValidImageExtention(ext)) {
-                    throw new IllegalStateException("Invalid file extension for asset (must be one of: "+ Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) +"): "+assetUrl);
-                }
-                assetFile = new File(layout.getChefFilesDir(), asset + "." + ext);
-                final File parent = assetFile.getParentFile();
-                if (!parent.exists() && !parent.mkdirs()) throw new IllegalStateException("Error creating directory: "+ parent.getAbsolutePath());
-
-                try {
-                    HttpUtil.url2file(assetUrl, assetFile);
-                } catch (IOException e) {
-                    throw new IllegalStateException("Asset (" + asset + ") could not be loaded from: " + assetUrl, e);
-                }
-                if (!empty(shaValue)) sha = shaValue.toString();
+        final Object value = ReflectionUtil.get(assets, asset + "Url");
+        final Object shaValue = ReflectionUtil.get(assets, asset + "UrlSha");
+        if (value != null) {
+            // only update http:// and https:// asset URLs that do not start with the urlBase
+            final String assetUrl = value.toString();
+            if (!assetUrl.startsWith("http://") || assetUrl.startsWith("https://") || assetUrl.startsWith(urlBase)) {
+                return false;
             }
+
+            final String ext = URIUtil.getFileExt(assetUrl);
+            if (!isValidImageExtention(ext)) {
+                throw new IllegalStateException("Invalid file extension for asset (must be one of: "+ Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) +"): "+assetUrl);
+            }
+            assetFile = new File(layout.getChefFilesDir(), asset + "." + ext);
+            final File parent = assetFile.getParentFile();
+            if (!parent.exists() && !parent.mkdirs()) throw new IllegalStateException("Error creating directory: "+ parent.getAbsolutePath());
+
+            try {
+                HttpUtil.url2file(assetUrl, assetFile);
+            } catch (IOException e) {
+                throw new IllegalStateException("Asset (" + asset + ") could not be loaded from: " + assetUrl, e);
+            }
+            if (!empty(shaValue)) sha = shaValue.toString();
         }
 
         // no asset URL defined, check the app cookbook's "files/default" directory for a default asset
@@ -134,11 +142,6 @@ public class AppMutableData {
         // calculate sha, validate if manifest specified one
         final String fileSha = ShaUtil.sha256_file(assetFile);
         if (!empty(sha) && !fileSha.equals(sha)) throw new IllegalStateException("Asset (" + assetFile.getAbsolutePath() + " had an invalid SHA sum");
-
-        if (assets == null) {
-            assets = new AppMutableData();
-            manifest.setAssets(assets);
-        }
 
         ReflectionUtil.set(assets, asset + "Url", urlBase + manifest.getScrubbedName() + "/" + assetFile.getName());
         ReflectionUtil.set(assets, asset + "UrlSha", fileSha);
