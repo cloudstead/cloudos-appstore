@@ -152,12 +152,12 @@ public class AppManifest {
     @JsonIgnore
     public String getHostname() {
         if (!isInteractive()) return null;
-        if (web.getMode() == AppWebMode.proxy_root) return "_root_";
+        if (web != null && web.getMode() == AppWebMode.proxy_root) return "_root_";
         switch (style) {
             case rails: return name;
             case nodejs: return name;
-            case php: return web.hasVhost() ? name : null;
-            case java_webapp: return web.getMode().isSeparateHostname() ? name : null;
+            case php: return web != null && web.hasVhost() ? name : null;
+            case java_webapp: return web != null && web.getMode().isSeparateHostname() ? name : null;
             case system: return null;
             default: throw new IllegalStateException("getHostname: invalid style: "+style);
         }
