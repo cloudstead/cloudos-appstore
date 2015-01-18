@@ -8,6 +8,7 @@ import lombok.experimental.Accessors;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.string.StringUtil;
+import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
 
@@ -24,6 +25,10 @@ public class AppMetadata {
     @Getter @Setter private String active_version;
     @Getter @Setter private String installed_by;
     @Getter @Setter private boolean interactive = false;
+
+    @JsonIgnore public SemanticVersion getSemanticVersion () {
+        return empty(active_version) ? null : SemanticVersion.fromString(active_version);
+    }
 
     @JsonIgnore public boolean isActive () { return !empty(active_version); }
 
