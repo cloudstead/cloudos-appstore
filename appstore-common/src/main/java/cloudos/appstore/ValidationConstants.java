@@ -52,11 +52,9 @@ public class ValidationConstants {
     public static final int APP_METADATA_MAXLEN = 65536;
 
     public static final String ERR_APP_VERSION_EMPTY = "err.app.version.empty";
+    public static final String ERR_APP_VERSION_INVALID = "err.app.version.invalid";
     public static final String ERR_APP_VERSION_LENGTH = "err.app.version.length";
     public static final int APP_VERSION_MAXLEN = 255;
-
-    public static final String ERR_APP_PREV_VERSION_LENGTH = "err.app.previousVersion.length";
-    public static final String ERR_APP_PREV_VERSION_NOT_FOUND = "err.app.previousVersion.notFound";
 
     public static final String ERR_APP_VERSION_ALREADY_EXISTS = "err.app.version.alreadyExists";
 

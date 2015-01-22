@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.IdentifiableBase;
 import org.cobbzilla.wizard.model.SemanticVersion;
 import org.cobbzilla.wizard.validation.HasValue;
@@ -15,6 +14,7 @@ import javax.persistence.Embedded;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 import javax.validation.Valid;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
 import static cloudos.appstore.ValidationConstants.*;
@@ -32,13 +32,13 @@ public class AppVersionBase extends IdentifiableBase {
     @Column(nullable=false, updatable=false)
     @Getter @Setter private String app;
 
-    @Embedded @Valid
-    @Getter @Setter private SemanticVersion version = new SemanticVersion();
+    @HasValue(message=ERR_APP_VERSION_EMPTY)
+    @Pattern(message=ERR_APP_VERSION_INVALID, regexp=SemanticVersion.VERSION_REGEXP)
+    @Size(max=APP_VERSION_MAXLEN, message=ERR_APP_VERSION_LENGTH)
+    @Column(nullable=false, updatable=false, length=APP_VERSION_MAXLEN)
+    @Getter @Setter private String version;
 
-    @Size(max=UUID_MAXLEN, message=ERR_APP_PREV_VERSION_LENGTH)
-    @Column(updatable=false)
-    @Getter @Setter private String previousVersion;
-    public boolean hasPreviousVerison () { return !StringUtil.empty(previousVersion); }
+    @JsonIgnore public SemanticVersion getSemanticVersion() { return SemanticVersion.fromString(version); }
 
     @ValidEnum(type=CloudAppStatus.class, emptyOk=false, message=ERR_APP_STATUS_INVALID)
     @Column(nullable=false)
