@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public class AppManifest {
 
     @JsonIgnore public String getScrubbedName () { return scrubDirname(getName()); }
     @JsonIgnore public String getScrubbedVersion () { return scrubDirname(getVersion()); }
+    @JsonIgnore public SemanticVersion getSemanticVersion () { return SemanticVersion.fromString(version); }
 
     @Getter @Setter private AppStyle style;
     @Getter @Setter private String parent;

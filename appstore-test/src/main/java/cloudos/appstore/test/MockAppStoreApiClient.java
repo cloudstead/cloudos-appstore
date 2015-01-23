@@ -60,7 +60,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Override
     public SearchResults<AppListing> searchAppStore(ResultPage page) throws Exception {
 
-        List<AppListing> matches = new ArrayList<>();
+        final List<AppListing> matches = new ArrayList<>();
         int totalCount = 0;
         int i = 0;
         for (PublishedApp app : publishedApps.values()) {

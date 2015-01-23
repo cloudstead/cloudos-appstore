@@ -5,8 +5,11 @@ import lombok.Getter;
 import lombok.Setter;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
+import java.io.FilenameFilter;
+import java.util.*;
 
 public class AppLayout {
 
@@ -15,6 +18,14 @@ public class AppLayout {
     public static final String DATABAGS_DIR = "data_bags";
     public static final String ASSET_PLUGIN_JAR = "plugin.jar";
     public static final String[] ASSET_IMAGE_EXTS = new String[]{"png", "jpg", "jpeg", "gif"};
+
+    public static final FilenameFilter VERSION_DIRNAME_FILTER = new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+            try { SemanticVersion.fromString(name); return true; } catch (Exception ignored) {}
+            return false;
+        }
+    };
 
     @Getter @Setter private File appDir;
     @Getter @Setter private File versionDir;
@@ -41,6 +52,16 @@ public class AppLayout {
         if (metadata.isActive()) {
             final File versionDir = new File(appDir, AppManifest.scrubDirname(metadata.getActive_version()));
             return versionDir.exists() && versionDir.isDirectory() ? versionDir : null;
+        }
+        return null;
+    }
+
+    public File getLatestVersionDir () {
+        final SortedSet<SemanticVersion> versions = new TreeSet<>();
+        final String[] versionDirs = appDir.list(VERSION_DIRNAME_FILTER);
+        if (versionDirs != null) {
+            for (String versionDir : versionDirs) versions.add(SemanticVersion.fromString(versionDir));
+            return new File(appDir, versions.last().toString());
         }
         return null;
     }

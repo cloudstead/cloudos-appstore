@@ -39,14 +39,22 @@ public class AppStoreTestUtil {
     }
 
     public static CloudApp newCloudApp(AppStoreApiClient appStoreClient, String publisherUuid) throws Exception {
-        final CloudApp app = buildCloudApp(publisherUuid);
+        return newCloudApp(appStoreClient, publisherUuid, randomName());
+    }
+
+    public static CloudApp newCloudApp(AppStoreApiClient appStoreClient, String publisherUuid, String name) throws Exception {
+        final CloudApp app = buildCloudApp(publisherUuid, name);
         return appStoreClient.defineApp(app);
     }
 
     public static CloudApp buildCloudApp(String publisherUuid) {
+        return buildCloudApp(publisherUuid, randomName());
+    }
+
+    public static CloudApp buildCloudApp(String publisherUuid, String name) {
         final CloudApp app = new CloudApp();
         app.setPublisher(publisherUuid);
-        app.setName(randomName());
+        app.setName(name);
         return app;
     }
 
@@ -60,6 +68,7 @@ public class AppStoreTestUtil {
         version.setApp(app.getUuid());
         version.setAppStatus(CloudAppStatus.NEW);
         version.setInteractive(RandomUtils.nextInt(0, 1) == 1);
+        version.setVersion("1.0.0");
 
         final AppMutableData data = new AppMutableData();
         data.setBlurb(randomName(50));
