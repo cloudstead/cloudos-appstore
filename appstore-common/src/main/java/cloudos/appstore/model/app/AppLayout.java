@@ -3,6 +3,7 @@ package cloudos.appstore.model.app;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
@@ -11,6 +12,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.*;
 
+@ToString
 public class AppLayout {
 
     public static final String BUNDLE_TARBALL = "bundle.tar.gz";
