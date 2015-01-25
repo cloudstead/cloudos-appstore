@@ -72,6 +72,16 @@ class Chef::Recipe::{{app.chefName}}
             puts "{{app.name}}/base databag not found or error reading: #{e}"
         end
 
+        # If there is a cloudos-init databag, define it as @cloudos
+        begin
+            app[:cloudos_databag] = chef.data_bag_item('cloudos', 'init')
+            app[:cloudos_databag].each do |bagkey, bagvalue|
+                define_databag_replacements app[:databag_replacements], "@cloudos", bagkey, bagvalue
+            end
+        rescue => e
+            puts "cloudos/init databag not found or error reading: #{e}"
+        end
+
         app[:domain] ||= %x(hostname -d).strip
 
         {{#if app.databags}}
@@ -135,17 +145,17 @@ class Chef::Recipe::{{app.chefName}}
                 value = value.gsub("@rand[#{n}]", app[:rand][n])
             end
 
-{{#if app.databags}}
-            app[:databag_replacements].each do |find, replace|
-                value = value.gsub(find, replace.to_s)
+            if app[:databag_replacements]
+                app[:databag_replacements].each do |find, replace|
+                    value = value.gsub(find, replace.to_s)
+                end
             end
-{{/if}}
 
 {{#if app.passwords}}
     {{#each app.passwords}}
-        app[:passwords].each do |user, pass|
-             value = value.gsub("@password[#{user}]", app[:passwords][user])
-        end
+            app[:passwords].each do |user, pass|
+                 value = value.gsub("@password[#{user}]", app[:passwords][user])
+            end
     {{/each}}
 {{/if}}
 
@@ -180,13 +190,14 @@ class Chef::Recipe::{{app.chefName}}
         end
 
         # Look for hash function prefixes and process their innards
-        { '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) } }.each do |hfunc, hasher|
+        { '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
+          '@md5'    => lambda { |val| Digest::MD5.hexdigest(val)    } }.each do |hfunc, hasher|
             prefix = "#{hfunc}("
             found = value.index prefix
             while found
                 closing_paren = value.index ')', found+1
                 inner_value = value[found + prefix.length, closing_paren - found - prefix.length]
-                value = value.sub("#{prefix}#{inner_value})", hasher(inner_value))
+                value = value.sub("#{prefix}#{inner_value})", hasher.call(inner_value))
                 found = value.index prefix
             end
         end

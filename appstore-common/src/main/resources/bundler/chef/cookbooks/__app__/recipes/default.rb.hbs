@@ -172,6 +172,10 @@ email_lib.create_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil al
   {{/each}}
 {{/if}}
 
+{{#if app.auth.user_management}}
+app_lib.user_management self, app
+{{/if}}
+
 {{#if app.post_install}}
     {{#each app.post_install}}
 app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
@@ -188,10 +192,6 @@ app_lib.permission(self, '@doc_root', app, nil, nil, 'a+rx') if app[:doc_root]
     {{#each app.logrotate}}
 app_lib.logrotate self, app, '{{this}}'
     {{/each}}
-{{/if}}
-
-{{#if app.auth.user_management}}
-app_lib.user_management self, app
 {{/if}}
 
 {{#if app.sysinit}}
