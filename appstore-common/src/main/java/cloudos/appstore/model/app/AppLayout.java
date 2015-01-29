@@ -50,13 +50,15 @@ public class AppLayout {
     }
 
     public File getAppActiveVersionDir () {
-        final AppMetadata metadata = AppMetadata.fromJson(appDir);
+        final AppMetadata metadata = getAppMetadata();
         if (metadata.isActive()) {
             final File versionDir = new File(appDir, AppManifest.scrubDirname(metadata.getActive_version()));
             return versionDir.exists() && versionDir.isDirectory() ? versionDir : null;
         }
         return null;
     }
+
+    public AppMetadata getAppMetadata() { return AppMetadata.fromJson(appDir); }
 
     public File getLatestVersionDir () {
         final SortedSet<SemanticVersion> versions = new TreeSet<>();
