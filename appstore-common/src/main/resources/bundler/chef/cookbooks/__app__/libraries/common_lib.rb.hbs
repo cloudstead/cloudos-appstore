@@ -189,15 +189,17 @@ class Chef::Recipe::{{app.chefName}}
             value = "#{app[:run_as_home]}/#{value}"
         end
 
-        # Look for hash function prefixes and process their innards
-        { '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
-          '@md5'    => lambda { |val| Digest::MD5.hexdigest(val)    } }.each do |hfunc, hasher|
-            prefix = "#{hfunc}("
+        # Look for function prefixes and process their innards
+        { '@lower'  => lambda { |val| val.downcase },
+          '@length' => lambda { |val| val.length },
+          '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
+          '@md5'    => lambda { |val| Digest::MD5.hexdigest(val)    } }.each do |fname, func|
+            prefix = "#{fname}("
             found = value.index prefix
             while found
                 closing_paren = value.index ')', found+1
                 inner_value = value[found + prefix.length, closing_paren - found - prefix.length]
-                value = value.sub("#{prefix}#{inner_value})", hasher.call(inner_value))
+                value = value.sub("#{prefix}#{inner_value})", func.call(inner_value))
                 found = value.index prefix
             end
         end
