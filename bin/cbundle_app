@@ -12,6 +12,11 @@ if [ -z "${APP_BASE}" ] ; then
   die "No app dir specified"
 fi
 
+# If a pre_bundle.sh script is present, run it first
+if [ -x ${APP_BASE}/pre_bundle.sh ] ; then
+  ${APP_BASE}/pre_bundle.sh || die "Error running ${APP_BASE}/pre_bundle.sh"
+fi
+
 if [ ! -f ${APP_BASE}/cloudos-manifest.json ] ; then
   die "No cloudos-manifest.json found in ${APP_BASE}, skipping"
 fi
