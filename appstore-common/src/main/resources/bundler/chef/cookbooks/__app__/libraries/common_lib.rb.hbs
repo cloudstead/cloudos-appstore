@@ -5,6 +5,8 @@
 # {{app.publisher.packaging_copyright}}
 #
 
+require 'time'
+
 class Chef::Recipe::{{app.chefName}}
 
     def self.define_app (chef)
@@ -136,6 +138,11 @@ class Chef::Recipe::{{app.chefName}}
             value = value.gsub('@domain', app[:domain]) if app[:domain]
             value = value.gsub('@run_as', run_as)
             value = value.gsub('@home', run_as_home)
+            value = value.gsub('@mail_user', app[:mail_user])
+            value = value.gsub('@mail_password', app[:mail_password])
+            value = value.gsub('@dbname', app[:dbname]) if app[:dbname]
+            value = value.gsub('@dbuser', app[:dbuser]) if app[:dbuser]
+            value = value.gsub('@dbpass', app[:dbpass]) if app[:dbpass]
 
             value = value.gsub('@backup_dir', app[:backup_dir]) if app[:backup_dir]
             value = value.gsub('@backup_timestamp', app[:backup_timestamp]) if app[:backup_timestamp]
@@ -192,8 +199,10 @@ class Chef::Recipe::{{app.chefName}}
         # Look for function prefixes and process their innards
         { '@lower'  => lambda { |val| val.downcase },
           '@length' => lambda { |val| val.length },
+          '@date'   => lambda { |val| Time.now().strftime(val) },
           '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
-          '@md5'    => lambda { |val| Digest::MD5.hexdigest(val)    } }.each do |fname, func|
+          '@md5'    => lambda { |val| Digest::MD5.hexdigest(val) },
+          '@exec'   => lambda { |val| %x(#{val} 2>> /tmp/exec.err | tee -a /tmp/exec.out) } }.each do |fname, func|
             prefix = "#{fname}("
             found = value.index prefix
             while found

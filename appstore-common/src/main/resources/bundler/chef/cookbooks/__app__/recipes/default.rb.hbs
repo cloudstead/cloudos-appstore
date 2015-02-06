@@ -92,17 +92,17 @@ app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil grou
     {{/each}}
 {{/if}}
 
-{{#if app.database}}
-# database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
-app_lib.database_{{app.style}}_packages self, app if defined? app_lib.database_{{app.style}}_packages
+{{#if app.tarball}}
+app_lib.install_tarball self, app
 {{/if}}
 
 {{#if app.repo}}
 app_lib.install_git self, app
 {{/if}}
 
-{{#if app.tarball}}
-app_lib.install_tarball self, app
+{{#if app.database}}
+# database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
+app_lib.database_{{app.style}}_packages self, app if defined? app_lib.database_{{app.style}}_packages
 {{/if}}
 
 {{#if app.prep_code}}
