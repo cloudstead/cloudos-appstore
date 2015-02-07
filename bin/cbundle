@@ -9,9 +9,9 @@ SCRIPT_BASE=$(cd $(dirname $0) && pwd)
 
 APPS="$@"
 if [ -z "${APPS}" ] ; then
-  APPS=$(find . -type f -name cloudos-manifest.json | grep -v target | xargs -n 1 dirname)
+  APPS=$(echo $(find . -type f -name cloudos-manifest.json | grep -v target | xargs -n 1 dirname) $(find . -type f -name pre_bundle.sh | grep -v target | xargs -n 1 dirname) | tr ' ' '\n' | sort | uniq)
 elif [ ! -f ${APPS}/cloudos-manifest.json ] ; then
-  APPS=$(find ${APPS} -type f -name cloudos-manifest.json | grep -v target | xargs -n 1 dirname)
+  APPS=$(echo $(find ${APPS} -type f -name cloudos-manifest.json | grep -v target | xargs -n 1 dirname) $(find ${APPS} -type f -name pre_bundle.sh | grep -v target | xargs -n 1 dirname) | tr ' ' '\n' | sort | uniq)
 fi
 
 echo 1>&2 "Bundling apps:"
