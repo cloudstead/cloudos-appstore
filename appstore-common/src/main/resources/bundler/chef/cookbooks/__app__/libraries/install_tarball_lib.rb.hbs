@@ -31,6 +31,9 @@ class Chef::Recipe::{{app.chefName}}
         when 'bz2'
           tar_opts = 'xjf'
         when 'zip'
+          chef.package 'unzip' do
+            action :install
+          end
           tar_opts = '--use-unzip-instead-of-tar'
         else
           raise 'Archive must be one of: .gz .bz2 .tgz .zip'
@@ -70,6 +73,7 @@ if [ "#{compression}" == "zip" ] ; then
 else
   tar #{tar_opts} #{local_archive}
 fi
+cd -
 
 {{#if app.tarball.copy}}
 
