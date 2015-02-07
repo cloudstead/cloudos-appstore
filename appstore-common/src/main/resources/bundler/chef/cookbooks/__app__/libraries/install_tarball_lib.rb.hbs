@@ -10,14 +10,15 @@ class Chef::Recipe::{{app.chefName}}
     def self.install_tarball (chef, app)
         url = subst_string('{{app.tarball.url}}', app)
         url_parts = /.+\/((.+)\.tar\.([^\/]+))(\/.*)?(\?.*)?$/.match(url)
-        url_parts ||= /.+\/((.+)\.tgz)(\/.*)?(\?.*)?$/.match(url)
+        url_parts ||= /.+\/((.+)\.(tgz))(\/.*)?(\?.*)?$/.match(url)
+        url_parts ||= /.+\/((.+)\.(zip))(\/.*)?(\?.*)?$/.match(url)
         base_file = url_parts[1]
         base_dir = url_parts[2]
         compression = url_parts[3]
 
-        local_tarball = "#{Chef::Config[:file_cache_path]}/#{base_file}"
+        local_archive = "#{Chef::Config[:file_cache_path]}/#{base_file}"
 
-        chef.remote_file local_tarball do
+        chef.remote_file local_archive do
           source url
           checksum '{{app.tarball.shasum}}'
         end
@@ -29,14 +30,16 @@ class Chef::Recipe::{{app.chefName}}
           tar_opts = 'xzf'
         when 'bz2'
           tar_opts = 'xjf'
+        when 'zip'
+          tar_opts = '--use-unzip-instead-of-tar'
         else
-          raise 'Tarball must be .gz or .bz2'
+          raise 'Archive must be one of: .gz .bz2 .tgz .zip'
         end
 
         tmp=%x(mktemp -d /tmp/{{app.name}}.XXXXXX).strip
         app_lib = Chef::Recipe::{{app.chefName}}
 
-        chef.bash "unpacking #{local_tarball}" do
+        chef.bash "unpacking #{local_archive}" do
           user 'root'
           cwd '/tmp'
           code <<-EOH
@@ -62,7 +65,11 @@ function get_tarball_basedir {
 }
 
 cd #{tmp}
-tar #{tar_opts} #{local_tarball}
+if [ "#{compression}" == "zip" ] ; then
+  unzip #{local_archive}
+else
+  tar #{tar_opts} #{local_archive}
+fi
 
 {{#if app.tarball.copy}}
 
@@ -97,7 +104,7 @@ dest="#{app[:doc_root]}"
 dest=$(echo "${dest}" | sed -e 's,/$,,')
 
 mkdir -p ${dest}/
-rsync -ac ./$(get_tarball_basedir #{tmp} #{base_dir})/* ${dest}/
+rsync -ac ./$(get_tarball_basedir #{tmp} #{base_dir})/.* ${dest}/
 chown -R #{app[:run_as]} ${dest}
 chmod -R u+rx ${dest}
 

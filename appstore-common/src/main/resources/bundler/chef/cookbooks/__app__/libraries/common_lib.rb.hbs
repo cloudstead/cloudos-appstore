@@ -186,6 +186,21 @@ class Chef::Recipe::{{app.chefName}}
         value = value.gsub('@chef_home', base.chef_user_home)
         value = value.gsub('@files', "#{base.chef_user_home}/chef/cookbooks/#{app[:name]}/files/default")
         value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
+        value = value.gsub('@timezone', %x(cat /etc/timezone).strip) if File.exists? '/etc/timezone'
+
+        if value.include? '@currency_code'
+          money_locale = %x(locale | grep LC_MONETARY | tr '=".' ' ' | awk '{print $2}').strip
+          if money_locale.length > 0
+            locale_file="/usr/share/i18n/locales/#{money_locale}"
+            if File.exists? locale_file
+              currency_code = %x(cat #{locale_file} | grep int_curr_symbol | awk '{print $2}' | tr -d '"' | sed -e 's,<U, ,g' | tr -d '>').strip.split(" ").map(&:hex).pack('C*').force_encoding('utf-8').strip
+              if currency_code.empty?
+                raise "Error determining currency code from #{locale_file}"
+              end
+              value = value.gsub('@currency_code', currency_code)
+            end
+          end
+        end
 
         if defined? Chef::Recipe::Java.java_home
             java_home = Chef::Recipe::Java.java_home
@@ -199,10 +214,10 @@ class Chef::Recipe::{{app.chefName}}
         # Look for function prefixes and process their innards
         { '@lower'  => lambda { |val| val.downcase },
           '@length' => lambda { |val| val.length },
-          '@date'   => lambda { |val| Time.now().strftime(val) },
+          '@now'    => lambda { |val| Time.now.strftime(val) },
           '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
           '@md5'    => lambda { |val| Digest::MD5.hexdigest(val) },
-          '@exec'   => lambda { |val| %x(#{val} 2>> /tmp/exec.err | tee -a /tmp/exec.out) } }.each do |fname, func|
+          '@exec'   => lambda { |val| %x(#{val}).strip } }.each do |fname, func|
             prefix = "#{fname}("
             found = value.index prefix
             while found
