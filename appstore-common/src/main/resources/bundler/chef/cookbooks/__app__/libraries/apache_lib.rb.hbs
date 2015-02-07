@@ -28,6 +28,10 @@ class Chef::Recipe::{{app.chefName}}
 
         {{#if app.web.mount}}
           :mount => '{{app.web.mount}}',
+        {{else}}
+            {{#if app.web.mode.proxy_service}}
+          :mount => '{{app.name}}',
+            {{/if}}
         {{/if}}
 
           :doc_root => app[:doc_root],

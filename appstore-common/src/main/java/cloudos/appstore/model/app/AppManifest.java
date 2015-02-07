@@ -26,6 +26,7 @@ public class AppManifest {
 
     public static final String CLOUDOS_MANIFEST_JSON = "cloudos-manifest.json";
     public static final String PLUGIN_JAR = "plugin.jar";
+    public static final String ROOT_HOSTNAME = "_root_";
 
     public static AppManifest load(File file) {
         final File manifestFile = file.isDirectory() ? new File(file, AppManifest.CLOUDOS_MANIFEST_JSON) : file;
@@ -154,7 +155,7 @@ public class AppManifest {
     @JsonIgnore
     public String getHostname() {
         if (!isInteractive()) return null;
-        if (web != null && web.getMode() == AppWebMode.proxy_root) return "_root_";
+        if (web != null && web.getMode() == AppWebMode.proxy_root) return ROOT_HOSTNAME;
         switch (style) {
             case rails: return name;
             case nodejs: return name;
