@@ -187,6 +187,7 @@ class Chef::Recipe::{{app.chefName}}
         value = value.gsub('@files', "#{base.chef_user_home}/chef/cookbooks/#{app[:name]}/files/default")
         value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
         value = value.gsub('@timezone', %x(cat /etc/timezone).strip) if File.exists? '/etc/timezone'
+        value = value.gsub('@web_mode', '{{app.web.mode}}') unless '{{app.web.mode}}'.empty?
 
         if value.include? '@currency_code'
           money_locale = %x(locale | grep LC_MONETARY | tr '=".' ' ' | awk '{print $2}').strip

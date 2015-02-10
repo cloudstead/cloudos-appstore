@@ -29,7 +29,9 @@ class Chef::Recipe::{{app.chefName}}
         {{#if app.web.mount}}
           :mount => '{{app.web.mount}}',
         {{else}}
-            {{#if app.web.mode.proxy_service}}
+            {{#if app.web.mode.root}}
+          :mount => '/',
+            {{else}}
           :mount => '{{app.name}}',
             {{/if}}
         {{/if}}
