@@ -1,0 +1,106 @@
+#
+# Cookbook Name:: {{app.name}}
+# Recipe:: uninstall
+#
+# {{app.publisher.packaging_copyright}}
+#
+# **** todo: still a ton of work to do here, this code is mostly just a placeholder for now.
+#
+#
+
+{{#if app.database}}
+    include_recipe '{{app.database.type}}::lib'
+{{/if}}
+
+base = Chef::Recipe::Base
+app_lib = Chef::Recipe::{{app.chefName}}
+
+app = app_lib.define_app self
+
+# todo: Shut down service(s)
+{{#if app.sysinit}}
+    {{#each app.sysinit}}
+        app_lib.sysinit self, app, '{{this}}'
+    {{/each}}
+{{/if}}
+
+{{#if app.services}}
+    {{#each app.services}}
+        {{#if chefProvider}}
+            app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
+        {{else}}
+            app_lib.service self, app, '{{name}}', '{{safe pattern}}'
+        {{/if}}
+    {{/each}}
+{{/if}}
+
+# todo: Remove web files
+{{#if app.web}}
+
+{{/if}}
+
+# todo: Drop databases
+{{#if app.database}}
+    # database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
+    app_lib.drop_database
+{{/if}}
+
+# todo: Delete files
+{{#if app.dirs}}
+    {{#each app.dirs}}
+        app_lib.delete self, '{{this}}', app
+    {{/each}}
+{{/if}}
+{{#if app.templates}}
+    {{#each app.templates}}
+        app_lib.template_file self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+{{#if app.copy}}
+    {{#each app.copy}}
+        app_lib.copy self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.symlinks}}
+# todo: cleanup symlinks
+    {{#each app.symlinks}}
+        app_lib.symlink self, '{{this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.append}}
+# todo: if files appended to still exist, remove what we appended..
+    {{#each app.append}}
+        app_lib.unappend self, '{{safe this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
+
+{{#if app.auth.user_management}}
+# Remove user management scripts
+app_lib.user_management self, app
+{{/if}}
+
+# Remove app user
+
+{{#if app.mailboxes}}
+# Remove mailboxes
+    raise "Cannot create mailboxes, standard email_lib not found" unless defined? Chef::Recipe::Email.create_mailbox
+
+    email_lib = Chef::Recipe::Email
+    {{#each app.mailboxes}}
+        email_lib.create_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil alias_for}}
+    {{/each}}
+{{/if}}
+
+{{#if app.logrotate}}
+# Remove logrotate scripts
+    {{#each app.logrotate}}
+        app_lib.logrotate self, app, '{{this}}'
+    {{/each}}
+{{/if}}
+
+{{#if app.web}}
+# Reload web server
+app_lib.{{app.web.type}}_reload self
+{{/if}}
