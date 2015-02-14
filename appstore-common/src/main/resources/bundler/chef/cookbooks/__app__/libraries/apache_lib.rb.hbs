@@ -30,8 +30,6 @@ class Chef::Recipe::{{app.chefName}}
           :mount => '{{app.web.mount}}',
         {{else}}
             {{#if app.web.mode.root}}
-          :mount => '/',
-            {{else}}
           :mount => '{{app.name}}',
             {{/if}}
         {{/if}}
