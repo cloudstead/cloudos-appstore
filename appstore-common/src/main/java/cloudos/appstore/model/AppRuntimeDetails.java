@@ -1,5 +1,6 @@
 package cloudos.appstore.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,11 +23,15 @@ public class AppRuntimeDetails {
 
     @Getter @Setter private AppMutableData assets;
 
+    @JsonIgnore public AppRuntimeDetails getDetails(String uriBase) {
+        return new ConcreteAppRuntimeDetails(this, uriBase);
+    }
+
     public String getPath(String uriBase) {
 
         if (!isInteractive()) throw new IllegalArgumentException("app '"+name+"' is not interactive");
 
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         if (hasHostname()) {
             sb.append(uriBase.replace("://", "://" + getHostname() + "-"));
         } else {

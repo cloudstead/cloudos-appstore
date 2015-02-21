@@ -95,6 +95,26 @@ class Chef::Recipe::{{app.chefName}}
             {{/each}}
         {{/if}}
 
+        {{#if app.web}}
+          {{#if app.web.mount}}
+        app[:mount] = subst_string('{{app.web.mount}}', app)
+          {{else}}
+            {{#if app.web.is_separate_hostname}}
+        app[:mount] = ''
+            {{else}}
+        app[:mount] = subst_string('{{app.name}}', app)
+            {{/if}}
+          {{/if}}
+
+          {{#if app.web.local_mount}}
+        app[:local_mount] = subst_string('{{app.web.local_mount}}', app)
+          {{else}}
+        app[:local_mount] = subst_string('{{app.web.local_mount}}', app)
+          {{/if}}
+        {{else}}
+        app[:mount] = app[:local_mount] = ''
+        {{/if}}
+
         init_user chef, app
 
         return app

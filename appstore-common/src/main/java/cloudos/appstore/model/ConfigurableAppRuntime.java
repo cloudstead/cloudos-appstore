@@ -1,8 +1,5 @@
 package cloudos.appstore.model;
 
-import com.github.mustachejava.DefaultMustacheFactory;
-import com.github.mustachejava.Mustache;
-import com.github.mustachejava.MustacheFactory;
 import com.google.common.collect.Multimap;
 import com.sun.jersey.api.core.HttpContext;
 import lombok.Getter;
@@ -11,23 +8,19 @@ import org.cobbzilla.util.http.HttpMethods;
 import org.cobbzilla.util.http.HttpRequestBean;
 import org.cobbzilla.util.http.URIUtil;
 import org.cobbzilla.util.io.FileUtil;
+import org.cobbzilla.util.mustache.MustacheUtil;
 import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.util.xml.XPathUtil;
 import org.cobbzilla.wizard.util.BufferedResponse;
 
 import java.io.ByteArrayInputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.cobbzilla.util.string.StringUtil.urlEncode;
 
 @Slf4j
 public class ConfigurableAppRuntime extends AppRuntimeBase {
-
-    public static final MustacheFactory mustacheFactory = new DefaultMustacheFactory();
 
     @Override
     public boolean isLoginPage(String document) {
@@ -125,25 +118,12 @@ public class ConfigurableAppRuntime extends AppRuntimeBase {
         scope.put("timezone-offset", getTimezoneOffset());
         scope.put("timezone-name", getTimezoneName());
 
-        StringWriter w = new StringWriter();
-        final Mustache mustache = getMustache(value);
-        mustache.execute(w, scope);
-        return w.toString();
-    }
-
-    private static Map<String, Mustache> mustacheCache = new ConcurrentHashMap<>();
-    private static Mustache getMustache(String value) {
-        Mustache m = mustacheCache.get(value);
-        if (m == null) {
-            m = mustacheFactory.compile(new StringReader(value), value);
-            mustacheCache.put(value, m);
-        }
-        return m;
+        return MustacheUtil.render(value, scope);
     }
 
     protected static Map<String, String> parsePassThruFields(Collection<String> passThruXPaths, BufferedResponse response) {
         try {
-            return new XPathUtil(passThruXPaths, true).getFirstMatchMap(new ByteArrayInputStream(response.getDocument().getBytes()));
+            return new XPathUtil(passThruXPaths).getFirstMatchMap(new ByteArrayInputStream(response.getDocument().getBytes()));
         } catch (Exception e) {
             log.error("parsePassThruFields: XPath not found in document? "+e, e);
             throw new IllegalStateException(e);

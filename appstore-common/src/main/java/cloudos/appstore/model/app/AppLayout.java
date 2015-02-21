@@ -1,5 +1,6 @@
 package cloudos.appstore.model.app;
 
+import cloudos.databag.PortsDatabag;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
@@ -102,6 +103,12 @@ public class AppLayout {
         final File databagFile = getDatabagFile(databagName);
         if (!databagFile.exists()) return null;
         return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(databagFile), JsonNode.class);
+    }
+
+    public PortsDatabag getPortsDatabag() {
+        final File databagFile = getDatabagFile(PortsDatabag.ID);
+        if (!databagFile.exists()) return null;
+        return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(databagFile), PortsDatabag.class);
     }
 
     public File findDefaultAsset(String asset) {

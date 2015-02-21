@@ -3,6 +3,7 @@ package cloudos.appstore.model.app;
 import cloudos.appstore.model.AppMutableData;
 import cloudos.appstore.model.AppRuntimeDetails;
 import cloudos.appstore.model.ConfigurableAppRuntime;
+import cloudos.appstore.model.app.filter.AppFilterConfig;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
@@ -88,6 +89,19 @@ public class AppManifest {
     @Getter @Setter private AppWeb web;
     @JsonIgnore public boolean hasWeb () { return web != null; }
 
+    @JsonIgnore public String getLocalMount () {
+        if (web == null || empty(web.getLocal_mount())) return null;
+        return web.getLocal_mount().replaceAll("@name", name);
+    }
+
+    @JsonIgnore public String getNormalizedLocalMount () {
+        String m = getLocalMount();
+        if (m == null) m = "/";
+        if (!m.startsWith("/")) m = "/" + m;
+        if (!m.endsWith("/")) m += "/";
+        return m;
+    }
+
     @Getter @Setter private Map<String, String> templates;
     @JsonIgnore public boolean hasTemplates () { return templates != null && !templates.isEmpty(); };
 
@@ -141,31 +155,23 @@ public class AppManifest {
 
     @JsonIgnore
     public String getDefaultPath() {
-        if (!isInteractive()) return null;
-        switch (style) {
-            case rails: return null;
-            case nodejs: return null;
-            case php: return web.hasVhost() ? null : name;
-            case java_webapp: return null;
-            case system: return null;
-            default: throw new IllegalStateException("getPath: invalid style: "+style);
-        }
+        if (!isInteractive() || !hasWeb()) return null;
+        if (web.hasMount()) return web.getMount();
+        if (web.getMode().isRoot()) return null;
+        return name;
     }
 
     @JsonIgnore
     public String getHostname() {
-        if (!isInteractive()) return null;
-        if (web != null && web.getMode() == AppWebMode.proxy_root) return ROOT_HOSTNAME;
-        switch (style) {
-            case rails: return name;
-            case nodejs: return name;
-            case php: return web != null && web.hasVhost() ? name : null;
-            case java_webapp: return web != null && web.getMode().isSeparateHostname() ? name : null;
-            case system: return null;
-            default: throw new IllegalStateException("getHostname: invalid style: "+style);
-        }
+        if (!isInteractive() || !hasWeb()) return null;
+        if (web.getMode().isRoot()) return ROOT_HOSTNAME;
+        if (web.getMode().isSeparateHostname()) return name;
+        return null;
     }
     public boolean hasHostname () { return getHostname() != null; }
+
+    @JsonIgnore public boolean hasFilters() { return hasWeb() && web.hasFilters(); }
+    public AppFilterConfig getFilterConfig(String uri) { return hasWeb() ? web.getFilterConfig(uri) : null; }
 
     public static class AppTarball {
         @Getter @Setter private String url;

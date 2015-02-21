@@ -38,6 +38,8 @@ public class DefaultAppBundler implements AppBundler {
     @Override
     public void bundle(BundlerOptions options, AppManifest manifest) throws Exception {
 
+        validate(options, manifest);
+
         final File outputDir = options.getOutputDir();
         final String outputBase = outputDir.getAbsolutePath() + "/";
         if (!outputDir.exists() && !outputDir.mkdirs()) {
@@ -207,6 +209,14 @@ public class DefaultAppBundler implements AppBundler {
             throw new IllegalStateException("error creating directory: "+databagDir.getAbsolutePath());
         }
         FileUtils.copyFile(manifestFile, new File(databagDir, CLOUDOS_MANIFEST_JSON));
+    }
+
+    private void validate(BundlerOptions options, AppManifest manifest) {
+        // If filters are declared, make sure they can actually be used (based on web mode)
+        if (manifest.hasWeb() && manifest.getWeb().hasFilters()) {
+            final AppWebMode mode = manifest.getWeb().getMode();
+            if (!mode.supportsFilters()) throw new IllegalArgumentException("Web mode does not support filters: "+mode);
+        }
     }
 
     private void copy(BundlerOptions options, AppManifest manifest, String assetType) throws IOException {

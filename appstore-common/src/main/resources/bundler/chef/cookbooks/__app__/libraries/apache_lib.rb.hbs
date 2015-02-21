@@ -26,13 +26,8 @@ class Chef::Recipe::{{app.chefName}}
 
           :mode => :{{app.web.mode}},
 
-        {{#if app.web.mount}}
-          :mount => '{{app.web.mount}}',
-        {{else}}
-            {{#if app.web.mode.root}}
-          :mount => '{{app.name}}',
-            {{/if}}
-        {{/if}}
+          :mount => app[:mount],
+          :local_mount => app[:local_mount],
 
           :doc_root => app[:doc_root],
 
@@ -60,6 +55,10 @@ class Chef::Recipe::{{app.chefName}}
           :cert_name => subst_string('{{app.web.ssl_cert_name}}', app), # likely pulling from databag here
         {{else}}
           :cert_name => nil, # use default (wildcard) SSL cert
+        {{/if}}
+
+        {{#if app.web.filters}}
+          :filters => %w({{#each app.web.filters}}{{uri}} {{/each}}),
         {{/if}}
 
           :server_name => nil
