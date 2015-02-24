@@ -71,6 +71,7 @@ public class AppManifest {
     @Getter @Setter private String[] passwords;
     @Getter @Setter private AppGroup[] groups;
     @Getter @Setter private AppUser[] users;
+    @Getter @Setter private AppAccountGroup[] cloudos_groups;
 
     @Getter @Setter private AppRepository repo;
     @JsonIgnore public boolean hasRepo () { return repo != null; }
