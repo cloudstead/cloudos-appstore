@@ -612,4 +612,14 @@ fi
             action :create
         end
     end
+
+    def self.cloudos_group (chef, app, name, description, mirror, members)
+        chef.bash "exec: #{exec} in #{dir} with stdin #{stdin}" do
+            user 'root'
+            cwd dir
+            code <<-EOH
+echo "would create cloudos group #{name} with desc=#{description}, mirror=#{mirror}, members=#{members}"
+            EOH
+        end
+    end
 end

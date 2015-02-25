@@ -15,10 +15,7 @@ import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cobbzilla.util.string.StringUtil.empty;
 
@@ -71,7 +68,7 @@ public class AppManifest {
     @Getter @Setter private String[] passwords;
     @Getter @Setter private AppGroup[] groups;
     @Getter @Setter private AppUser[] users;
-    @Getter @Setter private AppAccountGroup[] cloudos_groups;
+    @Getter @Setter private Map<String, AppAccountGroup> cloudos_groups = new LinkedHashMap<>();
 
     @Getter @Setter private AppRepository repo;
     @JsonIgnore public boolean hasRepo () { return repo != null; }

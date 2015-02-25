@@ -27,7 +27,7 @@ public class DefaultAppBundler implements AppBundler {
 
     public static final String APP = "__app__";
     public static final String COOKBOOK = "chef/cookbooks/"+APP+"/";
-    public static final String DATABAG_DIR = "chef/data_bags/"+APP+"/";
+    public static final String CHEF_DATABAGS = "chef/data_bags/"+APP+"/";
     public static final String CHEF_METADATA = COOKBOOK + "metadata.rb";
     public static final String CHEF_README = COOKBOOK + "README.md";
     public static final String CHEF_RECIPES = COOKBOOK + "recipes/";
@@ -72,8 +72,9 @@ public class DefaultAppBundler implements AppBundler {
         // This will pickup and appname_schema.sql (a here-schema), and anything else the app might need at install-time
         copy(options, manifest, "files");
 
-        // Copy extra recipes
+        // Copy extra recipes and data_bags
         copy(options, manifest, "recipes");
+        copy(options, manifest, "data_bags");
 
         if (style == AppStyle.rails) {
             templates.add(CHEF_TEMPLATES + "database.yml.erb");
@@ -203,7 +204,7 @@ public class DefaultAppBundler implements AppBundler {
         FileUtil.toFile(manifestFile, JsonUtil.toJson(manifest));
 
         // Put a copy of the manifest under data_bags
-        final File manifestCopy = outputFile(outputBase, DATABAG_DIR, name, CLOUDOS_MANIFEST_JSON);
+        final File manifestCopy = outputFile(outputBase, CHEF_DATABAGS, name, CLOUDOS_MANIFEST_JSON);
         final File databagDir = manifestCopy.getParentFile();
         if (!databagDir.exists() && !databagDir.mkdirs()) {
             throw new IllegalStateException("error creating directory: "+databagDir.getAbsolutePath());
@@ -248,6 +249,7 @@ public class DefaultAppBundler implements AppBundler {
             case "recipes": return CHEF_RECIPES;
             case "libraries": return CHEF_LIBRARIES;
             case "templates": return CHEF_TEMPLATES;
+            case "data_bags": return CHEF_DATABAGS;
         }
         throw new IllegalArgumentException("getPath: unknown assetType: "+assetType);
     }
