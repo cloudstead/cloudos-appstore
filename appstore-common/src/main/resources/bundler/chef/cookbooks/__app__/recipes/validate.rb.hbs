@@ -1,0 +1,17 @@
+#
+# Cookbook Name:: {{app.name}}
+# Recipe:: validate
+#
+# {{app.publisher.packaging_copyright}}
+#
+#
+
+app_lib = Chef::Recipe::{{app.chefName}}
+app = app_lib.define_app self
+
+chef.bash "validating {{app.name}} installation" do
+  user 'root'
+  code <<-EOH
+#{app_lib.subst('@files/validate.sh', app)}
+EOH
+end

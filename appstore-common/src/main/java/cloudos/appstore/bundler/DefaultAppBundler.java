@@ -76,6 +76,11 @@ public class DefaultAppBundler implements AppBundler {
         copy(options, manifest, "recipes");
         copy(options, manifest, "data_bags");
 
+        // If there was no validate.rb recipe, but there is a validate.sh script in the files dir, create a validate.rb recipe
+        if (!new File(baseDir+"recipes/validate.rb").exists() && new File(baseDir+"files/validate.sh").exists()) {
+            templates.add(CHEF_RECIPES + "validate.rb");
+        }
+
         if (style == AppStyle.rails) {
             templates.add(CHEF_TEMPLATES + "database.yml.erb");
             templates.add(CHEF_TEMPLATES + "Procfile.erb");

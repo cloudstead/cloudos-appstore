@@ -3,7 +3,7 @@ package cloudos.appstore.model.app;
 import lombok.Getter;
 import lombok.Setter;
 
-public class AppAccountGroup {
+public class AppCloudOsGroup {
 
     @Getter @Setter private String description;
     @Getter @Setter private String quota;

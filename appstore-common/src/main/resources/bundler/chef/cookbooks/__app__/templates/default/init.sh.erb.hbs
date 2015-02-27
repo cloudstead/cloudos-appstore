@@ -1,5 +1,8 @@
 #!/bin/bash
 
-set -m
-sudo -u <%=@app[:run_as]%> -H <%=@command%> "$@" &
-exit 0
+if [ $(whoami) != "root" ] ; then
+  echo "must be root"
+  exit 1
+fi
+
+sudo -u <%=@app[:run_as]%> -H <%=@command%> "$@"

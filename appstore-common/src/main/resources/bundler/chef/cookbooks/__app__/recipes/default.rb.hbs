@@ -174,7 +174,7 @@ email_lib.create_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil al
 
 {{#if app.cloudos_groups}}
   {{#each app.cloudos_groups}}
-      app_lib.cloudos_group self, app, '{{@key}}', '{{safe description}}', '{{mirror}}', '{{members}}'
+app_lib.cloudos_group self, app, '{{@key}}', '{{safe description}}', '{{quota}}', '{{mirror}}', '{{members}}'
   {{/each}}
 {{/if}}
 
@@ -219,3 +219,5 @@ app_lib.service self, app, '{{name}}', '{{safe pattern}}'
 {{#if app.web}}
 app_lib.{{app.web.type}}_reload self
 {{/if}}
+
+app_lib.exec(self, app, app_lib.subst('{{app.validate}}', app), 'root', '/tmp')

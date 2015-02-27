@@ -1,9 +1,11 @@
 #!/bin/bash
 
-SCRIPT="<%=@script%>"
+START_SCRIPT="<%=@start_script%>"
+STOP_SCRIPT="<%=@stop_script%>"
 APP="<%=@app[:name]%>"
 PROC_SIG="<%=@pattern%>"
 RUN_AS_USER="<%=@run_as%>"
+STOP_TIMEOUT=6
 
 function is_running () {
     PROC_SIG="$@"
@@ -30,7 +32,7 @@ case "$1" in
     echo "$(date): start: starting ${APP} as ${RUN_AS_USER}, setting HOME=${RUN_AS_USER_HOME}, was ${HOME}"
 
     set -m
-    sudo -u ${RUN_AS_USER} -H bash -c "PATH=\"/usr/bin:${PATH}\" HOME=${RUN_AS_USER_HOME} ${SCRIPT} 2> /dev/null 1> /dev/null </dev/null &"
+    sudo -u ${RUN_AS_USER} -H bash -c "PATH=\"/usr/bin:${PATH}\" HOME=${RUN_AS_USER_HOME} ${START_SCRIPT} 2> /dev/null 1> /dev/null </dev/null &"
     exit $?
   ;;
 
@@ -39,15 +41,34 @@ case "$1" in
     if [ $? -eq 0 ] ; then
         echo "$(date): stop: ${APP} server not running"
     else
-        echo "$(date): stop: stopping ${APP} server (pid=${pid})..."
-        kill ${pid} && sleep 5s
-        is_running "${PROC_SIG}"
-        if [ $? -eq 0 ] ; then
-            echo "$(date): stop: ${APP} server stopped"
-        else
-            echo "$(date): stop: ${APP} server didn't stop (pid=${pid})"
-            exit 1
+        # Try stop script first if the app has one
+        if [ ! -z "${STOP_SCRIPT}" ] ; then
+            echo "$(date): stop: stopping ${APP} with ${STOP_SCRIPT}..."
+            ${STOP_SCRIPT} && sleep 5s
+            pid=$(is_running "${PROC_SIG}")
+            if [ $? -eq 0 ] ; then
+                echo "$(date): stop: ${APP} stopped normally"
+                exit 0
+            fi
         fi
+
+        echo "$(date): stop: stopping ${APP} server (pid=${pid})..."
+        kill ${pid}
+        start=$(date +%s)
+        while [ $(expr $(date +%s) - ${start}) -le ${STOP_TIMEOUT} ] ; do
+          is_running "${PROC_SIG}"
+          if [ $? -eq 0 ] ; then
+              echo "$(date): stop: ${APP} server stopped"
+              exit 0
+          else
+              echo "$(date): stop: ${APP} still running..."
+              sleep 1s
+          fi
+        done
+
+        echo "$(date): stop: ${APP} server didn't stop (pid=${pid}), killing it"
+        kill -9 ${pid}
+        exit 2
     fi
   ;;
 
