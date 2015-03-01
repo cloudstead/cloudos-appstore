@@ -219,5 +219,3 @@ app_lib.service self, app, '{{name}}', '{{safe pattern}}'
 {{#if app.web}}
 app_lib.{{app.web.type}}_reload self
 {{/if}}
-
-app_lib.exec(self, app, app_lib.subst('{{app.validate}}', app), 'root', '/tmp')

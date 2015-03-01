@@ -120,9 +120,10 @@ class Chef::Recipe::{{app.chefName}}
         return app
     end
 
+    DATABAG_SIMPLE_TYPES = [ String, Fixnum, TrueClass, FalseClass ]
     def self.define_databag_replacements(hash, base, bagkey, bagvalue)
-        if bagvalue.class == String || bagvalue.class == Fixnum
-            hash["#{base}[#{bagkey}]"] = bagvalue.to_s
+        if DATABAG_SIMPLE_TYPES.include?(bagvalue.class)
+hash["#{base}[#{bagkey}]"] = bagvalue.to_s
         elsif bagvalue
             bagvalue.each do |subkey, subvalue|
               define_databag_replacements hash, "#{base}[#{bagkey}]", subkey, subvalue
@@ -204,7 +205,7 @@ class Chef::Recipe::{{app.chefName}}
 
         value = value.gsub('@chef_user', base.chef_user)
         value = value.gsub('@chef_home', base.chef_user_home)
-        value = value.gsub('@files', "#{base.chef_user_home}/chef/cookbooks/#{app[:name]}/files/default")
+        value = value.gsub('@files', "#{base.chef_files(app[:name])}")
         value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
         value = value.gsub('@timezone', %x(cat /etc/timezone).strip) if File.exists? '/etc/timezone'
         value = value.gsub('@web_mode', '{{app.web.mode}}') unless '{{app.web.mode}}'.empty?

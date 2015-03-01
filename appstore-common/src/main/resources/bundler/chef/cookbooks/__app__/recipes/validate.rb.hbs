@@ -6,12 +6,13 @@
 #
 #
 
+base_lib = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 app = app_lib.define_app self
 
-chef.bash "validating {{app.name}} installation" do
+bash 'validating {{app.name}} installation' do
   user 'root'
   code <<-EOH
-#{app_lib.subst('@files/validate.sh', app)}
+#{app_lib.subst('@files/validate.sh', app)} #{base_lib.chef_dir}
 EOH
 end
