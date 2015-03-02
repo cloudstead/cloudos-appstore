@@ -9,6 +9,9 @@ public enum AppFilterType {
     field   (FieldFilterHandler.class),
     element (ElementFilterHandler.class),
     regex   (RegexFilterHandler.class),
+    header  (HeaderFilterHandler.class),
+    footer  (FooterFilterHandler.class),
+    blocker (BlockerFilterHandler.class),
     submit  (SubmitFilterHandler.class),
     radio   (RadioGroupFilterHandler.class),
     plugin  (PluginFilterHandler.class);

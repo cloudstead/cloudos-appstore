@@ -11,21 +11,20 @@ import java.util.Map;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Slf4j @NoArgsConstructor @AllArgsConstructor
-public class FooterFilterHandler extends AppFilterHandlerBase {
+public class HeaderFilterHandler extends AppFilterHandlerBase {
 
-    public static final String CLOSE_BODY_TAG = "</body>";
+    public static final String CLOSE_HEAD_TAG = "</head>";
 
-    @Getter @Setter protected String footer;
+    @Getter @Setter private String html;
 
     @Override public String apply(String document, Map<String, Object> scope) {
         if (empty(document)) return document;
-        int index = document.lastIndexOf(CLOSE_BODY_TAG);
+        int index = document.lastIndexOf(CLOSE_HEAD_TAG);
         if (index == -1) {
-            log.warn("No "+CLOSE_BODY_TAG+" found");
+            log.warn("No "+ CLOSE_HEAD_TAG +" found");
             return document;
         }
 
-        return document.substring(0, index) + getFooter() + CLOSE_BODY_TAG + document.substring(index + CLOSE_BODY_TAG.length());
+        return document.substring(0, index) + getHtml() + CLOSE_HEAD_TAG + document.substring(index + CLOSE_HEAD_TAG.length());
     }
-
 }

@@ -9,6 +9,10 @@ public class SubmitFilterHandler extends FooterFilterHandler {
 
     @Getter @Setter private String id;
 
+    @Override public void setFooter(String footer) {
+        throw new UnsupportedOperationException(getClass().getName()+" does not support 'footer', use 'id'");
+    }
+
     @Override public String getFooter () {
         final String func = "__cloudos_submit_form_" + safeFunctionName(id);
 
