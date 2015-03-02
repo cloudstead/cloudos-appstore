@@ -14,6 +14,7 @@ import org.cobbzilla.wizard.util.BufferedResponse;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 import static javax.ws.rs.core.HttpHeaders.*;
 
@@ -35,7 +36,11 @@ public abstract class AppRuntimeBase implements AppRuntime {
                                                                       BufferedResponse initialResponse,
                                                                       HttpContext context,
                                                                       String appPath) {
-        throw new IllegalStateException("buildRegistrationRequest: not supported for "+getClass().getName());
+        throw new UnsupportedOperationException("buildRegistrationRequest: not supported for "+getClass().getName());
+    }
+
+    @Override public String applyCustomFilter(String filterName, String document, Map<String, Object> scope) {
+        throw new UnsupportedOperationException("applyCustomFilter: not supported for "+getClass().getName());
     }
 
     protected static String getEmailDomain(String baseUri) {

@@ -9,6 +9,15 @@ require 'fileutils';
 
 class Chef::Recipe::{{app.chefName}}
 
+    def self.db_password (app, dbname)
+{{#if app.database.dbpass}}
+        subst_string('{{app.database.dbpass}}', app)
+{{else}}
+        base = Chef::Recipe::Base
+        base.password("db_#{dbname}")
+{{/if}}
+    end
+
     def self.database (chef, app)
 
         database = Chef::Recipe::{{app.database.chefType}}
@@ -28,12 +37,12 @@ class Chef::Recipe::{{app.chefName}}
         {{#if app.parent}}
             dbname ||= app[:dbname] ||= '{{ident app.parent}}'
             dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
-            dbpass = app[:dbpass] = base.password("db_#{dbname}")
+            dbpass = app[:dbpass] = db_password(app, dbname)
         {{else}}
             default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
             dbname ||= app[:dbname] ||= default_db_val
             dbuser ||= app[:dbuser] ||= default_db_val
-            dbpass = app[:dbpass] = base.password("db_#{dbname}")
+            dbpass = app[:dbpass] = db_password(app, dbname)
             {{#if app.database.allow_create_db}}
                 allow_create_db = true
             {{else}}

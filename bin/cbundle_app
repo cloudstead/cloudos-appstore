@@ -34,8 +34,9 @@ rm -rf ${TARBALL}
 mkdir -p ${BUNDLE_DIR}
 
 # if there is a src dir, and the jar is not there, build it
+JAR_MATCH="*${APP}-*.jar"
 if [[ -d ${APP_BASE}/src ]] ; then
-  if [[ ! -d ${TARGET} || $(find ${TARGET} -type f -name "${APP}-*.jar" | wc -l | tr -d [:blank:]) -eq 0 ]] ; then
+  if [[ ! -d ${TARGET} || $(find ${TARGET} -type f -name "${JAR_MATCH}" | wc -l | tr -d [:blank:]) -eq 0 ]] ; then
     cd ${APP_BASE} && mvn clean package 1>&2
     if [ $? -ne 0 ] ; then
       die "Build failed"
@@ -43,12 +44,12 @@ if [[ -d ${APP_BASE}/src ]] ; then
   fi
 
   # ensure that only 1 jar matches
-  if [ $(find ${TARGET} -type f -name "${APP}-*.jar" | wc -l | tr -d [:blank:]) -ne 1 ] ; then
+  if [ $(find ${TARGET} -type f -name "${JAR_MATCH}" | wc -l | tr -d [:blank:]) -ne 1 ] ; then
     die "Build did not produce exactly 1 jar"
   fi
 
   # copy jar
-  cp $(find ${TARGET} -type f -name "${APP}-*.jar") ${BUNDLE_DIR}/plugin.jar || die "error copying jar to plugin.jar"
+  mkdir -p ${BUNDLE_DIR} && cp "$(find ${TARGET} -type f -name "${JAR_MATCH}")" ${BUNDLE_DIR}/plugin.jar || die "error copying jar to plugin.jar"
 fi
 
 # Run bundler
@@ -64,5 +65,5 @@ fi
 # make the tarball
 cd ${BUNDLE_DIR} && tar czf ${TARBALL} . || die "Error building tarball"
 
-echo 1>&2 "Successfully built tarball for ${app} from ${BUNDLE_DIR}: ${TARBALL}"
+echo 1>&2 "Successfully built tarball for ${APP} from ${BUNDLE_DIR}: ${TARBALL}"
 echo ${TARBALL}

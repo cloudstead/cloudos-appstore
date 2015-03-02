@@ -19,7 +19,6 @@ public class AppLayout {
     public static final String BUNDLE_TARBALL = "bundle.tar.gz";
     public static final String CHEF_DIR = "chef";
     public static final String DATABAGS_DIR = "data_bags";
-    public static final String ASSET_PLUGIN_JAR = "plugin.jar";
     public static final String[] ASSET_IMAGE_EXTS = new String[]{"png", "jpg", "jpeg", "gif"};
 
     public static final FilenameFilter VERSION_DIRNAME_FILTER = new FilenameFilter() {
@@ -82,7 +81,7 @@ public class AppLayout {
     public File getBundleFile  () { return new File(versionDir, AppLayout.BUNDLE_TARBALL); }
     public File getChefDir     () { return new File(versionDir, AppLayout.CHEF_DIR); }
     public File getManifest    () { return new File(versionDir, AppManifest.CLOUDOS_MANIFEST_JSON);  }
-    public File getPluginJar   () { return new File(versionDir, AppLayout.ASSET_PLUGIN_JAR); }
+    public File getPluginJar   () { return new File(versionDir, AppManifest.PLUGIN_JAR); }
 
     public File getDatabagsDir() { return new File(getChefDir(), AppLayout.DATABAGS_DIR); }
 

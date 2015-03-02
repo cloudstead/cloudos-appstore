@@ -27,7 +27,7 @@ public class RegexFilterHandler extends AppFilterHandlerBase {
         return regexString;
     }
 
-    public String apply(String document, Map<String, Object> scope) {
+    @Override public String apply(String document, Map<String, Object> scope) {
         final Matcher matcher = Pattern.compile(getPatternString(), getRegexFlags()).matcher(document);
         while (matcher.find()) {
             document = replaceGroup(document, matcher, getReplace_group(), renderValue(scope));

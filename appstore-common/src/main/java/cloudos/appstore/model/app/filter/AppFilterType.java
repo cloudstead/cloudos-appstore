@@ -10,7 +10,8 @@ public enum AppFilterType {
     element (ElementFilterHandler.class),
     regex   (RegexFilterHandler.class),
     submit  (SubmitFilterHandler.class),
-    radio   (RadioGroupFilterHandler.class);
+    radio   (RadioGroupFilterHandler.class),
+    plugin  (PluginFilterHandler.class);
 
     private Class<? extends AppFilterHandler> handlerClass;
 

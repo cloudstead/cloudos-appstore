@@ -5,6 +5,8 @@ import com.sun.jersey.api.core.HttpContext;
 import org.cobbzilla.util.http.HttpRequestBean;
 import org.cobbzilla.wizard.util.BufferedResponse;
 
+import java.util.Map;
+
 public interface AppRuntime {
 
     public AppRuntimeDetails getDetails();
@@ -27,5 +29,7 @@ public interface AppRuntime {
     public AppRuntime setAuthentication(AppAuthConfig authentication);
     public boolean hasAuthentication ();
     public boolean hasUserManagement ();
+
+    public String applyCustomFilter (String filterName, String document, Map<String, Object> scope);
 
 }
