@@ -54,12 +54,7 @@ end
 app_lib.init self, app
 
 {{#if app.users}}
-app[:users] = {}
     {{#each app.users}}
-app[:users]['{{label}}'] = {
-    :name => '{{user}}',
-    :home => {{quoted_or_nil home}}
-}
         {{#if kerberos}}
 raise "cannot create kerberos user without kerberos library." unless defined? Chef::Recipe::Kerberos.create_user
 kerberos_password = app[:users]['{{label}}'][:password] = base.password('{{user}}')

@@ -77,8 +77,11 @@ public class DefaultAppBundler implements AppBundler {
         copy(options, manifest, "data_bags");
 
         // If there was no validate.rb recipe, but there is a validate.sh script in the files dir, create a validate.rb recipe
-        if (!new File(baseDir+"recipes/validate.rb").exists() && new File(baseDir+"files/validate.sh").exists()) {
+        if (!new File(baseDir+"recipes/validate.rb").exists()) {
             templates.add(CHEF_RECIPES + "validate.rb");
+            if (new File(baseDir+"files/validate.sh").exists()) {
+                manifest.setValidation_script(true);
+            }
         }
 
         if (style == AppStyle.rails) {
@@ -236,8 +239,7 @@ public class DefaultAppBundler implements AppBundler {
         final File chefDir = outputFile(outputBase, getPath(assetType), name);
 
         if (localDir.exists()) {
-            final File[] files = localDir.listFiles();
-            if (files == null) throw new IllegalStateException("Invalid '"+assetType+"' dir, cannot copy: "+localDir.getAbsolutePath());
+            final File[] files = FileUtil.list(localDir);
             if (!chefDir.exists() && !chefDir.mkdirs()) throw new IllegalStateException("Error creating "+assetType+"s dir: "+chefDir.getAbsolutePath());
             for (File f : files) {
                 final CommandResult rsync = CommandShell.exec("rsync -avc " + f.getAbsolutePath() + " " + chefDir.getAbsolutePath() + "/");

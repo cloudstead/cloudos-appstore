@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class BlockerFilterHandler extends CompoundFilterHandler {
+public class OverlayFilterHandler extends CompoundFilterHandler {
 
     @Getter @Setter private String frame_css;
     @Getter @Setter private String div_css;

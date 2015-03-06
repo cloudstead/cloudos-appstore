@@ -8,6 +8,7 @@ import lombok.ToString;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
+import rooty.toots.chef.ChefSolo;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -18,7 +19,6 @@ public class AppLayout {
 
     public static final String BUNDLE_TARBALL = "bundle.tar.gz";
     public static final String CHEF_DIR = "chef";
-    public static final String DATABAGS_DIR = "data_bags";
     public static final String[] ASSET_IMAGE_EXTS = new String[]{"png", "jpg", "jpeg", "gif"};
 
     public static final FilenameFilter VERSION_DIRNAME_FILTER = new FilenameFilter() {
@@ -83,14 +83,17 @@ public class AppLayout {
     public File getManifest    () { return new File(versionDir, AppManifest.CLOUDOS_MANIFEST_JSON);  }
     public File getPluginJar   () { return new File(versionDir, AppManifest.PLUGIN_JAR); }
 
-    public File getDatabagsDir() { return new File(getChefDir(), AppLayout.DATABAGS_DIR); }
+    public File getDatabagsDir() { return new File(getChefDir(), ChefSolo.DATABAGS_DIR); }
+
+    public File getDatabagDirForApp(String appName) { return new File(getDatabagsDir(), appName); }
 
     public File getDatabagFile(String databagName) {
-        return new File(new File(getDatabagsDir(), versionDir.getParentFile().getName()), databagName+".json");
+        final String appName = versionDir.getParentFile().getName();
+        return new File(getDatabagDirForApp(appName), databagName+".json");
     }
 
     // versionDir/chef/cookbooks
-    public File getChefCookbooksDir() { return new File(getChefDir(), "cookbooks"); }
+    public File getChefCookbooksDir() { return new File(getChefDir(), ChefSolo.COOKBOOKS_DIR); }
 
     // versionDir/chef/cookbooks/app
     public File getChefAppCookbookDir() { return new File(getChefCookbooksDir(), appDir.getName()); }
@@ -101,6 +104,10 @@ public class AppLayout {
     public JsonNode getDatabag(String databagName) {
         final File databagFile = getDatabagFile(databagName);
         if (!databagFile.exists()) return null;
+        return getDatabagNode(databagFile);
+    }
+
+    public static JsonNode getDatabagNode(File databagFile) {
         return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(databagFile), JsonNode.class);
     }
 

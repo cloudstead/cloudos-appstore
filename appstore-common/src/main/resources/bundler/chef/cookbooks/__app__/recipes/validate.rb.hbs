@@ -6,13 +6,53 @@
 #
 #
 
+{{#if app.web}}
+include_recipe '{{app.web.type}}::default'
+{{/if}}
+
 base_lib = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 app = app_lib.define_app self
 
+{{#if app.validation_script}}
 bash 'validating {{app.name}} installation' do
-  user 'root'
-  code <<-EOH
+    user 'root'
+    code <<-EOH
 #{app_lib.subst('@files/validate.sh', app)} #{base_lib.chef_dir}
 EOH
 end
+{{else}}
+
+    {{#if app.sysinit}}
+# Call app_lib.sysinit first to ensure that:
+# (1) the required init scripts are actually in place and
+# (2) the app[:services] array is populated with the service info (name and proc_pattern)
+        {{#each app.sysinit}}
+app_lib.sysinit self, app, '{{this}}'
+        {{/each}}
+    {{/if}}
+
+    {{#if app.services}}
+# Call app_lib.service first to ensure that:
+# (1) the required init scripts are actually in place and
+# (2) the app[:services] array is populated with the service info (name and proc_pattern)
+        {{#each app.services}}
+            {{#if chefProvider}}
+app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
+            {{else}}
+app_lib.service self, app, '{{name}}', '{{safe pattern}}'
+            {{/if}}
+        {{/each}}
+    {{/if}}
+
+app[:services].each do |service|
+    app_lib.validate_service self, app, service
+end
+
+    {{#if app.web}}
+# Call app_lib.{{app.web.type}} first to ensure that app[:service_url] is set
+app_lib.{{app.web.type}} self, app
+app_lib.validate_web self, app
+    {{/if}}
+
+{{/if}}

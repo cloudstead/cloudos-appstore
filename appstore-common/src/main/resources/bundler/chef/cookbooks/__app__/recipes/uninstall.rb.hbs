@@ -4,101 +4,169 @@
 #
 # {{app.publisher.packaging_copyright}}
 #
-# **** todo: still a ton of work to do here, this code is mostly just a placeholder for now.
-#
 #
 
 {{#if app.database}}
-    include_recipe '{{app.database.type}}::lib'
+include_recipe '{{app.database.type}}::lib'
 {{/if}}
 
-base = Chef::Recipe::Base
-app_lib = Chef::Recipe::{{app.chefName}}
+{{#if app.web}}
+include_recipe '{{app.web.type}}::default'
+{{/if}}
 
+app_lib = Chef::Recipe::{{app.chefName}}
 app = app_lib.define_app self
 
-# todo: Shut down service(s)
+# todo: remove packages
+# requires that we scan all other active manifests (and possibly recipes)
+# for other active apps that may still depend on the package
+
+# Remove/disable web configs
+{{#if app.web}}
+app_lib.{{app.web.type}}_uninstall self, app
+
+# todo: remove/disable web modules and other web-configs
+# requires that we scan all other active manifests/recipes for extant dependencies
+{{/if}}
+
+# Track files to delete here
+to_delete = []
+
+# Shut down services.
+# Call sysinit/service first to ensure that:
+# (1) the required init scripts are actually in place and
+# (2) the app[:services] array is populated with the service info (name and proc_pattern)
 {{#if app.sysinit}}
     {{#each app.sysinit}}
-        app_lib.sysinit self, app, '{{this}}'
+app_lib.sysinit self, app, '{{this}}'
     {{/each}}
 {{/if}}
 
 {{#if app.services}}
     {{#each app.services}}
         {{#if chefProvider}}
-            app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
+app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
         {{else}}
-            app_lib.service self, app, '{{name}}', '{{safe pattern}}'
+app_lib.service self, app, '{{name}}', '{{safe pattern}}'
         {{/if}}
     {{/each}}
 {{/if}}
 
-# todo: Remove web files
-{{#if app.web}}
+app[:services].each do |service|
+    app_lib.stop_service self, app, service
+    to_delete << "/etc/init.d/#{service[:service_name]}"
+done
 
+{{#if app.parent}}
+# Do not remove home and doc_root for child apps if they are the parent dir (which is default behavior)
+to_delete << app[:run_as_home] unless app[:run_as_home] == '/var/www/{{app.parent}}'
+to_delete << app[:doc_root] unless app[:doc_root] == '/var/www/{{app.parent}}'
+{{else}}
+# Remove user home and doc_root if they are set
+to_delete << app[:run_as_home] unless app[:run_as_home].nil?
+to_delete << app[:doc_root] unless app[:doc_root].nil?
 {{/if}}
 
-# todo: Drop databases
-{{#if app.database}}
-    # database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
-    app_lib.drop_database
-{{/if}}
-
-# todo: Delete files
 {{#if app.dirs}}
+# Remove dirs
     {{#each app.dirs}}
-        app_lib.delete self, '{{this}}', app
+to_delete << subst('{{this}}', app)
     {{/each}}
 {{/if}}
 {{#if app.templates}}
+# Remove templates
     {{#each app.templates}}
-        app_lib.template_file self, '{{this}}', '{{@key}}', app
+to_delete << subst('{{@key}}', app)
     {{/each}}
 {{/if}}
+
 {{#if app.copy}}
+# Remove 'copy' targets
     {{#each app.copy}}
-        app_lib.copy self, '{{this}}', '{{@key}}', app
+path = subst('{{this}}', app)
+if File.directory?(path)
+    path << '/' unless path.end_with? '/'
+    path << File.basename '{{@key}}'
+end
+to_delete << path
     {{/each}}
 {{/if}}
 
 {{#if app.symlinks}}
-# todo: cleanup symlinks
+# Remove symlinks
     {{#each app.symlinks}}
-        app_lib.symlink self, '{{this}}', '{{@key}}', app
-    {{/each}}
-{{/if}}
-
-{{#if app.append}}
-# todo: if files appended to still exist, remove what we appended..
-    {{#each app.append}}
-        app_lib.unappend self, '{{safe this}}', '{{@key}}', app
+to_delete << subst('{{this}}', app)
     {{/each}}
 {{/if}}
 
 {{#if app.auth.user_management}}
 # Remove user management scripts
-app_lib.user_management self, app
+    {{#each app.auth.user_management.templates}}
+to_delete << app_lib.get_user_management_files self, app
+    {{/each}}
 {{/if}}
 
-# Remove app user
+{{#if app.append}}
+# Remove data appended to files
+    {{#each app.append}}
+app_lib.unappend self, '{{safe this}}', '{{@key}}', app
+    {{/each}}
+{{/if}}
 
 {{#if app.mailboxes}}
 # Remove mailboxes
-    raise "Cannot create mailboxes, standard email_lib not found" unless defined? Chef::Recipe::Email.create_mailbox
-
-    email_lib = Chef::Recipe::Email
+raise "Cannot create mailboxes, standard email_lib not found" unless defined? Chef::Recipe::Email.create_mailbox
+email_lib = Chef::Recipe::Email
     {{#each app.mailboxes}}
-        email_lib.create_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil alias_for}}
+email_lib.delete_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil alias_for}}
     {{/each}}
 {{/if}}
 
 {{#if app.logrotate}}
 # Remove logrotate scripts
     {{#each app.logrotate}}
-        app_lib.logrotate self, app, '{{this}}'
+to_delete << subst('{{this}}', app)
     {{/each}}
 {{/if}}
+
+
+{{#if app.users}}
+# Remove kerberos and ubuntu users
+    {{#each app.users}}
+        {{#if kerberos}}
+raise "cannot create kerberos user without kerberos library." unless defined? Chef::Recipe::Kerberos.create_user
+Chef::Recipe::Kerberos.delete_user self, '{{user}}'
+
+        {{else}}
+user_home = {{quoted_or_nil home}}
+app_lib.delete_user self, '{{user}}'
+to_delete << user_home if user_home
+        {{/if}}
+    {{/each}}
+{{/if}}
+
+{{#if app.cloudos_groups}}
+    {{#each app.cloudos_groups}}
+app_lib.remove_cloudos_group self, app, '{{@key}}'
+    {{/each}}
+{{/if}}
+
+{{#if app.database}}
+# Drop database
+# database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
+app_lib.drop_database self, app
+{{/if}}
+
+# Delete files
+to_delete = to_delete.flatten.join ' '
+unless to_delete.empty?
+    bash "deleting {{app.name}} files: #{to_delete}" do
+        user 'root'
+        code <<-EOF
+rm -rf #{to_delete}
+EOF
+    end
+end
 
 {{#if app.web}}
 # Reload web server

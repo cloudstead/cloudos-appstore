@@ -17,17 +17,28 @@ class Chef::Recipe::{{app.chefName}}
             :ipaddress => chef.node['ipaddress'],
             :uniq => [],
             :rand => [],
+            :services => [],
             :chef_user => base.chef_user,
             :chef_user_home => base.chef_user_home,
             :mail_user => 'cloudos_system_mailer',
             :mail_password => base.password('system_mailer')
         }
-        app[:service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
 
         (0...9).each do |n|
         app[:uniq] << base.password("{{app.name}}_#{n}")
         app[:rand] << SecureRandom.hex(64)
         end
+
+{{#if app.users}}
+        app[:users] = {}
+    {{#each app.users}}
+        app[:users]['{{label}}'] = {
+            :name => '{{user}}',
+            :home => {{quoted_or_nil home}},
+            :kerberos => {{#if kerberos}}true{{else}}false{{/if}}
+        }
+    {{/each}}
+{{/if}}
 
         {{#if app.passwords}}
         app[:passwords] = {}
@@ -114,6 +125,9 @@ class Chef::Recipe::{{app.chefName}}
         {{else}}
         app[:mount] = app[:local_mount] = ''
         {{/if}}
+
+        app[:service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
+        app[:ldap_domain] = "dc=#{app[:domain].gsub(/\./, ',dc=')}"
 
         init_user chef, app
 
@@ -209,6 +223,7 @@ hash["#{base}[#{bagkey}]"] = bagvalue.to_s
         value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
         value = value.gsub('@timezone', %x(cat /etc/timezone).strip) if File.exists? '/etc/timezone'
         value = value.gsub('@web_mode', '{{app.web.mode}}') unless '{{app.web.mode}}'.empty?
+        value = value.gsub('@lang', %x(locale | grep LANG= | tr '=_' ' ' | awk '{print $2}').strip) if value.include?('@lang')
 
         if value.include? '@currency_code'
           money_locale = %x(locale | grep LC_MONETARY | tr '=".' ' ' | awk '{print $2}').strip
@@ -291,6 +306,15 @@ hash["#{base}[#{bagkey}]"] = bagvalue.to_s
             code <<-EOH
 chown #{user_name} #{user_home}
             EOH
+        end
+    end
+
+    def self.delete_user(chef, user_name)
+        chef.bash "delete_user: userdel #{user_name}" do
+            user 'root'
+            code <<-EOH
+userdel #{user_name}
+EOH
         end
     end
 
@@ -465,7 +489,7 @@ rsync -avc #{from} #{to}
 
     def self.append(chef, data, target, app)
         target = subst(target, app)
-        chef.bash "appending to #{target}" do
+        chef.bash "appending to #{target} for app #{app[:name]}: #{data}" do
             user 'root'
             code <<-EOH
 cat >> #{target} <<EOF
@@ -474,6 +498,12 @@ EOF
             EOH
             not_if { File.readlines("#{target}").grep(/Regexp.escape(data)/).size > 0 }
         end
+    end
+
+    def self.unappend(chef, data, target, app)
+        base = Chef::Recipe::Base
+        target = subst(target, app)
+        base.remove_from_file(chef, target, data.gsub('$', '\\\\$'))
     end
 
     def self.exec (chef, app, exec, exec_user, dir, stdin = nil, unless_file = nil)
@@ -507,15 +537,10 @@ fi
 
     def self.logrotate (chef, app, path)
         base = Chef::Recipe::Base
-        path = subst(path, app)
-        lr_file = "/etc/logrotate.d/#{app[:name]}_#{base.password(path)}"
-        base.logrotate chef, path
+        base.logrotate chef, subst(path, app)
     end
 
     def self.sysinit (chef, app, command)
-        svc = app[:service_name]
-        init_svc = "/etc/init.d/#{svc}"
-
         if command.start_with? 'jrun'
             command_parts = command.split(':')
             java_class = command_parts[1]
@@ -526,7 +551,8 @@ fi
             run_as ||= app[:run_as]
 
             java = Chef::Recipe::Java
-            java.define_service(chef, subst('@name', app), run_as, java_class, java_yml)
+            app_config = java.define_service(chef, subst('@name', app), run_as, java_class, java_yml)
+            app[:services] << app_config
 
         elsif command.start_with? 'wrap'
             command_parts = command.split(':')
@@ -543,9 +569,14 @@ fi
 
             pattern = subst_string(command_parts[2], app)
             pattern ||= start_script
+
             run_as = command_parts[3]
             run_as = subst_string(run_as, app) unless run_as.nil?
             run_as ||= app[:run_as]
+
+            svc = "#{app[:service_name]}_#{File.basename(start_script, File.extname(start_script))}"
+            init_svc = "/etc/init.d/#{svc}"
+            app[:services] << { :service_name => svc, :proc_pattern => pattern }
 
             unless File.exists? init_svc
                 chef.template init_svc do
@@ -563,7 +594,7 @@ fi
                     action :create
                 end
 
-                chef.service app[:service_name] do
+                chef.service svc do
                     pattern pattern
                     supports [ :start => true, :stop => true ]
                     action [ :enable, :start ]
@@ -572,6 +603,10 @@ fi
 
         else
             command = subst(command, app)
+
+            svc = "#{app[:service_name]}_#{File.basename(command, File.extname(command))}"
+            init_svc = "/etc/init.d/#{svc}"
+            app[:services] << { :service_name => svc, :proc_pattern => command }
 
             unless File.exists? init_svc
                 chef.template init_svc do
@@ -583,7 +618,7 @@ fi
                     action :create
                 end
 
-                chef.service svc do
+                chef.service app[:service_name] do
                     pattern command
                     supports [ :start => true, :stop => true ]
                     action [ :enable, :start ]
@@ -594,11 +629,90 @@ fi
 
     def self.service (chef, app, name, pattern, provider = nil)
         pattern = name if pattern.to_s.empty?
-        chef.service name do
+
+        svc = name;
+        init_svc = "/etc/init.d/#{svc}"
+        app[:services] << { :service_name => svc, :proc_pattern => pattern }
+
+        chef.service svc do
             pattern pattern
             provider provider
             supports :start => true, :stop => true, :restart => true
             action [ :enable, :restart ]
+        end
+    end
+
+    def self.stop_service (chef, app, service)
+        chef.bash "stopping #{service[:service_name]}" do
+            user 'root'
+            code <<-EOH
+service #{service[:service_name]} stop
+if [ $? -ne 0 ] ; then
+    sleep 2s
+    num_procs=$(ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | wc -l | tr -d ' ')
+    if [ $num_procs -gt 0 ] ; then
+        ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | awk '{print $2}' | xargs kill
+        sleep 5s
+        num_procs=$(ps auxwwwww | grep -- "#{service[:proc_pattern]}" | wc -l | tr -d ' ')
+        if [ $num_procs -gt 0 ] ; then
+            ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | awk '{print $2}' | xargs kill -9
+        fi
+    fi
+fi
+EOH
+        end
+    end
+
+    def self.validate_service (chef, app, service)
+        chef.bash "validating #{service[:service_name]} is running (pattern=#{service[:proc_pattern]})" do
+            user 'root'
+            code <<-EOH
+num_procs=$(ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | wc -l | tr -d ' ')
+if [ $num_procs -gt 0 ] ; then exit 0 ; else exit 1 ; fi
+EOH
+        end
+    end
+
+    def self.validate_web (chef, app, timeout = 1800)
+        raise "No service URL found for app: #{app[:name]}" if !app[:service_url]
+
+        service_map = []
+        app[:services].each do |service|
+            service_map[] << "#{service[:service_name]}|#{service[:proc_pattern]}"
+        end
+
+        chef.bash "validating #{app[:name]} is listening on at #{app[:service_url]}" do
+            user 'root'
+code <<-EOH
+
+if [ ! -z "#{service_map.join(' ')}" ] ; then
+  for service in #{service_map.join(' ')} ; do
+    service_name = $(echo -n ${service} | awk -F '|' '{print $1}'
+    proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2}'
+    num_procs=$(ps auxwwwww | egrep -- ${proc_pattern} | grep -v egrep | wc -l | tr -d ' ')
+    if [ $num_procs -eq 0 ] ; then
+      service ${service_name} restart
+    fi
+  done
+fi
+
+start=$(date +%s)
+while [ $(expr $(date +%s) - ${start}) -lt #{timeout} ] ; do
+  http_status="$(curl -sL -w "%{http_code}\n" --max-time 10 "https://#{app[:service_url]}/" -o /dev/null)"
+  http_status_type=$(expr $http_status / 100)
+  if [[ $? -eq 0  && ( $http_status == 2 || $http_status == 3 ) ]] ; then
+    echo "#{app[:name]} is running"
+    exit 0
+  else
+    echo "Still waiting for #{app[:name]} to be running..."
+    sleep 5s
+  fi
+done
+
+echo "#{app[:name]} is not running"
+exit 1
+
+EOH
         end
     end
 
@@ -630,6 +744,15 @@ fi
         end
     end
 
+    def self.get_user_management_files (chef, app)
+        files = []
+        {{#each app.auth.user_management.templates}}
+        files << subst('{{this}}', app)
+        {{/each}}
+        files << "/etc/rooty_handlers/#{app[:name]}_user_mgmt.yml"
+        files
+    end
+
     def self.cloudos_group (chef, app, name, description, quota, mirror, members)
 
         description = "--description '#{subst_string(description, app)}'" unless description.to_s.empty?
@@ -641,8 +764,18 @@ fi
             user 'root'
             cwd '/tmp'
             code <<-EOH
-cos sudo --command group --name #{name} #{description} #{quota} #{mirror} #{members}
+cos sudo --command group --name #{name} --operation create #{description} #{quota} #{mirror} #{members}
             EOH
+        end
+    end
+
+    def self.remove_cloudos_group (chef, app, name)
+        chef.bash "create cloudos_group: #{name} with mirror=#{mirror} and members=#{members}" do
+        user 'root'
+        cwd '/tmp'
+        code <<-EOH
+cos sudo --command group --name #{name} --operation delete
+EOH
         end
     end
 end

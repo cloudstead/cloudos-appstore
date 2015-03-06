@@ -34,6 +34,8 @@ public class AppManifest {
     @Getter @Setter private String name;
     @JsonIgnore public String getChefName () { return StringUtils.capitalize(getId()); }
 
+    @Getter @Setter private boolean validation_script = false;
+
     @JsonIgnore @Getter(lazy=true) private final String id = initId();
     private String initId () { return scrub(getName()); }
 

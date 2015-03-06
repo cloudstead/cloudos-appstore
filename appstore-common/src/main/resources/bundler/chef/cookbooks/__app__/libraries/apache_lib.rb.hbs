@@ -7,6 +7,56 @@
 
 class Chef::Recipe::{{app.chefName}}
 
+    def self.get_config (app)
+        base = Chef::Recipe::Base
+        config = {
+            :mode => :{{app.web.mode}},
+            :mount => app[:mount],
+            :local_mount => app[:local_mount],
+            :doc_root => app[:doc_root],
+
+            {{#if app.web.apache.vhost}}
+            :vhost => :{{app.web.apache.vhost}},
+            {{/if}}
+
+            {{#if app.auth.http_auth}}
+            :auth => :{{app.auth.http_auth}},
+            {{/if}}
+
+            {{#if app.web.apache.dir}}
+            :dir => %w( {{#each app.web.apache.dir}}{{this}} {{/each}}),
+            {{/if}}
+
+            {{#if app.web.apache.location}}
+            :location => %w( {{#each app.web.apache.location}}{{this}} {{/each}}),
+            {{/if}}
+
+            {{#if app.web.apache.htaccess}}
+            :htaccess => %w( {{#each app.web.apache.htaccess}}{{this}} {{/each}}),
+            {{/if}}
+
+            {{#if app.web.ssl_cert_name}}
+            :cert_name => subst_string('{{app.web.ssl_cert_name}}', app), # likely pulling from databag here
+            {{else}}
+            :cert_name => nil, # use default (wildcard) SSL cert
+            {{/if}}
+
+            {{#if app.web.filters}}
+            :filters => %w({{#each app.web.filters}}{{uri}} {{/each}}),
+            {{/if}}
+
+            :server_name => nil
+        }
+
+        if config[:cert_name]
+            # The cert will tell us what our hostname should be
+            # todo: implement whitelist of authorized domains, do not allow certs for others
+            common_name = base.local_pem_cn('{{app.name}}', config[:cert_name])
+            config[:server_name] = common_name unless common_name.nil? || common_name.start_with?('*')
+        end
+        config
+    end
+
     def self.apache (chef, app)
         base = Chef::Recipe::Base
         apache = Chef::Recipe::Apache
@@ -22,60 +72,26 @@ class Chef::Recipe::{{app.chefName}}
           {{/each}}
         {{/if}}
 
-        config = {
-
-          :mode => :{{app.web.mode}},
-
-          :mount => app[:mount],
-          :local_mount => app[:local_mount],
-
-          :doc_root => app[:doc_root],
-
-        {{#if app.web.apache.vhost}}
-          :vhost => :{{app.web.apache.vhost}},
-        {{/if}}
-
-        {{#if app.auth.http_auth}}
-          :auth => :{{app.auth.http_auth}},
-        {{/if}}
-
-        {{#if app.web.apache.dir}}
-          :dir => %w( {{#each app.web.apache.dir}}{{this}} {{/each}}),
-        {{/if}}
-
-        {{#if app.web.apache.location}}
-          :location => %w( {{#each app.web.apache.location}}{{this}} {{/each}}),
-        {{/if}}
-
-        {{#if app.web.apache.htaccess}}
-          :htaccess => %w( {{#each app.web.apache.htaccess}}{{this}} {{/each}}),
-        {{/if}}
-
-        {{#if app.web.ssl_cert_name}}
-          :cert_name => subst_string('{{app.web.ssl_cert_name}}', app), # likely pulling from databag here
-        {{else}}
-          :cert_name => nil, # use default (wildcard) SSL cert
-        {{/if}}
-
-        {{#if app.web.filters}}
-          :filters => %w({{#each app.web.filters}}{{uri}} {{/each}}),
-        {{/if}}
-
-          :server_name => nil
-        }
-
-        if config[:cert_name]
-            # The cert will tell us what our hostname should be
-            # todo: implement whitelist of authorized domains, do not allow certs for others
-            common_name = base.local_pem_cn('{{app.name}}', config[:cert_name])
-            config[:server_name] = common_name unless common_name.nil? || common_name.start_with?('*')
-        end
-
+        config = get_config(app)
         {{app.web.type}}_{{app.style}} chef, app, config
+
+{{#if app.web.mode.root}}
+        app[:service_url] = "https://#{apache.get_server_name(nil, config[:mode], app[:hostname], app[:name])}/"
+{{else}}
+        mount = app[:mount]
+        mount ||= app[:name]
+        app[:service_url] = "https://#{app[:hostname]}/#{mount}/"
+{{/if}}
     end
 
-    def self.apache_reload (chef)
-        Chef::Recipe::Apache.reload(chef)
+    def self.apache_uninstall (chef, app)
+        apache = Chef::Recipe::Apache
+        apache.uninstall_app chef, app, get_config(app)
+        apache_reload chef, "uninstalled #{app[:name]}"
+    end
+
+    def self.apache_reload (chef, reason = nil)
+        Chef::Recipe::Apache.reload(chef, reason)
     end
 
 end

@@ -18,106 +18,123 @@ class Chef::Recipe::{{app.chefName}}
 {{/if}}
     end
 
+    def self.drop_database(chef, app)
+        database = Chef::Recipe::{{app.database.chefType}}
+        set_database_config app
+        database.drop_db app[:dbname]
+    end
+
+    def self.set_database_config (app)
+        database = Chef::Recipe::{{app.database.chefType}}
+        base = Chef::Recipe::Base
+        app_lib = Chef::Recipe::{{app.chefName}}
+
+        app[:dbtype] = '{{app.database.type}}'
+
+{{#if app.database.dbname}}
+        app[:dbname] = '{{ident app.database.dbname}}'
+{{/if}}
+
+{{#if app.database.dbuser}}
+        app[:dbuser] = '{{ident app.database.dbuser}}'
+{{/if}}
+
+{{#if app.parent}}
+        app[:dbname] ||= '{{ident app.parent}}'
+        app[:dbuser] ||= '{{ident app.parent}}'
+        app[:dbpass] = db_password(app, app[:dbname])
+{{else}}
+        default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+        app[:dbname] ||= default_db_val
+        app[:dbuser] ||= default_db_val
+        app[:dbpass] = db_password(app, app[:dbname])
+{{/if}}
+    end
+
     def self.database (chef, app)
 
         database = Chef::Recipe::{{app.database.chefType}}
         base = Chef::Recipe::Base
         app_lib = Chef::Recipe::{{app.chefName}}
 
-        dbtype = app[:dbtype] = '{{app.database.type}}'
+        set_database_config app
 
-        {{#if app.database.dbname}}
-        dbname = app[:dbname] = '{{ident app.database.dbname}}'
-        {{/if}}
-
-        {{#if app.database.dbuser}}
-        dbuser = app[:dbuser] = '{{ident app.database.dbuser}}'
-        {{/if}}
-
-        {{#if app.parent}}
-            dbname ||= app[:dbname] ||= '{{ident app.parent}}'
-            dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
-            dbpass = app[:dbpass] = db_password(app, dbname)
-        {{else}}
-            default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
-            dbname ||= app[:dbname] ||= default_db_val
-            dbuser ||= app[:dbuser] ||= default_db_val
-            dbpass = app[:dbpass] = db_password(app, dbname)
+        {{#unless app.parent}}
             {{#if app.database.allow_create_db}}
-                allow_create_db = true
+        allow_create_db = true
             {{else}}
-                allow_create_db = false
+        allow_create_db = false
             {{/if}}
-            database.create_user(chef, dbuser, dbpass, allow_create_db)
-        {{/if}}
+        database.create_user(chef, app[:dbuser], app[:dbpass], allow_create_db)
+        {{/unless}}
 
         unless_table = nil
         {{#if app.database.unless}}
-            unless_table = '{{app.database.unless}}'
+        unless_table = '{{app.database.unless}}'
         {{/if}}
 
         {{#if app.database.set_config}}
           {{#each app.database.set_config}}
-            database.set_config(chef, '{{group}}', '{{name}}', '{{value}}')
+        database.set_config(chef, '{{group}}', '{{name}}', '{{value}}')
           {{/each}}
         {{/if}}
 
         {{#if app.database.init_command}}
-          db_init = '{{app.database.init_command.exec}}'
-          db_init = app[:run_as_home] + '/' + db_init unless db_init.start_with?('/')
-          db_init.gsub!('@dbuser', dbuser);
-          db_init.gsub!('@dbname', dbname);
-          db_init.gsub!('@dbpass', dbpass);
-          chef.bash "initialize database with #{db_init}" do
+        db_init = '{{app.database.init_command.exec}}'
+        db_init = app[:run_as_home] + '/' + db_init unless db_init.start_with?('/')
+        db_init.gsub!('@dbuser', app[:dbuser]);
+        db_init.gsub!('@dbname', app[:dbname]);
+        db_init.gsub!('@dbpass', app[:dbpass]);
+        chef.bash "initialize database with #{db_init}" do
             user 'root'
             code <<-EOF
           {{#if app.database.init_command.stdin}}
-              echo '{{app.database.init_command.stdin}}' | #{db_init}
+echo '{{app.database.init_command.stdin}}' | #{db_init}
           {{else}}
-              #{db_init}
+#{db_init}
           {{/if}}
-            EOF
-          end
+EOF
+        end
 
         {{else}}
-            database.create_db(chef, dbname, dbuser)
-            schema_file = nil
+        database.create_db(chef, app[:dbname], app[:dbuser])
+        schema_file = nil
 
             {{#if app.database.schema}}
-                # Load the schema specified in the manifest
-                schema_file = app_lib.subst('{{app.database.schema}}', app)
-                schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
+        # Load the schema specified in the manifest
+        schema_file = app_lib.subst('{{app.database.schema}}', app)
+        schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
             {{else}}
-                # No schema specified in manifest, look for schema file in standard locations
-                [ '_schema', '-schema', '' ].each do |suffix|
-                    schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
-                    # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
-                    if File.exists? schema_file
-                      tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
-                      File.open(tmp_schema, 'w') { |tmp|
-                        tmp.write(File.open(schema_file, 'r') { |schema| schema.read })
-                      }
-                      FileUtils.chmod(0600, tmp_schema)
-                      FileUtils.chown('root', 'root', tmp_schema);
-                      schema_file = tmp_schema
-                      break
-                    end
-                end
+        # No schema specified in manifest, look for schema file in standard locations
+        [ '_schema', '-schema', '' ].each do |suffix|
+            schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
+            # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
+            if File.exists? schema_file
+              tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
+              File.open(tmp_schema, 'w') { |tmp|
+                tmp.write(File.open(schema_file, 'r') { |schema| schema.read })
+              }
+              FileUtils.chmod(0600, tmp_schema)
+              FileUtils.chown('root', 'root', tmp_schema);
+              schema_file = tmp_schema
+              break
+            end
+        end
             {{/if}}
 
-            database.initialize_db(chef, schema_file, dbuser, dbpass, dbname, unless_table) unless schema_file.nil? || !File.exists?(schema_file)
+        database.initialize_db(chef, schema_file, app[:dbuser], app[:dbpass], app[:dbname], unless_table) unless schema_file.nil? || !File.exists?(schema_file)
         {{/if}}
 
         {{#if app.database.inserts}}
           {{#each app.database.inserts}}
             {{#if dbname}}
-                insertIntoDb = '{{dbname}}'
+        insertIntoDb = '{{dbname}}'
             {{else}}
-                insertIntoDb = dbname
+        insertIntoDb = app[:dbname]
             {{/if}}
-            database.insert(chef, dbuser, insertIntoDb, {
-                :sql => app_lib.subst_string('{{safe sql}}', app),
-                :unless => app_lib.subst_string('{{safe unless}}', app)
+        database.insert(chef, app[:dbuser], insertIntoDb, {
+            :sql => app_lib.subst_string('{{safe sql}}', app),
+            :unless => app_lib.subst_string('{{safe unless}}', app)
             })
           {{/each}}
         {{/if}}

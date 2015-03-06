@@ -56,8 +56,7 @@ public class MultiBundlerMain {
     private void processDir(File dir) throws Exception {
 
         final Set<String> processed = new HashSet<>();
-        final File[] files = dir.listFiles();
-        if (files == null) throw new IllegalArgumentException("Invalid directory: "+dir.getAbsolutePath());
+        final File[] files = FileUtil.list(dir);
 
         for (File f : files) {
             final String fpath = f.getAbsolutePath();
@@ -114,8 +113,7 @@ public class MultiBundlerMain {
 
         // If we have a plugin, move it into the right place
         if (hasPlugin) {
-            final File[] targetFiles = targetDir.listFiles();
-            if (targetFiles == null) throw new IllegalStateException("No plugin jar found in "+targetDir.getAbsolutePath());
+            final File[] targetFiles = FileUtil.list(targetDir);
             File pluginJar = null;
             for (File f : targetFiles) {
                 if (f.isFile() && f.getName().contains(manifest.getName()) && f.getName().endsWith(".jar")) {

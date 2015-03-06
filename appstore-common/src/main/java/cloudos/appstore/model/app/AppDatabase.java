@@ -18,6 +18,7 @@ public class AppDatabase {
     @Getter @Setter private String dbuser;
     @Getter @Setter private String dbpass;
     @Getter @Setter private boolean allow_create_db = false;
+    @Getter @Setter private Integer schema_version;
     @Getter @Setter private Map<String, JsonNode> options;
 
     @Getter @Setter private String schema;
