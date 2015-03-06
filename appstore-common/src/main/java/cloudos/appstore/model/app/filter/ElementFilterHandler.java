@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+
 @Slf4j
 public class ElementFilterHandler extends AppFilterHandlerBase {
 
@@ -40,7 +42,7 @@ public class ElementFilterHandler extends AppFilterHandlerBase {
 
             // If none were found, add one at the end
             if (!anyFound) {
-                if (!element.endsWith(">")) throw new IllegalStateException("No terminating angle-bracket: " + element);
+                if (!element.endsWith(">")) die("No terminating angle-bracket: " + element);
                 final String suffix = element.endsWith("/>") ? "/>" : ">";
                 element = element.substring(0, element.length() - suffix.length()) + " " + val + suffix;
             }

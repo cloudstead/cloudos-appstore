@@ -3,6 +3,7 @@ package cloudos.appstore.model.app.filter;
 import lombok.Getter;
 import lombok.Setter;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
 public class FieldFilterHandler extends ElementFilterHandler {
@@ -21,7 +22,7 @@ public class FieldFilterHandler extends ElementFilterHandler {
 
     public String getMatch_attr_value() {
         if (!empty(super.getMatch_attr_value())) return super.getMatch_attr_value();
-        if (empty(name)) throw new IllegalStateException("Neither name nor match_attr_value was set");
+        if (empty(name)) die("Neither name nor match_attr_value was set");
         return name;
     }
 

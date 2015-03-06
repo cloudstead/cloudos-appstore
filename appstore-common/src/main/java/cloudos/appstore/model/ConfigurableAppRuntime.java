@@ -17,6 +17,7 @@ import org.cobbzilla.wizard.util.BufferedResponse;
 import java.io.ByteArrayInputStream;
 import java.util.*;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.string.StringUtil.urlEncode;
 
 @Slf4j
@@ -126,7 +127,7 @@ public class ConfigurableAppRuntime extends AppRuntimeBase {
             return new XPathUtil(passThruXPaths).getFirstMatchMap(new ByteArrayInputStream(response.getDocument().getBytes()));
         } catch (Exception e) {
             log.error("parsePassThruFields: XPath not found in document? "+e, e);
-            throw new IllegalStateException(e);
+            return (Map<String, String>) die(e);
         }
     }
 

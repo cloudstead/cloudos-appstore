@@ -21,6 +21,9 @@ import java.io.Writer;
 import java.util.*;
 
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.io.FileUtil.abs;
+import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 
 @Slf4j
 public class DefaultAppBundler implements AppBundler {
@@ -40,17 +43,14 @@ public class DefaultAppBundler implements AppBundler {
 
         validate(options, manifest);
 
-        final File outputDir = options.getOutputDir();
-        final String outputBase = outputDir.getAbsolutePath() + "/";
-        if (!outputDir.exists() && !outputDir.mkdirs()) {
-            throw new IllegalArgumentException("Error creating output dir: "+ outputBase);
-        }
+        final File outputDir = mkdirOrDie(options.getOutputDir());
+        final String outputBase = abs(outputDir) + "/";
 
         final String name = manifest.getName();
         final AppStyle style = manifest.getStyle();
         if (style == null) throw new IllegalArgumentException("style not defined. use one of: "+Arrays.asList(AppStyle.values()));
         final String styleName = style.name().toLowerCase();
-        final String baseDir = options.getManifest().getParentFile().getAbsolutePath() + "/";
+        final String baseDir = abs(options.getManifest().getParentFile()) + "/";
 
         final Map<String, Object> scope = new HashMap<>();
         scope.put("app", manifest);
@@ -194,10 +194,7 @@ public class DefaultAppBundler implements AppBundler {
             final Template hbs = handlebars.compile(template);
             final String path = template.replace(APP, name).replace("/", File.separator);
             final File file = new File(outputBase + File.separator + path);
-            final File parent = file.getParentFile();
-            if (!parent.exists() && !parent.mkdirs()) {
-                throw new IllegalStateException("error creating directory: "+parent.getAbsolutePath());
-            }
+            mkdirOrDie(file.getParentFile());
 
             try (Writer w = new FileWriter(file)) {
                 hbs.apply(scope, w);
@@ -213,10 +210,7 @@ public class DefaultAppBundler implements AppBundler {
 
         // Put a copy of the manifest under data_bags
         final File manifestCopy = outputFile(outputBase, CHEF_DATABAGS, name, CLOUDOS_MANIFEST_JSON);
-        final File databagDir = manifestCopy.getParentFile();
-        if (!databagDir.exists() && !databagDir.mkdirs()) {
-            throw new IllegalStateException("error creating directory: "+databagDir.getAbsolutePath());
-        }
+        final File databagDir = mkdirOrDie(manifestCopy.getParentFile());
         FileUtils.copyFile(manifestFile, new File(databagDir, CLOUDOS_MANIFEST_JSON));
     }
 
@@ -231,20 +225,19 @@ public class DefaultAppBundler implements AppBundler {
     private void copy(BundlerOptions options, AppManifest manifest, String assetType) throws IOException {
 
         final String name = manifest.getName();
-        final String baseDir = options.getManifest().getParentFile().getAbsolutePath() + "/";
+        final String baseDir = abs(options.getManifest().getParentFile()) + "/";
         final File outputDir = options.getOutputDir();
-        final String outputBase = outputDir.getAbsolutePath() + "/";
+        final String outputBase = abs(outputDir) + "/";
 
         final File localDir = new File(baseDir, assetType);
-        final File chefDir = outputFile(outputBase, getPath(assetType), name);
+        final File chefDir = FileUtil.mkdirOrDie(outputFile(outputBase, getPath(assetType), name));
 
         if (localDir.exists()) {
             final File[] files = FileUtil.list(localDir);
-            if (!chefDir.exists() && !chefDir.mkdirs()) throw new IllegalStateException("Error creating "+assetType+"s dir: "+chefDir.getAbsolutePath());
             for (File f : files) {
-                final CommandResult rsync = CommandShell.exec("rsync -avc " + f.getAbsolutePath() + " " + chefDir.getAbsolutePath() + "/");
+                final CommandResult rsync = CommandShell.exec("rsync -avc " + abs(f) + " " + abs(chefDir) + "/");
                 if (rsync.getExitStatus() != 0) {
-                    throw new IllegalStateException("Error copying "+assetType+"s (" + f.getAbsolutePath() + "): " + rsync.getStderr());
+                    die("Error copying " + assetType + "s (" + abs(f) + "): " + rsync.getStderr());
                 }
             }
         }

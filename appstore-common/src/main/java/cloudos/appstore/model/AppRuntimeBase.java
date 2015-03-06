@@ -17,6 +17,7 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 import static javax.ws.rs.core.HttpHeaders.*;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 
 @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)
 public abstract class AppRuntimeBase implements AppRuntime {
@@ -50,7 +51,7 @@ public abstract class AppRuntimeBase implements AppRuntime {
             baseHost = host.substring(host.indexOf('.')+1);
 
         } catch (URISyntaxException e) {
-            throw new IllegalStateException("Invalid baseUri: "+baseUri);
+            return die("Invalid baseUri: " + baseUri);
         }
         return baseHost;
     }

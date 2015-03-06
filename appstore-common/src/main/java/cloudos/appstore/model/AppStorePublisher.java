@@ -11,6 +11,7 @@ import javax.persistence.Entity;
 import javax.validation.constraints.Size;
 
 import static cloudos.appstore.ValidationConstants.*;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 
 @Entity
 public class AppStorePublisher extends IdentifiableBase {
@@ -26,6 +27,6 @@ public class AppStorePublisher extends IdentifiableBase {
     @Getter @Setter private String owner;
 
     public void beforeCreate() {
-        if (getUuid() == null) throw new IllegalStateException("uuid not initialized");
+        if (getUuid() == null) die("uuid not initialized");
     }
 }

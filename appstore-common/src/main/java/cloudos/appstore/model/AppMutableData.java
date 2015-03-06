@@ -16,12 +16,14 @@ import org.cobbzilla.wizard.validation.HasValue;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.validation.constraints.Size;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
 import static cloudos.appstore.ValidationConstants.*;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.io.FileUtil.abs;
+import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
@@ -120,16 +122,15 @@ public class AppMutableData {
 
             final String ext = URIUtil.getFileExt(assetUrl);
             if (!isValidImageExtention(ext)) {
-                throw new IllegalStateException("Invalid file extension for asset (must be one of: "+ Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) +"): "+assetUrl);
+                die("Invalid file extension for asset (must be one of: " + Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) + "): " + assetUrl);
             }
             assetFile = new File(layout.getChefFilesDir(), asset + "." + ext);
-            final File parent = assetFile.getParentFile();
-            if (!parent.exists() && !parent.mkdirs()) throw new IllegalStateException("Error creating directory: "+ parent.getAbsolutePath());
+            mkdirOrDie(assetFile.getParentFile());
 
             try {
                 HttpUtil.url2file(assetUrl, assetFile);
             } catch (IOException e) {
-                throw new IllegalStateException("Asset (" + asset + ") could not be loaded from: " + assetUrl, e);
+                die("Asset (" + asset + ") could not be loaded from: " + assetUrl, e);
             }
             if (!empty(shaValue)) sha = shaValue.toString();
         }
@@ -141,7 +142,7 @@ public class AppMutableData {
 
         // calculate sha, validate if manifest specified one
         final String fileSha = ShaUtil.sha256_file(assetFile);
-        if (!empty(sha) && !fileSha.equals(sha)) throw new IllegalStateException("Asset (" + assetFile.getAbsolutePath() + " had an invalid SHA sum");
+        if (!empty(sha) && !fileSha.equals(sha)) die("Asset (" + abs(assetFile) + " had an invalid SHA sum");
 
         ReflectionUtil.set(assets, asset + "Url", urlBase + manifest.getScrubbedName() + "/" + assetFile.getName());
         ReflectionUtil.set(assets, asset + "UrlSha", fileSha);

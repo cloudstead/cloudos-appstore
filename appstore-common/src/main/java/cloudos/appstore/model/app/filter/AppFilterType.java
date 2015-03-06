@@ -3,6 +3,8 @@ package cloudos.appstore.model.app.filter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+
 @AllArgsConstructor
 public enum AppFilterType {
 
@@ -22,7 +24,7 @@ public enum AppFilterType {
 
     public AppFilterHandler newHandler() {
         try { return handlerClass.newInstance(); } catch (Exception e) {
-            throw new IllegalStateException("Error creating handler: "+e, e);
+            return (AppFilterHandler) die("Error creating handler: " + e, e);
         }
     }
 }

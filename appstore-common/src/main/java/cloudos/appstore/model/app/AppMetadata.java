@@ -12,6 +12,7 @@ import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
 
+import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Accessors(chain=true) @ToString
@@ -51,7 +52,7 @@ public class AppMetadata {
     }
 
     public void write (File appDir) {
-        if (!appDir.exists() || !appDir.isDirectory()) throw new IllegalArgumentException("Invalid appDir: "+appDir.getAbsolutePath());
+        if (!appDir.exists() || !appDir.isDirectory()) throw new IllegalArgumentException("Invalid appDir: "+abs(appDir));
 
         final File metaFile = new File(appDir, METADATA_JSON);
         FileUtil.toFileOrDie(metaFile, JsonUtil.toJsonOrDie(this));

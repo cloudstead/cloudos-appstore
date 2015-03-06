@@ -13,6 +13,7 @@ import org.cobbzilla.util.io.StreamUtil;
 
 import java.io.IOException;
 
+import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.security.ShaUtil.sha256_url;
 import static org.cobbzilla.wizardtest.RandomUtil.randomEmail;
 import static org.cobbzilla.wizardtest.RandomUtil.randomName;
@@ -93,7 +94,7 @@ public class AppStoreTestUtil {
     }
 
     public static String assetUrl(String asset) throws IOException {
-        return "file://"+ StreamUtil.stream2file(StreamUtil.loadResourceAsStream(asset)).getAbsolutePath();
+        return "file://"+abs(StreamUtil.stream2file(StreamUtil.loadResourceAsStream(asset)));
     }
 
 }

@@ -15,6 +15,8 @@ import java.io.File;
 import java.util.*;
 
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.io.FileUtil.abs;
 
 @Slf4j @AllArgsConstructor
 public class MultiBundlerMain {
@@ -33,7 +35,7 @@ public class MultiBundlerMain {
     private void run() throws Exception {
         final File dir = new File(args[0]);
         if (!dir.exists() || !dir.isDirectory()) {
-            throw new IllegalArgumentException("Not a directory: "+dir.getAbsolutePath());
+            throw new IllegalArgumentException("Not a directory: "+abs(dir));
         }
         try {
             processDir(dir);
@@ -59,7 +61,7 @@ public class MultiBundlerMain {
         final File[] files = FileUtil.list(dir);
 
         for (File f : files) {
-            final String fpath = f.getAbsolutePath();
+            final String fpath = abs(f);
 
             if (f.isDirectory()) {
                 if (f.getName().equals(TARGET_DIR)) continue;
@@ -88,9 +90,7 @@ public class MultiBundlerMain {
         if (manifestFile.getName().equals(PRE_BUNDLE_SH)) {
             CommandShell.exec(new CommandLine(manifestFile));
             final File realManifest = new File(manifestFile.getParentFile(), CLOUDOS_MANIFEST_JSON);
-            if (!realManifest.exists()) {
-                throw new IllegalStateException(CLOUDOS_MANIFEST_JSON+" does not exist, even after running: "+manifestFile.getAbsolutePath());
-            }
+            if (!realManifest.exists()) die(CLOUDOS_MANIFEST_JSON + " does not exist, even after running: " + abs(manifestFile));
             manifestFile = realManifest;
         }
 
@@ -102,14 +102,14 @@ public class MultiBundlerMain {
         // If a src dir exists and a pom file exists, run maven
         final File srcDir = new File(manifestFile.getParentFile(), "src");
         boolean hasPlugin = srcDir.exists() && new File(manifestFile.getParentFile(), "pom.xml").exists();
-        if (hasPlugin) CommandShell.execScript("cd "+srcDir.getAbsolutePath()+" && mvn clean package");
+        if (hasPlugin) CommandShell.execScript("cd "+abs(srcDir)+" && mvn clean package");
 
         // Recreate output dir
         final String appBundleDir = appName + "-bundle";
         final File targetDir = new File(manifestFile.getParentFile(), TARGET_DIR);
         final File outputDir = new File(targetDir, appBundleDir);
         if (outputDir.exists()) FileUtils.deleteDirectory(outputDir);
-        if (!outputDir.mkdirs()) throw new IllegalStateException("Error creating output dir:"+outputDir.getAbsolutePath());
+        FileUtil.mkdirOrDie(outputDir);
 
         // If we have a plugin, move it into the right place
         if (hasPlugin) {
@@ -117,9 +117,7 @@ public class MultiBundlerMain {
             File pluginJar = null;
             for (File f : targetFiles) {
                 if (f.isFile() && f.getName().contains(manifest.getName()) && f.getName().endsWith(".jar")) {
-                    if (pluginJar != null) {
-                        throw new IllegalStateException("Multiple plugin candidate jars found: "+pluginJar.getAbsolutePath()+" and "+f.getAbsolutePath());
-                    }
+                    if (pluginJar != null) die("Multiple plugin candidate jars found: "+abs(pluginJar)+" and "+abs(f));
                     pluginJar = f;
                 }
             }
@@ -131,7 +129,7 @@ public class MultiBundlerMain {
         options.setOutputDir(outputDir);
 
         bundler.bundle(options, manifest);
-        log.info("tarball("+appBundleDir+"): "+CommandShell.execScript("cd " + outputDir.getAbsolutePath() + " && tar cvzf ../"+appBundleDir+".tar.gz . 2>&1"));
+        log.info("tarball("+appBundleDir+"): "+CommandShell.execScript("cd " + abs(outputDir) + " && tar cvzf ../"+appBundleDir+".tar.gz . 2>&1"));
     }
 
 }

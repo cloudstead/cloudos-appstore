@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
@@ -151,7 +152,7 @@ public class AppConfiguration {
                             operations.add(op);
 
                         } catch (Exception e) {
-                            throw new IllegalStateException("Error preparing to write " + databagName + "/" + item + ": " + e);
+                            die("Error preparing to write " + databagName + "/" + item + ": " + e, e);
                         }
                     }
                 }
@@ -162,7 +163,7 @@ public class AppConfiguration {
                     FileUtil.toFile(databagFile, updatedJson);
 
                 } catch (Exception e) {
-                    throw new IllegalStateException("Error generating updated json: " + e);
+                    die("Error generating updated json: " + e);
                 }
 
             }
@@ -286,7 +287,7 @@ public class AppConfiguration {
                 break;
 
             default:
-                throw new IllegalStateException("Invalid field type: "+fieldMetadata.getType());
+                die("Invalid field type: "+fieldMetadata.getType());
         }
     }
 
