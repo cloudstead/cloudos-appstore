@@ -1,6 +1,8 @@
 package cloudos.appstore.bundler;
 
 import cloudos.appstore.model.app.*;
+import cloudos.appstore.model.app.config.AppConfigMetadata;
+import cloudos.appstore.model.app.config.AppConfigTranslations;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
@@ -74,7 +76,7 @@ public class DefaultAppBundler implements AppBundler {
 
         // Copy extra recipes and data_bags
         copy(options, manifest, "recipes");
-        copy(options, manifest, "data_bags");
+        copy(options, manifest, "config");
 
         // If there was no validate.rb recipe, but there is a validate.sh script in the files dir, create a validate.rb recipe
         if (!new File(baseDir+"recipes/validate.rb").exists()) {
@@ -218,7 +220,27 @@ public class DefaultAppBundler implements AppBundler {
         // If filters are declared, make sure they can actually be used (based on web mode)
         if (manifest.hasWeb() && manifest.getWeb().hasFilters()) {
             final AppWebMode mode = manifest.getWeb().getMode();
-            if (!mode.supportsFilters()) throw new IllegalArgumentException("Web mode does not support filters: "+mode);
+            if (!mode.supportsFilters()) die("Web mode does not support filters: " + mode);
+        }
+
+        // If config-metadata.json is defined, ensure it is parseable
+        final File configDir = new File(abs(options.getManifest().getParent())+"/config");
+        if (configDir.exists()) {
+            final File configMetaFile = new File(configDir, AppConfigMetadata.CONFIG_METADATA_JSON);
+            if (configMetaFile.exists()) {
+                try { AppConfigMetadata.loadOrDie(configMetaFile); } catch (Exception e) {
+                    die("Invalid " + AppConfigMetadata.CONFIG_METADATA_JSON + " file ("+abs(configMetaFile)+"): " + e, e);
+                }
+            }
+
+            // If translations are defined, ensure they are parseable
+            for (File f : FileUtil.list(configDir)) {
+                if (f.getName().startsWith("translations") && f.getName().endsWith(".json")) {
+                    try { AppConfigTranslations.loadOrDie(f); } catch (Exception e) {
+                        die("Invalid translations file " + abs(f) + ": " + e, e);
+                    }
+                }
+            }
         }
     }
 
@@ -230,28 +252,28 @@ public class DefaultAppBundler implements AppBundler {
         final String outputBase = abs(outputDir) + "/";
 
         final File localDir = new File(baseDir, assetType);
-        final File chefDir = FileUtil.mkdirOrDie(outputFile(outputBase, getPath(assetType), name));
+        final File chefDir = FileUtil.mkdirOrDie(outputFile(outputBase, getChefDirName(assetType), name));
 
         if (localDir.exists()) {
             final File[] files = FileUtil.list(localDir);
             for (File f : files) {
                 final CommandResult rsync = CommandShell.exec("rsync -avc " + abs(f) + " " + abs(chefDir) + "/");
                 if (rsync.getExitStatus() != 0) {
-                    die("Error copying " + assetType + "s (" + abs(f) + "): " + rsync.getStderr());
+                    die("Error copying " + abs(f) + ": " + rsync.getStderr());
                 }
             }
         }
     }
 
-    private String getPath(String assetType) {
+    private String getChefDirName(String assetType) {
         switch (assetType) {
             case "files": return CHEF_FILES;
             case "recipes": return CHEF_RECIPES;
             case "libraries": return CHEF_LIBRARIES;
             case "templates": return CHEF_TEMPLATES;
-            case "data_bags": return CHEF_DATABAGS;
+            case "data_bags": case "config": return CHEF_DATABAGS;
         }
-        throw new IllegalArgumentException("getPath: unknown assetType: "+assetType);
+        throw new IllegalArgumentException("getChefDirName: unknown assetType: "+assetType);
     }
 
     private String basename(String prefix) { return prefix == null ? null : new File(prefix + ".erb").getName(); }

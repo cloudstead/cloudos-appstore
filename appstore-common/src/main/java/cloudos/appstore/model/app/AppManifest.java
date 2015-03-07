@@ -60,8 +60,8 @@ public class AppManifest {
     @Getter @Setter private AppMutableData assets;
     @JsonIgnore public boolean hasAssets () { return assets != null; }
 
-    @Getter @Setter private AppDatabagDef[] databags;
-    public boolean hasDatabags () { return databags != null && databags.length > 0; }
+    @Getter @Setter private AppDatabagDef[] config;
+    public boolean hasDatabags () { return config != null && config.length > 0; }
 
     @Getter @Setter private AppShellCommand[] pre_package;
     @Getter @Setter private String[] packages;

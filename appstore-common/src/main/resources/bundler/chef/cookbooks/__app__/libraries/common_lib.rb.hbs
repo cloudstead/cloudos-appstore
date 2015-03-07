@@ -58,7 +58,7 @@ class Chef::Recipe::{{app.chefName}}
         begin
             app[:databag][:ports] = chef.data_bag_item('{{app.name}}', 'ports')
             app[:databag][:ports].each do |bagkey, bagvalue|
-                define_databag_replacements app[:databag_replacements], "@databag[ports]", bagkey, bagvalue
+                define_databag_replacements app[:databag_replacements], "@config[ports]", bagkey, bagvalue
             end
         rescue => e
             puts "{{app.name}}/ports databag not found or error reading: #{e}"
@@ -68,7 +68,7 @@ class Chef::Recipe::{{app.chefName}}
         begin
             app[:databag][:base] = chef.data_bag_item('{{app.name}}', 'base')
             app[:databag][:base].each do |bagkey, bagvalue|
-                define_databag_replacements app[:databag_replacements], "@databag[base]", bagkey, bagvalue
+                define_databag_replacements app[:databag_replacements], "@config[base]", bagkey, bagvalue
             end
 
             # set the hostname based on values in the base databag
@@ -97,11 +97,11 @@ class Chef::Recipe::{{app.chefName}}
 
         app[:domain] ||= %x(hostname -d).strip
 
-        {{#if app.databags}}
-            {{#each app.databags}}
+        {{#if app.config}}
+            {{#each app.config}}
         app[:databag][:{{ident name}}] = chef.data_bag_item('{{app.name}}', '{{name}}')
         app[:databag][:{{ident name}}].each do |bagkey, bagvalue|
-            define_databag_replacements app[:databag_replacements], "@databag[{{ident name}}]", bagkey, bagvalue
+            define_databag_replacements app[:databag_replacements], "@config[{{ident name}}]", bagkey, bagvalue
         end
             {{/each}}
         {{/if}}
@@ -159,6 +159,13 @@ hash["#{base}[#{bagkey}]"] = bagvalue.to_s
         base = Chef::Recipe::Base
 
         if app
+            # Perform databag replacements first, since they may contain other @directives
+            if app[:databag_replacements]
+                app[:databag_replacements].each do |find, replace|
+                    value = value.gsub(find, replace.to_s)
+                end
+            end
+
 {{#if app.repo}}
             value = value.gsub('@repo', "#{app[:run_as_home]}/#{app[:repo_dir]}")
 {{/if}}
@@ -185,12 +192,6 @@ hash["#{base}[#{bagkey}]"] = bagvalue.to_s
             (0...9).each do |n|
                 value = value.gsub("@uniq[#{n}]", app[:uniq][n])
                 value = value.gsub("@rand[#{n}]", app[:rand][n])
-            end
-
-            if app[:databag_replacements]
-                app[:databag_replacements].each do |find, replace|
-                    value = value.gsub(find, replace.to_s)
-                end
             end
 
 {{#if app.passwords}}

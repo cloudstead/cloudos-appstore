@@ -10,23 +10,37 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+
 @Slf4j
 public class AppConfigMetadata {
 
-    private static final String CONFIG_METADATA_JSON = "config-metadata.json";
+    public static final String CONFIG_METADATA_JSON = "config-metadata.json";
+    public static final String ID = "config-metadata";
 
-    @Getter @Setter private Map<String, AppConfigMetadataDatabag> metadataMap = new HashMap<>();
+    public String getId() { return ID; }
+    public void setId (String id) { /*noop*/ }
 
-    public static AppConfigMetadata load(File databagsDir) {
-        final File metadataFile = new File(databagsDir, CONFIG_METADATA_JSON);
+    @Getter @Setter private Map<String, AppConfigMetadataDatabag> categories = new HashMap<>();
+
+    public static AppConfigMetadata load(File path) {
+        final File metadataFile = path.isFile() && path.getName().equals(CONFIG_METADATA_JSON)
+                ? path
+                : path.isDirectory()
+                    ? new File(path, CONFIG_METADATA_JSON)
+                    : (File) die("not a "+CONFIG_METADATA_JSON+" file nor a directory containing one");
         if (metadataFile.exists()) {
             try {
-                return JsonUtil.fromJson(FileUtil.toString(metadataFile), AppConfigMetadata.class);
+                return loadOrDie(metadataFile);
             } catch (Exception e) {
                 log.error("load: Error reading " + CONFIG_METADATA_JSON + " (returning null): " + e, e);
             }
         }
         return null;
+    }
+
+    public static AppConfigMetadata loadOrDie(File metadataFile) throws Exception {
+        return JsonUtil.fromJson(FileUtil.toString(metadataFile), AppConfigMetadata.class);
     }
 
 }

@@ -3,6 +3,7 @@ package cloudos.appstore.model.app.config;
 import cloudos.appstore.model.app.AppDatabagDef;
 import cloudos.appstore.model.app.AppLayout;
 import cloudos.appstore.model.app.AppManifest;
+import cloudos.appstore.model.app.config.validation.AppConfigFieldValidatorBase;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -14,6 +15,8 @@ import org.cobbzilla.util.json.JsonEdit;
 import org.cobbzilla.util.json.JsonEditOperation;
 import org.cobbzilla.util.json.JsonEditOperationType;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.util.mustache.MustacheUtil;
+import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 import rooty.toots.vendor.VendorDatabag;
 import rooty.toots.vendor.VendorSettingHandler;
@@ -24,7 +27,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER;
@@ -53,7 +55,7 @@ public class AppConfiguration {
         final AppConfiguration config = new AppConfiguration();
         if (manifest.hasDatabags()) {
             databagsDir = new File(databagsDir, manifest.getName());
-            for (AppDatabagDef databag : manifest.getDatabags()) {
+            for (AppDatabagDef databag : manifest.getConfig()) {
 
                 final String databagName = databag.getName();
                 final File databagFile = new File(databagsDir, databagName+".json");
@@ -76,7 +78,11 @@ public class AppConfiguration {
                                 if (vendor != null && vendor.isDefault(item, value)) {
                                     value = VendorSettingHandler.VENDOR_DEFAULT;
                                 }
-                                category.set(item, value);
+
+                                final Map<String, Object> scope = new HashMap<>();
+                                scope.put("hostname", CommandShell.hostname());
+                                category.set(item, MustacheUtil.render(value, scope));
+
                             } else {
                                 category.set(item, VendorSettingHandler.VALUE_NOT_SET);
                             }
@@ -101,7 +107,7 @@ public class AppConfiguration {
     public static void setAppConfiguration(AppManifest manifest, File databagsDir, AppConfiguration config) {
         if (manifest.hasDatabags()) {
             databagsDir = new File(databagsDir, manifest.getName());
-            for (AppDatabagDef databag : manifest.getDatabags()) {
+            for (AppDatabagDef databag : manifest.getConfig()) {
 
                 final String databagName = databag.getName();
 
@@ -217,83 +223,19 @@ public class AppConfiguration {
                 if (fieldMetadata == null) {
                     // assume field is required but otherwise do not validate
                     if (empty(value)) {
-                        violations.add(err(catName, item, "empty", value));
+                        violations.add(AppConfigFieldValidatorBase.err(catName, item, "empty", value));
                     }
                 } else {
-                    validateField(catName, item, value, fieldMetadata, violations, entityResolver);
+                    fieldMetadata.getType().validate(catName, item, value, fieldMetadata, violations, entityResolver);
                 }
             }
         }
         return violations;
     }
 
-    private ConstraintViolationBean err(String catName, String item, String problem, String value) {
-        return new ConstraintViolationBean("{err." + catName + "." + item + "." + problem + "}", null, value);
-    }
-
-    public static final Pattern LOGIN_PATTERN = Pattern.compile("[\\w\\-]+");
-
-    private void validateField(String catName, String item, String value,
-                               AppConfigMetadataDatabagField fieldMetadata,
-                               List<ConstraintViolationBean> violations,
-                               AppConfigValidationResolver entityResolver) {
-
-        // quick check -- if value is empty and field is not required, we're done
-        final boolean required = fieldMetadata.isRequired();
-        if (!required && empty(value)) return;
-
-        if (required && empty(value)) {
-            violations.add(err(catName, item, "empty", value));
-            return;
-        }
-
-        if (fieldMetadata.hasMin() && value.length() < fieldMetadata.getMin()) {
-            violations.add(err(catName, item, "tooShort", value));
-
-        } else if (fieldMetadata.hasMax() && value.length() > fieldMetadata.getMax()) {
-            violations.add(err(catName, item, "tooLong", value));
-        }
-
-        switch (fieldMetadata.getType()) {
-            case field:
-            case password:
-                // no additional validation to do here...
-                break;
-
-            case login:
-                if (!LOGIN_PATTERN.matcher(value).matches()) {
-                    violations.add(err(catName, item, "invalid", value));
-                }
-                break;
-
-            case yesno:
-                if (!(value.equals("true") || value.equals("false"))) {
-                    violations.add(err(catName, item, "invalid", value));
-                }
-                break;
-
-            case cloudos_group:
-                if (!entityResolver.isValidGroup(value)) {
-                    violations.add(err(catName, item, "invalid", value));
-                }
-                break;
-
-            case member_list:
-                for (String member : value.split("[,\\s]+")) {
-                    if (!entityResolver.isValidAccount(value)) {
-                        violations.add(err(catName, item, "invalid", value));
-                    }
-                }
-                break;
-
-            default:
-                die("Invalid field type: "+fieldMetadata.getType());
-        }
-    }
-
     public AppConfigMetadataDatabagField getFieldMetadata(AppConfigurationCategory cat, String item) {
         if (metadata == null) return null;
-        final AppConfigMetadataDatabag databagMetadata = metadata.getMetadataMap().get(cat.getName());
+        final AppConfigMetadataDatabag databagMetadata = metadata.getCategories().get(cat.getName());
         if (databagMetadata == null) return null;
         return databagMetadata.get(item);
     }
