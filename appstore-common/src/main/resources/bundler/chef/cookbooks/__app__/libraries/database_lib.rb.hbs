@@ -89,7 +89,7 @@ class Chef::Recipe::{{app.chefName}}
         schema_version = nil
         unless defined? database_{{app.style}}_self_managed_schema_versions
             schema_version = database.get_schema_version chef, app[:dbname], app[:dbuser], app[:dbpass], app[:name]
-            if schema_version.nil?
+            if schema_version.to_s.empty?
                 do_create = true
             elsif schema_version.to_s != '{{app.database.schema_version}}'
                 do_migrate = true
