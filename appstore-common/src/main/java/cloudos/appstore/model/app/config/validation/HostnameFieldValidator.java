@@ -8,11 +8,14 @@ import java.util.List;
 
 import static org.cobbzilla.wizard.validation.ValidationRegexes.HOST_PATTERN;
 import static org.cobbzilla.wizard.validation.ValidationRegexes.IPv4_PATTERN;
+import static org.cobbzilla.wizard.validation.ValidationRegexes.IPv6_PATTERN;
 
-public class HostnameValidator extends AppConfigFieldValidatorBase {
+public class HostnameFieldValidator extends AppConfigFieldValidatorBase {
 
     @Override protected boolean isValid(String value) {
-        return HOST_PATTERN.matcher(value).matches() || IPv4_PATTERN.matcher(value).matches();
+        return HOST_PATTERN.matcher(value).matches()
+                || IPv4_PATTERN.matcher(value).matches()
+                || IPv6_PATTERN.matcher(value).matches();
     }
 
     @Override public List<ConstraintViolationBean> validate(String catName, String item, String value,

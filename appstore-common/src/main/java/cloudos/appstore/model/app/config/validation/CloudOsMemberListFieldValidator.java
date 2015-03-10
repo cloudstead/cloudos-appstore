@@ -6,8 +6,6 @@ import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
 import java.util.List;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
-
 public class CloudOsMemberListFieldValidator extends AppConfigFieldValidatorBase {
 
     @Override public List<ConstraintViolationBean> validate(String catName, String item, String value,

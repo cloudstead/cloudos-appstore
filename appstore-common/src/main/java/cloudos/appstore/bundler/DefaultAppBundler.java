@@ -26,6 +26,8 @@ import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
+import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.string.StringUtil.replaceLast;
 
 @Slf4j
 public class DefaultAppBundler implements AppBundler {
@@ -53,9 +55,13 @@ public class DefaultAppBundler implements AppBundler {
         if (style == null) throw new IllegalArgumentException("style not defined. use one of: "+Arrays.asList(AppStyle.values()));
         final String styleName = style.name().toLowerCase();
         final String baseDir = abs(options.getManifest().getParentFile()) + "/";
+        final File configMetadataFile = new File(baseDir+"config/"+AppConfigMetadata.CONFIG_METADATA_JSON);
 
         final Map<String, Object> scope = new HashMap<>();
         scope.put("app", manifest);
+        if (configMetadataFile.exists()) {
+            scope.put("config_metadata", AppConfigMetadata.load(configMetadataFile));
+        }
 
         final List<String> templates = new ArrayList<>();
         templates.add(CHEF_METADATA);
@@ -169,29 +175,7 @@ public class DefaultAppBundler implements AppBundler {
             FileUtils.copyFile(libraryFile, outputFile(outputBase, CHEF_LIBRARIES, name, libName));
         }
 
-        final TemplateLoader loader = new ClassPathTemplateLoader("/bundler/");
-        final Handlebars handlebars = new Handlebars(loader);
-
-        handlebars.registerHelper("safe", new Helper<Object>() {
-            public CharSequence apply(Object src, Options options) {
-                return src == null || src.toString().isEmpty() ? "" : new Handlebars.SafeString(src.toString().replace("'", "\\'").replace("\"", "\\\""));
-            }
-        });
-        handlebars.registerHelper("quoted_or_nil", new Helper<Object>() {
-            public CharSequence apply(Object src, Options options) {
-                return src == null || src.toString().isEmpty() ? "nil" : new Handlebars.SafeString("'"+src.toString().replace("'", "\\'")+"'");
-            }
-        });
-        handlebars.registerHelper("ident", new Helper<Object>() {
-            public CharSequence apply(Object src, Options options) {
-                if (src == null || src.toString().isEmpty()) return "";
-                final StringBuilder sb = new StringBuilder();
-                for (char c : src.toString().toCharArray()) {
-                    sb.append(Character.isLetterOrDigit(c) ? c : '_');
-                }
-                return new Handlebars.SafeString(sb.toString());
-            }
-        });
+        final Handlebars handlebars = getHandlebars();
         for (String template : templates) {
             final Template hbs = handlebars.compile(template);
             final String path = template.replace(APP, name).replace("/", File.separator);
@@ -214,6 +198,44 @@ public class DefaultAppBundler implements AppBundler {
         final File manifestCopy = outputFile(outputBase, CHEF_DATABAGS, name, CLOUDOS_MANIFEST_JSON);
         final File databagDir = mkdirOrDie(manifestCopy.getParentFile());
         FileUtils.copyFile(manifestFile, new File(databagDir, CLOUDOS_MANIFEST_JSON));
+    }
+
+    public Handlebars getHandlebars() {
+        final TemplateLoader loader = new ClassPathTemplateLoader("/bundler/");
+        final Handlebars handlebars = new Handlebars(loader);
+
+        handlebars.registerHelper("safe", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                return empty(src) ? "" : new Handlebars.SafeString(src.toString().replace("'", "\\'").replace("\"", "\\\""));
+            }
+        });
+        handlebars.registerHelper("quoted_or_nil", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                return empty(src) ? "nil" : new Handlebars.SafeString("'"+src.toString().replace("'", "\\'")+"'");
+            }
+        });
+        handlebars.registerHelper("dots_to_brackets", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                return empty(src) ? "nil" : new Handlebars.SafeString("['"+src.toString().replace(".", "']['")+"']");
+            }
+        });
+        handlebars.registerHelper("login_field_for_password", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                if (empty(src)) return "nil";
+                return new Handlebars.SafeString("['"+ replaceLast(src.toString(), "password", "login").replace(".", "']['")+"']");
+            }
+        });
+        handlebars.registerHelper("ident", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                if (empty(src)) return "";
+                final StringBuilder sb = new StringBuilder();
+                for (char c : src.toString().toCharArray()) {
+                    sb.append(Character.isLetterOrDigit(c) ? c : '_');
+                }
+                return new Handlebars.SafeString(sb.toString());
+            }
+        });
+        return handlebars;
     }
 
     private void validate(BundlerOptions options, AppManifest manifest) {

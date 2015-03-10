@@ -16,6 +16,7 @@ import org.cobbzilla.util.json.JsonEditOperation;
 import org.cobbzilla.util.json.JsonEditOperationType;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.mustache.MustacheUtil;
+import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 import rooty.toots.vendor.VendorDatabag;
@@ -30,6 +31,7 @@ import java.util.Map;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER;
+import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
 /**
@@ -43,15 +45,34 @@ public class AppConfiguration {
 
     @Getter @Setter private AppConfigMetadata metadata;
     @Getter @Setter private AppConfigTranslations translations;
+    @Getter @Setter private List<ConstraintViolationBean> violations;
+
+    public AppConfigurationCategory getCategory(String name) {
+        for (AppConfigurationCategory cat : categories) {
+            if (cat.getName().equals(name)) return cat;
+        }
+        return null;
+    }
 
     public static AppConfiguration fromLayout(AppLayout layout, String locale) {
         if (!layout.exists()) return null;
         final AppManifest manifest = AppManifest.load(layout.getManifest());
         final File databagsDir = layout.getDatabagsDir();
-        return getAppConfiguration(manifest, databagsDir, locale);
+        return readAppConfiguration(manifest, databagsDir, locale);
     }
 
-    public static AppConfiguration getAppConfiguration(AppManifest manifest, File databagsDir, String locale) {
+    public static String getShasum(Object databag, String config) {
+        return sha256_hex(String.valueOf(ReflectionUtil.get(databag, config)));
+    }
+
+    /**
+     * Load an AppConfiguration from a manifest and databag.
+     * @param manifest The AppManifest. The "config" section is inspected to determine app config options
+     * @param databagsDir The databags directory for the app (should contain cloudos-manifest.json and all other databags)
+     * @param locale The locale for translations (we'll attach the best-match translations.json file for the locale to the AppConfiguration)
+     * @return The AppConfiguration for the app
+     */
+    public static AppConfiguration readAppConfiguration(AppManifest manifest, File databagsDir, String locale) {
         final AppConfiguration config = new AppConfiguration();
         if (manifest.hasDatabags()) {
             databagsDir = new File(databagsDir, manifest.getName());
@@ -104,9 +125,8 @@ public class AppConfiguration {
         return config;
     }
 
-    public static void setAppConfiguration(AppManifest manifest, File databagsDir, AppConfiguration config) {
+    public void writeAppConfiguration(AppManifest manifest, File databagsDir) {
         if (manifest.hasDatabags()) {
-            databagsDir = new File(databagsDir, manifest.getName());
             for (AppDatabagDef databag : manifest.getConfig()) {
 
                 final String databagName = databag.getName();
@@ -118,7 +138,7 @@ public class AppConfiguration {
                         .setJson("\"" + databagName + "\""));
 
                 // Did the caller provide config for this category?
-                final AppConfigurationCategory category = config.getCategory(databagName);
+                final AppConfigurationCategory category = getCategory(databagName);
                 if (category == null) {
                     log.warn("No configuration provided for category (" + databagName + "), skipping");
                     continue;
@@ -138,6 +158,10 @@ public class AppConfiguration {
                         // If the value is the special 'default' value, skip this and do not edit anything
                         if (value.equals(VendorSettingHandler.VENDOR_DEFAULT)) {
                             log.info("skipping value (not changed from default): " + item);
+                            continue;
+                        }
+                        if (value.equals(VendorSettingHandler.VALUE_NOT_SET)) {
+                            log.info("skipping empty value (nothing set): "+item);
                             continue;
                         }
 
@@ -185,13 +209,6 @@ public class AppConfiguration {
         }
     }
 
-    public AppConfigurationCategory getCategory(String name) {
-        for (AppConfigurationCategory cat : categories) {
-            if (cat.getName().equals(name)) return cat;
-        }
-        return null;
-    }
-
     @JsonIgnore public Map<String, Map<String, String>> getDatabagMap() {
 
         final Map<String, Map<String, String>> databags = new HashMap<>();
@@ -211,8 +228,13 @@ public class AppConfiguration {
         return databags;
     }
 
+    public List<ConstraintViolationBean> validate(AppConfigValidationResolver entityResolver) {
+        return validate(null, entityResolver);
+    }
+
     public List<ConstraintViolationBean> validate(List<ConstraintViolationBean> violations,
                                                   AppConfigValidationResolver entityResolver) {
+        if (violations == null) violations = new ArrayList<>();
         for (AppConfigurationCategory cat : getCategories()) {
             for (String item : cat.getItems()) {
                 final String catName = cat.getName();
@@ -230,6 +252,7 @@ public class AppConfiguration {
                 }
             }
         }
+        setViolations(violations);
         return violations;
     }
 

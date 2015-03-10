@@ -100,8 +100,38 @@ class Chef::Recipe::{{app.chefName}}
         {{#if app.config}}
             {{#each app.config}}
         app[:databag][:{{ident name}}] = chef.data_bag_item('{{app.name}}', '{{name}}')
+                {{#if config_metadata}}
+        # Before defining {{name}} databag replacements, check for any empty passwords that should be auto-generated
+                    {{#each config_metadata.categories}}
+                        {{#each fields}}
+                            {{#if is_password}}
+        if app[:databag][:{{ident name}}]{{dots_to_brackets @key}}.to_s_empty?
+          databag_file = "#{base.chef_databags(app[:name])}/{{name}}.json"
+          raise "Missing databag: #{databag_file}" unless File.exists? databag_file
+
+                                {{#if login}}
+          # password field knows where its login field is
+          login = app[:databag][:{{ident name}}]{{dots_to_brackets login}}
+                                {{else}}
+          # assume login field is in the same place as password and is called 'login'
+          login = app[:databag][:{{ident name}}]{{login_field_for_password @key}}
+                                {{/if}}
+          raise 'Error determining login for auto-generated password: {{@key}}' unless login
+
+          # Write generated password to databag, update databag struct, email password to admin
+          new_password = base.random_password
+          if %x(cat #{databag_file} | cos json -o write -p '{{@key}}' -v '"#{new_password}"' -w #{databag_file} && echo $?).to_i != 0
+            raise 'Error generating random password'
+          end
+          app[:databag][:{{ident name}}]{{dots_to_brackets @key}} = new_password
+          notify_generated_password chef, app, login, new_password
+        end
+                            {{/if}}
+                        {{/each}}
+                    {{/each}}
+                {{/if}}
         app[:databag][:{{ident name}}].each do |bagkey, bagvalue|
-            define_databag_replacements app[:databag_replacements], "@config[{{ident name}}]", bagkey, bagvalue
+            define_databag_replacements app[:databag_replacements], '@config[{{ident name}}]', bagkey, bagvalue
         end
             {{/each}}
         {{/if}}
@@ -137,7 +167,7 @@ class Chef::Recipe::{{app.chefName}}
     DATABAG_SIMPLE_TYPES = [ String, Fixnum, TrueClass, FalseClass ]
     def self.define_databag_replacements(hash, base, bagkey, bagvalue)
         if DATABAG_SIMPLE_TYPES.include?(bagvalue.class)
-hash["#{base}[#{bagkey}]"] = bagvalue.to_s
+            hash["#{base}[#{bagkey}]"] = bagvalue.to_s
         elsif bagvalue
             bagvalue.each do |subkey, subvalue|
               define_databag_replacements hash, "#{base}[#{bagkey}]", subkey, subvalue
@@ -473,7 +503,7 @@ fi
 # check is #{check}
 mv #{from} #{to}
             EOH
-            only_if { %x(ls -1 #{check}).strip.to_i == 0 }
+            only_if { %x(ls -1 #{check}).to_i == 0 }
         end
     end
 
@@ -777,6 +807,44 @@ cos sudo --command group --name #{name} --operation create #{description} #{quot
         code <<-EOH
 cos sudo --command group --name #{name} --operation delete
 EOH
+        end
+    end
+
+    def self.notify_generated_password(chef, app, login, password)
+        base = Chef::Recipe::Base
+
+        # Determine who should receive it
+        admin = {
+            :name => 'admin',
+            :email => "postmaster@#{app[:hostname]}"
+        }
+        if File.exist? "#{base.chef_databags('base')}/admin.json"
+            admin = chef.data_bag_item('base', 'admin')
+        end
+
+        rval=%x(
+sendmail -oi -t <<EOMAIL
+From: do-not-reply@#{%x(hostname).strip}
+To: #{admin[:email]}
+Subject: Auto-generated password for CloudOs app: #{app[:name]}
+
+Hello #{admin[:name]},
+
+This is an automated message from your private Cloudstead.
+
+When the #{app[:name]} app was recently installed, the password auto-generator was used to create a password.
+
+username: #{login}
+password: #{password}
+
+It is highly recommended that you change this password immediately by logging into the #{app[:name]} app
+with the above username and password.
+
+EOMAIL
+exit $?
+).to_i
+        if rval.nil? || rval != 0
+            raise "Error emailing auto-generated password for #{app[:name]}/#{login}"
         end
     end
 end

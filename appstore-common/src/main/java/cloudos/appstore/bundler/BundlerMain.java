@@ -6,6 +6,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.kohsuke.args4j.CmdLineParser;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+
 @Slf4j
 public class BundlerMain {
 
@@ -29,5 +31,7 @@ public class BundlerMain {
         final AppBundler bundler = factory.getBundler(manifest);
         bundler.bundle(options, manifest);
     }
+
+    public void runOrDie () { try { run(); } catch (Exception e) { die("runOrDie: "+e, e); } }
 
 }

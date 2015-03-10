@@ -2,6 +2,7 @@ package cloudos.appstore.model.app.config;
 
 import cloudos.appstore.model.app.config.validation.*;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
@@ -15,7 +16,7 @@ public enum AppConfigMetadataDatabagFieldType {
     // simple types
     field    (new BasicFieldValidator()),
     hash     (new BasicFieldValidator()),
-    password (new BasicFieldValidator()),
+    password (new PasswordFieldValidator()),
 
     // regex-based types
     email          (new RegexFieldValidator(EMAIL_PATTERN)),
@@ -28,7 +29,7 @@ public enum AppConfigMetadataDatabagFieldType {
     https          (new RegexFieldValidator(HTTPS_PATTERN)),
 
     // custom types
-    hostname   (new HostnameValidator()),
+    hostname   (new HostnameFieldValidator()),
     filename   (new FilenameFieldValidator()),
     port       (new PortFieldValidator()),
     yesno      (new YesnoFieldValidator()),
@@ -50,4 +51,7 @@ public enum AppConfigMetadataDatabagFieldType {
                                                   AppConfigValidationResolver entityResolver) {
         return validator.validate(catName, item, value, meta, violations, entityResolver);
     }
+
+    @JsonIgnore public boolean getIs_password() { return this == password; }
+
 }
