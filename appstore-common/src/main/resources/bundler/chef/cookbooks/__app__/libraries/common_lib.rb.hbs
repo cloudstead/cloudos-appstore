@@ -12,6 +12,7 @@ class Chef::Recipe::{{app.chefName}}
     def self.define_app (chef)
         base = Chef::Recipe::Base
         app = {
+            :lib => self,
             :name => '{{app.name}}',
             :hostname => %x(hostname).strip,
             :ipaddress => chef.node['ipaddress'],
@@ -58,7 +59,7 @@ class Chef::Recipe::{{app.chefName}}
         begin
             app[:databag][:ports] = chef.data_bag_item('{{app.name}}', 'ports')
             app[:databag][:ports].each do |bagkey, bagvalue|
-                define_databag_replacements app[:databag_replacements], "@config[ports]", bagkey, bagvalue
+                define_databag_replacements app, app[:databag_replacements], "@config[ports]", bagkey, bagvalue
             end
         rescue => e
             puts "{{app.name}}/ports databag not found or error reading: #{e}"
@@ -68,7 +69,7 @@ class Chef::Recipe::{{app.chefName}}
         begin
             app[:databag][:base] = chef.data_bag_item('{{app.name}}', 'base')
             app[:databag][:base].each do |bagkey, bagvalue|
-                define_databag_replacements app[:databag_replacements], "@config[base]", bagkey, bagvalue
+                define_databag_replacements app, app[:databag_replacements], "@config[base]", bagkey, bagvalue
             end
 
             # set the hostname based on values in the base databag
@@ -89,7 +90,7 @@ class Chef::Recipe::{{app.chefName}}
         begin
             app[:cloudos_databag] = chef.data_bag_item('cloudos', 'init')
             app[:cloudos_databag].each do |bagkey, bagvalue|
-                define_databag_replacements app[:databag_replacements], "@cloudos", bagkey, bagvalue
+                define_databag_replacements app, app[:databag_replacements], "@cloudos", bagkey, bagvalue
             end
         rescue => e
             puts "cloudos/init databag not found or error reading: #{e}"
@@ -131,7 +132,7 @@ class Chef::Recipe::{{app.chefName}}
                     {{/each}}
                 {{/if}}
         app[:databag][:{{ident name}}].each do |bagkey, bagvalue|
-            define_databag_replacements app[:databag_replacements], '@config[{{ident name}}]', bagkey, bagvalue
+            define_databag_replacements app, app[:databag_replacements], '@config[{{ident name}}]', bagkey, bagvalue
         end
             {{/each}}
         {{/if}}
@@ -165,12 +166,12 @@ class Chef::Recipe::{{app.chefName}}
     end
 
     DATABAG_SIMPLE_TYPES = [ String, Fixnum, TrueClass, FalseClass ]
-    def self.define_databag_replacements(hash, base, bagkey, bagvalue)
+    def self.define_databag_replacements(app, hash, base, bagkey, bagvalue)
         if DATABAG_SIMPLE_TYPES.include?(bagvalue.class)
-            hash["#{base}[#{bagkey}]"] = bagvalue.to_s
+            hash["#{base}[#{bagkey}]"] = subst_string(bagvalue.to_s, app)
         elsif bagvalue
             bagvalue.each do |subkey, subvalue|
-              define_databag_replacements hash, "#{base}[#{bagkey}]", subkey, subvalue
+              define_databag_replacements app, hash, "#{base}[#{bagkey}]", subkey, subvalue
             end
         end
     end
