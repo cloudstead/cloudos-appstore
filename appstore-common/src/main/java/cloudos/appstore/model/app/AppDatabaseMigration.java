@@ -83,7 +83,7 @@ public class AppDatabaseMigration {
         final String from = args[0];
         final String to = args[1];
         final String dir = args[2];
-        final String mode = (args.length > 2) ? args[3] : null;
+        final String mode = (args.length > 3) ? args[3] : null;
 
         final List<AppDatabaseMigration> path = findShortestPath(new AppDatabaseMigration(from, to), fromDir(dir));
 
