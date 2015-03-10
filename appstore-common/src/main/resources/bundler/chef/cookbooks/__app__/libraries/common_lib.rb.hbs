@@ -814,13 +814,10 @@ EOH
         base = Chef::Recipe::Base
 
         # Determine who should receive it
-        admin = {
-            :name => 'admin',
-            :email => "postmaster@#{app[:hostname]}"
-        }
-        if File.exist? "#{base.chef_databags('base')}/admin.json"
-            admin = chef.data_bag_item('base', 'admin')
+        unless File.exist?("#{base.chef_databags('base')}/admin.json")
+            raise 'notify_generated_password: no base/admin.json databag found'
         end
+        admin = chef.data_bag_item('base', 'admin')
 
         rval=%x(
 sendmail -oi -t <<EOMAIL
