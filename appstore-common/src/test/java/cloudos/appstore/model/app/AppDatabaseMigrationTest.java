@@ -27,18 +27,19 @@ public class AppDatabaseMigrationTest {
     @After public void teardown () throws Exception { FileUtils.deleteQuietly(migrationsDir); }
 
     public static MigrationTest[] TESTS = {
-            new MigrationTest(1, 2, new int[][] { {1, 2} }),
-            new MigrationTest(1, 3, new int[][] { {1, 2}, {2, 3} }),
-            new MigrationTest(1, 5, new int[][] { {1, 4}, {4, 5} }),
-            new MigrationTest(2, 5, new int[][] { {2, 3}, {3, 4}, {4, 5} }),
-            new MigrationTest(2, -1, null),
+            new MigrationTest("1", "2", new String[][] { {"1", "2"} }),
+            new MigrationTest("1", "3", new String[][] { {"1", "2"}, {"2", "3"} }),
+            new MigrationTest("1", "5", new String[][] { {"1", "4"}, {"4", "5"} }),
+            new MigrationTest("2", "5", new String[][] { {"2", "3"}, {"3", "4"}, {"4", "5"} }),
+            new MigrationTest("2", "nowhere", null),
+            new MigrationTest("4", "5.0.1", new String[][] { {"4", "5"}, {"5", "5.0.1"} }),
     };
 
     @Test public void testMigrationPathResolution () throws Exception {
         final List<AppDatabaseMigration> migrations = AppDatabaseMigration.fromDir(migrationsDir);
 
         for (MigrationTest test : TESTS) {
-            final AppDatabaseMigration target = new AppDatabaseMigration(test.from(), test.to());
+            final AppDatabaseMigration target = new AppDatabaseMigration(test.from, test.to);
             final List<AppDatabaseMigration> path = AppDatabaseMigration.findShortestPath(target, migrations);
             test.validate(path);
         }
@@ -46,9 +47,7 @@ public class AppDatabaseMigrationTest {
 
     @AllArgsConstructor
     private static class MigrationTest {
-        private int from, to, path[][];
-        public String from() { return String.valueOf(from); }
-        public String to() { return String.valueOf(to); }
+        private String from, to, path[][];
 
         public void validate(List<AppDatabaseMigration> path) {
             if (this.path == null) {
@@ -58,8 +57,8 @@ public class AppDatabaseMigrationTest {
             assertEquals(this.path.length, path.size());
             for (int i=0; i<this.path.length; i++) {
                 final AppDatabaseMigration step = path.get(i);
-                assertEquals(String.valueOf(this.path[i][0]), step.getFrom());
-                assertEquals(String.valueOf(this.path[i][1]), step.getTo());
+                assertEquals(this.path[i][0], step.getFrom());
+                assertEquals(this.path[i][1], step.getTo());
                 assertNotNull(step.getFile());
             }
         }

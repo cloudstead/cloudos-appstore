@@ -21,10 +21,11 @@ import java.util.regex.Pattern;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
-@NoArgsConstructor @AllArgsConstructor @Accessors(chain=true) @Slf4j
+@NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)
+@Slf4j @ToString(of={"from", "to"})
 public class AppDatabaseMigration {
 
-    public static final Pattern FILENAME_PATTERN = Pattern.compile("([^_]+_+)?([^,_]+)[,_]+([^,_\\.]+)(\\.(.+))?");
+    public static final Pattern FILENAME_PATTERN = Pattern.compile("^([^_]+_+)?([^,_]+)[,_]+([^,_]+)$");
 
     @Getter @Setter private String from;
     @Getter @Setter private String to;
@@ -35,7 +36,10 @@ public class AppDatabaseMigration {
     }
 
     public static AppDatabaseMigration fromFile (File f) {
-        final String name = f.getName();
+
+        final String ext = FileUtil.extension(f);
+        final String name = FileUtil.removeExtension(f, ext);
+
         final Matcher matcher = FILENAME_PATTERN.matcher(name);
         if (!matcher.find()) {
             log.warn("Invalid migration file (returning null): "+f.getName());
@@ -69,7 +73,7 @@ public class AppDatabaseMigration {
         try {
             return new DijkstraShortestPath<>(graph, target.from, target.to).getPathEdgeList();
         } catch (Exception e) {
-            log.error("findShortestPath: "+e, e);
+            log.error("findShortestPath (target="+target+", graph="+graph+"): "+e, e);
             return null;
         }
     }

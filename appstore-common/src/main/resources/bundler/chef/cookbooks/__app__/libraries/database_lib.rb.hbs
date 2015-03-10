@@ -160,8 +160,7 @@ EOF
         {{/if}}
 
         {{#if app.database.auto_migration}}
-            database.create_metadata_table chef, app[:dbname], app[:dbuser], app[:dbpass]
-            database.set_schema_version chef, app[:dbname], app[:dbuser], app[:dbpass], app[:name], '{{app.database.schema_version}}'
+            database.create_metadata_table chef, app[:name], '{{app.database.schema_version}}', app[:dbname], app[:dbuser], app[:dbpass]
         {{/if}}
         end   # if do_create
 
@@ -179,8 +178,7 @@ EOF
             unless json.to_s.strip.empty?
                 migrations = JSON.parse(json)
                 migrations.each do |migration|
-                    database.initialize_db chef, migration['file'], app[:dbuser], app[:dbpass], app[:dbname]
-                    database.set_schema_version chef, app[:dbname], app[:dbuser], app[:dbpass], app[:name], migration['to']
+                    database.update_schema chef, app[:name], migration['to'], migration['file'], app[:dbname], app[:dbuser], app[:dbpass]
                 end
             end
         {{/if}}
