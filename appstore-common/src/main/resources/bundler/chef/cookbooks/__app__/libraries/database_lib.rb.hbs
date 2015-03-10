@@ -5,7 +5,8 @@
 # {{app.publisher.packaging_copyright}}
 #
 
-require 'fileutils';
+require 'fileutils'
+require 'json'
 
 class Chef::Recipe::{{app.chefName}}
 
@@ -79,67 +80,130 @@ class Chef::Recipe::{{app.chefName}}
           {{/each}}
         {{/if}}
 
+        db_exists = database.db_exists(app[:dbname])
+
+        do_create = !db_exists
+
+        {{#if app.database.auto_migration}}
+        do_migrate = false
+        schema_version = nil
+        unless defined? database_{{app.style}}_self_managed_schema_versions
+            schema_version = database.get_schema_version chef, app[:dbname], app[:dbuser], app[:dbpass], app[:name]
+            if schema_version.nil?
+                do_create = true
+            elsif schema_version.to_s != '{{app.database.schema_version}}'
+                do_migrate = true
+            end
+        end
+        {{/if}}
+
+        if do_create
+            # Database does not exist, create it...
         {{#if app.database.init_command}}
-        db_init = '{{app.database.init_command.exec}}'
-        db_init = app[:run_as_home] + '/' + db_init unless db_init.start_with?('/')
-        db_init.gsub!('@dbuser', app[:dbuser]);
-        db_init.gsub!('@dbname', app[:dbname]);
-        db_init.gsub!('@dbpass', app[:dbpass]);
-        chef.bash "initialize database with #{db_init}" do
-            user 'root'
-            code <<-EOF
+            db_init = '{{app.database.init_command.exec}}'
+            db_init = app[:run_as_home] + '/' + db_init unless db_init.start_with?('/')
+            db_init.gsub!('@dbuser', app[:dbuser]);
+            db_init.gsub!('@dbname', app[:dbname]);
+            db_init.gsub!('@dbpass', app[:dbpass]);
+            chef.bash "initialize database with #{db_init}" do
+                user 'root'
+                code <<-EOF
           {{#if app.database.init_command.stdin}}
 echo '{{app.database.init_command.stdin}}' | #{db_init}
           {{else}}
 #{db_init}
           {{/if}}
 EOF
-        end
+            end
 
         {{else}}
-        database.create_db(chef, app[:dbname], app[:dbuser])
-        schema_file = nil
+            database.create_db(chef, app[:dbname], app[:dbuser])
+            schema_file = nil
 
             {{#if app.database.schema}}
-        # Load the schema specified in the manifest
-        schema_file = app_lib.subst('{{app.database.schema}}', app)
-        schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
+            # Load the schema specified in the manifest
+            schema_file = app_lib.subst('{{app.database.schema}}', app)
+            schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
             {{else}}
-        # No schema specified in manifest, look for schema file in standard locations
-        [ '_schema', '-schema', '' ].each do |suffix|
-            schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
-            # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
-            if File.exists? schema_file
-              tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
-              File.open(tmp_schema, 'w') { |tmp|
-                tmp.write(File.open(schema_file, 'r') { |schema| schema.read })
-              }
-              FileUtils.chmod(0600, tmp_schema)
-              FileUtils.chown('root', 'root', tmp_schema);
-              schema_file = tmp_schema
-              break
+            # No schema specified in manifest, look for schema file in standard locations
+            [ '_schema', '-schema', '' ].each do |suffix|
+                schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
+                # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
+                if File.exists? schema_file
+                  tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
+                  File.open(tmp_schema, 'w') { |tmp|
+                    tmp.write(File.open(schema_file, 'r') { |schema| schema.read })
+                  }
+                  FileUtils.chmod(0600, tmp_schema)
+                  FileUtils.chown('root', 'root', tmp_schema);
+                  schema_file = tmp_schema
+                  break
+                end
             end
-        end
             {{/if}}
 
-        database.initialize_db(chef, schema_file, app[:dbuser], app[:dbpass], app[:dbname], unless_table) unless schema_file.nil? || !File.exists?(schema_file)
+            database.initialize_db(chef, schema_file, app[:dbuser], app[:dbpass], app[:dbname], unless_table) unless schema_file.nil? || !File.exists?(schema_file)
         {{/if}}
 
         {{#if app.database.inserts}}
           {{#each app.database.inserts}}
             {{#if dbname}}
-        insertIntoDb = '{{dbname}}'
+            insertIntoDb = '{{dbname}}'
             {{else}}
-        insertIntoDb = app[:dbname]
+            insertIntoDb = app[:dbname]
             {{/if}}
-        database.insert(chef, app[:dbuser], insertIntoDb, {
-            :sql => app_lib.subst_string('{{safe sql}}', app),
-            :unless => app_lib.subst_string('{{safe unless}}', app)
-            })
+            database.insert(chef, app[:dbuser], insertIntoDb, {
+                    :sql => app_lib.subst_string('{{safe sql}}', app),
+                    :unless => app_lib.subst_string('{{safe unless}}', app)
+                })
           {{/each}}
         {{/if}}
 
-        database_{{app.style}} chef, app, database if defined? database_{{app.style}}
+        {{#if app.database.auto_migration}}
+            database.create_metadata_table chef, app[:dbname], app[:dbuser], app[:dbpass]
+            database.set_schema_version chef, app[:dbname], app[:dbuser], app[:dbpass], app[:name], '{{app.database.schema_version}}'
+        {{/if}}
+        end   # if do_create
+
+        if defined? database_{{app.style}}
+            database_{{app.style}}(chef, app, database, do_create)
+
+        {{#if app.database.auto_migration}}
+        elsif do_migrate
+            json = nil
+            begin
+                json = %x(cos db-migrate #{schema_version} '{{app.database.schema_version}}' #{subst('@files/migrations/db', app)}).strip
+            rescue => e
+                puts "command failed: cos db-migrate #{schema_version} '{{app.database.schema_version}}' #{subst('@files/migrations/db', app)}"
+            end
+            unless json.to_s.strip.empty?
+                migrations = JSON.parse(json)
+                migrations.each do |migration|
+                    database.initialize_db chef, migration['file'], app[:dbuser], app[:dbpass], app[:dbname]
+                    database.set_schema_version chef, app[:dbname], app[:dbuser], app[:dbpass], app[:name], migration['to']
+                end
+            end
+        {{/if}}
+
+        {{#if app.database.upgrade_command}}
+        else
+            upgrade = '{{app.database.upgrade_command.exec}}'
+            upgrade = app[:run_as_home] + '/' + upgrade unless upgrade.start_with?('/')
+            upgrade.gsub!('@dbuser', app[:dbuser]);
+            upgrade.gsub!('@dbname', app[:dbname]);
+            upgrade.gsub!('@dbpass', app[:dbpass]);
+            chef.bash "initialize database with #{upgrade}" do
+            user 'root'
+            code <<-EOF
+            {{#if app.database.upgrade_command.stdin}}
+                echo '{{app.database.upgrade_command.stdin}}' | #{upgrade}
+            {{else}}
+                #{upgrade}
+            {{/if}}
+            EOF
+            end
+        {{/if}}
+        end
 
         database.restart chef
     end

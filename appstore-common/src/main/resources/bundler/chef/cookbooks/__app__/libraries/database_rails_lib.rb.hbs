@@ -13,7 +13,12 @@ class Chef::Recipe::{{app.chefName}}
         end
     end
 
-    def self.database_rails (chef, app, database)
+    # Tells the database_lib to deactivate automatic migrations
+    def self.database_rails_self_managed_schema_versions
+        true
+    end
+
+    def self.database_rails (chef, app, database, do_create)
 
         chef.template "#{rails_dir(app)}/config/database.yml" do
           owner app[:run_as]
@@ -26,7 +31,11 @@ class Chef::Recipe::{{app.chefName}}
 {{#if app.database.options.rake_tasks}}
         rake_tasks = [ {{#each app.database.options.rake_tasks}}{{safe this}}, {{/each}} ]
 {{else}}
-        rake_tasks = %w( db:schema:load db:seed )
+        if do_create
+            rake_tasks = %w( db:schema:load db:seed )
+        else
+            rake_tasks = %w( db:migrate )
+        end
 {{/if}}
 
         chef.bash "initialize {{app.name}} database via rake tasks: #{rake_tasks}" do

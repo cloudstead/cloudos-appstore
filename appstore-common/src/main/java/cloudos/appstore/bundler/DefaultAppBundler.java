@@ -106,6 +106,14 @@ public class DefaultAppBundler implements AppBundler {
         if (manifest.hasDatabase()) {
             templates.add(CHEF_LIBRARIES + "database_lib.rb");
             templates.add(CHEF_LIBRARIES + "database_"+ styleName +"_lib.rb");
+            final AppDatabase database = manifest.getDatabase();
+            if (database.getAuto_migration() == null) {
+                database.setAuto_migration(manifest.getStyle().getAutoMigration());
+            }
+            final Boolean autoMigration = database.getAuto_migration();
+            if (!database.hasSchemaVersion() && autoMigration != null && autoMigration) {
+                die("Auto-migration is enabled but no schema_version was specified");
+            }
         }
 
         if (manifest.hasUserManagement()) {
