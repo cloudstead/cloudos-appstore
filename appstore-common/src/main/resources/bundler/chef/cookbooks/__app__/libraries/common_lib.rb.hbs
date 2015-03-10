@@ -105,7 +105,7 @@ class Chef::Recipe::{{app.chefName}}
                     {{#each config_metadata.categories}}
                         {{#each fields}}
                             {{#if is_password}}
-        if app[:databag][:{{ident name}}]{{dots_to_brackets @key}}.to_s_empty?
+        if app[:databag][:{{ident name}}]{{dots_to_brackets @key}}.to_s.empty?
           databag_file = "#{base.chef_databags(app[:name])}/{{name}}.json"
           raise "Missing databag: #{databag_file}" unless File.exists? databag_file
 
