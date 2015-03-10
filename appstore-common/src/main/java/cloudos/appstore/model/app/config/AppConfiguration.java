@@ -44,7 +44,7 @@ public class AppConfiguration {
     public void add(AppConfigurationCategory category) { categories.add(category); }
 
     @Getter @Setter private AppConfigMetadata metadata;
-    @Getter @Setter private AppConfigTranslations translations;
+    @Getter @Setter private AppConfigTranslationsDatabag translations;
     @Getter @Setter private List<ConstraintViolationBean> violations;
 
     public AppConfigurationCategory getCategory(String name) {
@@ -120,7 +120,7 @@ public class AppConfiguration {
         config.setMetadata(AppConfigMetadata.load(databagsDir));
 
         // attach translations if found
-        config.setTranslations(AppConfigTranslations.load(databagsDir, locale));
+        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale));
 
         return config;
     }

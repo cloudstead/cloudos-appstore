@@ -52,13 +52,13 @@ public class AppConfigurationMap {
 
         if (!appCookbook.exists()) throw new IllegalArgumentException("No cookbook found for app: "+app);
         if (!appDatabags.exists()) {
-            log.warn("No databags for app (not adding any config): "+app);
+            log.warn("No databags for app (not adding config): "+app);
             return;
         }
 
         final File manifestFile = new File(appDatabags, AppManifest.CLOUDOS_MANIFEST_JSON);
         if (!manifestFile.exists()) {
-            log.warn("No manifest for app (not adding any config): "+app);
+            log.warn("No manifest for app (not adding config): "+app);
             return;
         }
 

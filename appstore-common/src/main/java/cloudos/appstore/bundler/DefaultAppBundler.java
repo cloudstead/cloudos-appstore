@@ -2,7 +2,7 @@ package cloudos.appstore.bundler;
 
 import cloudos.appstore.model.app.*;
 import cloudos.appstore.model.app.config.AppConfigMetadata;
-import cloudos.appstore.model.app.config.AppConfigTranslations;
+import cloudos.appstore.model.app.config.AppConfigTranslationsDatabag;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
@@ -266,7 +266,7 @@ public class DefaultAppBundler implements AppBundler {
             // If translations are defined, ensure they are parseable
             for (File f : FileUtil.list(configDir)) {
                 if (f.getName().startsWith("translations") && f.getName().endsWith(".json")) {
-                    try { AppConfigTranslations.loadOrDie(f); } catch (Exception e) {
+                    try { AppConfigTranslationsDatabag.loadOrDie(f); } catch (Exception e) {
                         die("Invalid translations file " + abs(f) + ": " + e, e);
                     }
                 }

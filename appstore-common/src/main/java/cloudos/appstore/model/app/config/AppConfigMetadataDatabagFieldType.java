@@ -19,7 +19,6 @@ public enum AppConfigMetadataDatabagFieldType {
     password (new PasswordFieldValidator()),
 
     // regex-based types
-    email          (new RegexFieldValidator(EMAIL_PATTERN)),
     login          (new RegexFieldValidator(LOGIN_PATTERN)),
     ipv4           (new RegexFieldValidator(IPv4_PATTERN)),
     ipv6           (new RegexFieldValidator(IPv6_PATTERN)),
@@ -29,6 +28,7 @@ public enum AppConfigMetadataDatabagFieldType {
     https          (new RegexFieldValidator(HTTPS_PATTERN)),
 
     // custom types
+    email      (new EmailFieldValidator()),
     hostname   (new HostnameFieldValidator()),
     filename   (new FilenameFieldValidator()),
     port       (new PortFieldValidator()),
