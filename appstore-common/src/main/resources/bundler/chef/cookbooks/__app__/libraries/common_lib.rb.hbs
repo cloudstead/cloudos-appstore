@@ -731,8 +731,8 @@ code <<-EOH
 
 if [ ! -z "#{service_map.join(' ')}" ] ; then
   for service in #{service_map.join(' ')} ; do
-    service_name = $(echo -n ${service} | awk -F '|' '{print $1}'
-    proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2}'
+    service_name = $(echo -n ${service} | awk -F '|' '{print $1})'
+    proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2})'
     num_procs=$(ps auxwwwww | egrep -- ${proc_pattern} | grep -v egrep | wc -l | tr -d ' ')
     if [ $num_procs -eq 0 ] ; then
       service ${service_name} restart
@@ -742,7 +742,7 @@ fi
 
 start=$(date +%s)
 while [ $(expr $(date +%s) - ${start}) -lt #{timeout} ] ; do
-  http_status="$(curl -sL -w "%{http_code}\n" --max-time 10 "https://#{app[:service_url]}/" -o /dev/null)"
+  http_status="$(curl -sL -w "%{http_code}" --max-time 10 "https://#{app[:service_url]}/" -o /dev/null)"
   http_status_type=$(expr $http_status / 100)
   if [[ $? -eq 0  && ( $http_status == 2 || $http_status == 3 ) ]] ; then
     echo "#{app[:name]} is running"
