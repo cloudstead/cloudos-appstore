@@ -58,7 +58,7 @@ class Chef::Recipe::{{app.chefName}}
 
         # If we have a ports databag, define it and populate replacements
         begin
-            app[:databag][:ports] = chef.data_bag_item('{{app.name}}', 'ports')
+            app[:databag][:ports] = base.ports_databag chef, '{{app.name}}'
             app[:databag][:ports].each do |bagkey, bagvalue|
                 define_databag_replacements app, app[:databag_replacements], "@config[ports]", bagkey, bagvalue
             end
@@ -107,7 +107,7 @@ class Chef::Recipe::{{app.chefName}}
         databag = nil
         begin
             databag = chef.data_bag_item('{{app.name}}', config_category)
-        rescue =>
+        rescue => e
             puts "Error loading databag: {{app.name}}/#{config_category}"
         end
 
@@ -120,10 +120,10 @@ class Chef::Recipe::{{app.chefName}}
 
                             {{#if login}}
                 # password field knows where its login field is
-                login = databag{{dots_to_brackets login}} unless '{{dots_to_brackets login}}'.to_s.empty?
+                login = databag{{dots_to_brackets login}} unless '{{login}}'.to_s.empty?
                             {{else}}
                 # assume login field is in the same place as password and is called 'login'
-                login = databag{{login_field_for_password @key}} unless '{{login_field_for_password @key}}'.to_s.empty?
+                login = databag{{login_field_for_password @key}} unless '{{@key}}'.to_s.empty?
                             {{/if}}
                 raise 'Error determining login for auto-generated password: {{@key}}' unless login
 
@@ -723,7 +723,7 @@ EOH
 
         service_map = []
         app[:services].each do |service|
-            service_map[] << "#{service[:service_name]}|#{service[:proc_pattern]}"
+            service_map << "#{service[:service_name]}|#{service[:proc_pattern]}"
         end
 
         chef.bash "validating #{app[:name]} is listening on at #{app[:service_url]}" do

@@ -224,12 +224,12 @@ public class DefaultAppBundler implements AppBundler {
         });
         handlebars.registerHelper("dots_to_brackets", new Helper<Object>() {
             public CharSequence apply(Object src, Options options) {
-                return empty(src) ? "nil" : new Handlebars.SafeString("['"+src.toString().replace(".", "']['")+"']");
+                return empty(src) ? "" : new Handlebars.SafeString("['"+src.toString().replace(".", "']['")+"']");
             }
         });
         handlebars.registerHelper("login_field_for_password", new Helper<Object>() {
             public CharSequence apply(Object src, Options options) {
-                if (empty(src)) return "nil";
+                if (empty(src)) return "";
                 return new Handlebars.SafeString("['"+ replaceLast(src.toString(), "password", "login").replace(".", "']['")+"']");
             }
         });

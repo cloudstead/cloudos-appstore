@@ -9,13 +9,14 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.apache_nodejs (chef, app, config)
 
+        base = Chef::Recipe::Base
         apache = Chef::Recipe::Apache
         apache.enable_module(chef, 'proxy')
         apache.enable_module(chef, 'headers')
 
         config[:mode] ||= :proxy
 
-        ports_bag = chef.data_bag_item('{{app.name}}', 'ports')
+        ports_bag = base.ports_databag chef, '{{app.name}}'
         app[:port] = config[:port] = ports_bag['primary']
         app[:admin_port] = config[:admin_port] = ports_bag['admin']
 
