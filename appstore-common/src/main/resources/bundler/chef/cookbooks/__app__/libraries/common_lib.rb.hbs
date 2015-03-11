@@ -14,6 +14,7 @@ class Chef::Recipe::{{app.chefName}}
         app = {
             :lib => self,
             :name => '{{app.name}}',
+            :path => '{{app.path}}',
             :hostname => %x(hostname).strip,
             :ipaddress => chef.node['ipaddress'],
             :uniq => [],
@@ -718,7 +719,7 @@ EOH
     end
 
     def self.validate_web (chef, app, timeout = 1800)
-        raise "No service URL found for app: #{app[:name]}" if !app[:service_url]
+        raise "No service URL found for app: #{app[:name]}" unless app[:service_url]
 
         service_map = []
         app[:services].each do |service|
@@ -731,8 +732,8 @@ code <<-EOH
 
 if [ ! -z "#{service_map.join(' ')}" ] ; then
   for service in #{service_map.join(' ')} ; do
-    service_name = $(echo -n ${service} | awk -F '|' '{print $1})'
-    proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2})'
+    service_name = $(echo -n ${service} | awk -F '|' '{print $1}')
+    proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2}')
     num_procs=$(ps auxwwwww | egrep -- ${proc_pattern} | grep -v egrep | wc -l | tr -d ' ')
     if [ $num_procs -eq 0 ] ; then
       service ${service_name} restart
@@ -742,9 +743,10 @@ fi
 
 start=$(date +%s)
 while [ $(expr $(date +%s) - ${start}) -lt #{timeout} ] ; do
-  http_status="$(curl -sL -w "%{http_code}" --max-time 10 "https://#{app[:service_url]}/" -o /dev/null)"
+  http_status="$(curl -sL -w "%{http_code}" --max-time 10 "#{app[:service_url]}" -o /dev/null)"
+  rval=$?
   http_status_type=$(expr $http_status / 100)
-  if [[ $? -eq 0  && ( $http_status == 2 || $http_status == 3 ) ]] ; then
+  if [[ ${rval} -eq 0  && ( ${http_status_type} == 2 || ${http_status_type} == 3 ) ]] ; then
     echo "#{app[:name]} is running"
     exit 0
   else

@@ -78,9 +78,19 @@ class Chef::Recipe::{{app.chefName}}
 {{#if app.web.mode.root}}
         app[:service_url] = "https://#{apache.get_server_name(nil, config[:mode], app[:hostname], app[:name])}/"
 {{else}}
+    {{#if app.path}}
+        {{#if app.parent}}
+        path = '{{app.path}}'
+        path = "/#{path}" unless path.start_with? '/'
+        app[:service_url] = "https://#{app[:hostname]}/{{app.parent}}/#{path}"
+        {{else}}
+        app[:service_url] = "https://#{app[:hostname]}/{{app.path}}"
+        {{/if}}
+    {{else}}
         mount = app[:mount]
         mount ||= app[:name]
         app[:service_url] = "https://#{app[:hostname]}/#{mount}/"
+    {{/if}}
 {{/if}}
     end
 
