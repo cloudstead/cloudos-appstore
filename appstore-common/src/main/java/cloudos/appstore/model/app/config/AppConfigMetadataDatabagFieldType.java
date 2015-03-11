@@ -14,9 +14,10 @@ import static org.cobbzilla.wizard.validation.ValidationRegexes.*;
 public enum AppConfigMetadataDatabagFieldType {
 
     // simple types
-    field    (new BasicFieldValidator()),
-    hash     (new BasicFieldValidator()),
-    password (new PasswordFieldValidator()),
+    field      (new BasicFieldValidator()),
+    hash       (new BasicFieldValidator()),
+    secret_key (new BasicFieldValidator()),
+    password   (new PasswordFieldValidator()),
 
     // regex-based types
     login          (new RegexFieldValidator(LOGIN_PATTERN)),
