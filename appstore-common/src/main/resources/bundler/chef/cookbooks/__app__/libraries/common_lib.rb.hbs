@@ -837,10 +837,10 @@ EOH
         rval=%x(
 sendmail -oi -t <<EOMAIL
 From: do-not-reply@#{%x(hostname).strip}
-To: #{admin[:email]}
+To: #{admin['email']}
 Subject: Auto-generated password for CloudOs app: #{app[:name]}
 
-Hello #{admin[:name]},
+Hello #{admin['name']},
 
 This is an automated message from your private Cloudstead.
 
@@ -853,7 +853,7 @@ It is highly recommended that you change this password immediately by logging in
 with the above username and password.
 
 EOMAIL
-exit $?
+echo $?
 ).to_i
         if rval.nil? || rval != 0
             raise "Error emailing auto-generated password for #{app[:name]}/#{login}"
