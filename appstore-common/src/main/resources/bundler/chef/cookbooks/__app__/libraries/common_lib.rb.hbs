@@ -619,7 +619,31 @@ fi
             run_as = subst_string(run_as, app) unless run_as.nil?
             run_as ||= app[:run_as]
 
-            svc = "#{app[:service_name]}_#{File.basename(start_script, File.extname(start_script))}"
+            # If this is the first service being defined, use the service name
+            # Otherwise qualify with the script name
+            if app[:services].empty?
+                svc = app[:service_name]
+            else
+                base_svc_name = "#{app[:service_name]}_#{File.basename(start_script, File.extname(start_script))}"
+                svc = nil ; i=0
+                while svc.nil?
+                    candidate_svc_name = (i == 0) ? base_svc_name : "#{base_svc_name}_#{i}"
+                    ok = true
+                    app[:services].each do |service|
+                        if service[:service_name] != candidate_svc_name
+                            # service name already exists, choose a next one
+                            ok = false ; break
+                        end
+                    end
+                    if ok
+                        svc = candidate_svc_name
+                        break
+                    else
+                        i += 1
+                    end
+                end
+            end
+
             init_svc = "/etc/init.d/#{svc}"
             app[:services] << { :service_name => svc, :proc_pattern => pattern }
 
