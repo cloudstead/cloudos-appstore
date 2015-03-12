@@ -126,6 +126,10 @@ app_lib.database self, app
 
 {{#if app.web}}
 app_lib.{{app.web.type}} self, app
+    {{#if app.web.mode.separate_hostname}}
+app_lib.create_dns self, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
+app_lib.create_dns self, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
+    {{/if}}
 {{/if}}
 
 {{#if app.copy}}

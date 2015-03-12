@@ -16,7 +16,7 @@ public enum AppWebMode {
 
     public boolean isSeparateHostname() { return this == vhost || this == proxy || this == proxy_root; }
 
-    public boolean is_separate_hostname() { return isSeparateHostname(); }
+    public boolean isSeparate_hostname() { return isSeparateHostname(); }
 
     public boolean supportsFilters() { return isProxy(); }
 

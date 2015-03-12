@@ -730,8 +730,8 @@ EOH
             user 'root'
 code <<-EOH
 
-if [ ! -z "#{service_map.join(' ')}" ] ; then
-  for service in #{service_map.join(' ')} ; do
+if [ ! -z "#{service_map.join('" "')}" ] ; then
+  for service in "#{service_map.join('" "')}" ; do
     service_name = $(echo -n ${service} | awk -F '|' '{print $1}')
     proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2}')
     num_procs=$(ps auxwwwww | egrep -- ${proc_pattern} | grep -v egrep | wc -l | tr -d ' ')
@@ -745,8 +745,12 @@ start=$(date +%s)
 while [ $(expr $(date +%s) - ${start}) -lt #{timeout} ] ; do
   http_status="$(curl -sL -w "%{http_code}" --max-time 10 "#{app[:service_url]}" -o /dev/null)"
   rval=$?
-  http_status_type=$(expr $http_status / 100)
-  if [[ ${rval} -eq 0  && ( ${http_status_type} == 2 || ${http_status_type} == 3 ) ]] ; then
+{{#if app.auth.http_auth}}
+  if [[ ${rval} -eq 0 && ${http_status} == 401 ]] ; then
+{{else}}
+  http_status_type=$(expr ${http_status} / 100)
+  if [[ ${rval} -eq 0 && ( ${http_status_type} == 2 || ${http_status_type} == 3 ) ]] ; then
+{{/if}}
     echo "#{app[:name]} is running"
     exit 0
   else
@@ -857,6 +861,17 @@ echo $?
 ).to_i
         if rval.nil? || rval != 0
             raise "Error emailing auto-generated password for #{app[:name]}/#{login}"
+        end
+    end
+
+    def self.create_dns (chef, type, fqdn, ip, options = nil, ttl = nil)
+        ttl ||= 14400
+        options_arg = options.to_s.empty? ? '' : "--options=\"#{options}\""
+        chef.bash "create_dns: type=#{type} fqdn=#{fqdn} ip=#{ip} options=#{options} ttl=#{ttl}" do
+            user 'root'
+            code <<-EOH
+cos cos-dns --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
+EOH
         end
     end
 end
