@@ -105,7 +105,7 @@ class Chef::Recipe::{{app.chefName}}
             db_init.gsub!('@dbuser', app[:dbuser]);
             db_init.gsub!('@dbname', app[:dbname]);
             db_init.gsub!('@dbpass', app[:dbpass]);
-            chef.bash "initialize database with #{db_init}" do
+            chef.bash "initialize {{app.name}} database with #{db_init}" do
                 user 'root'
                 code <<-EOF
           {{#if app.database.init_command.stdin}}
@@ -190,7 +190,7 @@ EOF
             upgrade.gsub!('@dbuser', app[:dbuser]);
             upgrade.gsub!('@dbname', app[:dbname]);
             upgrade.gsub!('@dbpass', app[:dbpass]);
-            chef.bash "initialize database with #{upgrade}" do
+            chef.bash "initialize {{app.name}} database with #{upgrade}" do
             user 'root'
             code <<-EOF
             {{#if app.database.upgrade_command.stdin}}

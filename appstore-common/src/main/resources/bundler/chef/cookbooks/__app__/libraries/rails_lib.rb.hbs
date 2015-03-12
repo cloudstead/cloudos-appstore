@@ -14,7 +14,7 @@ class Chef::Recipe::{{app.chefName}}
         end
 
         %w( bundler rake foreman ).each do |gem|
-            chef.bash "install ruby gem: #{gem}" do
+            chef.bash "install ruby gem for {{app.name}}: #{gem}" do
                 user 'root'
                 code <<-EOF
 gem install #{gem} --no-ri --no-rdoc
@@ -32,7 +32,7 @@ gem install #{gem} --no-ri --no-rdoc
     def self.init_rails (chef, app)
         rails_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
 
-        chef.bash 'install gems' do
+        chef.bash 'install gems required by {{app.name}} in #{rails_dir}' do
           user app[:run_as]
           cwd rails_dir
           code <<-EOF
@@ -41,7 +41,7 @@ bundle install --path vendor/bundle
           EOF
         end
 
-        chef.bash 'ensure gems are readable' do
+        chef.bash 'ensure gems for {{app.name}} are readable' do
           user 'root'
           code <<-EOF
 

@@ -28,7 +28,7 @@ class Chef::Recipe::{{app.chefName}}
           action :create
         end
 
-        chef.bash 'setup foreman/upstart' do
+        chef.bash 'setup foreman/upstart for {{app.name}}' do
           user 'root'
           cwd "#{app[:run_as_home]}/{{app.name}}"
           code <<-EOF
