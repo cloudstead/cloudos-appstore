@@ -9,6 +9,8 @@ public class RegexFieldValidator extends BasicFieldValidator {
 
     private final Pattern pattern;
 
-    @Override protected boolean isValid(String value) { return super.isValid(value) && pattern.matcher(value).matches(); }
+    @Override protected boolean isValid(String value) {
+        return super.isValid(value) && pattern.matcher(value).matches();
+    }
 
 }

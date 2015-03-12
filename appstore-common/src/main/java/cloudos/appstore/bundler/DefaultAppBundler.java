@@ -134,9 +134,9 @@ public class DefaultAppBundler implements AppBundler {
             if (webType == AppWebType.apache) {
                 final AppWebApache apache = manifest.getWeb().getApache();
                 if (apache != null) {
-                    if (apache.hasVhost()) {
-                        final String dirFile = "apache_vhost.conf.erb";
-                        copyToTemplates(outputBase, name, baseDir, dirFile);
+                    final File vhostFile = new File(baseDir + "templates/apache_vhost.conf.erb");
+                    if (vhostFile.exists()) {
+                        copyToTemplates(outputBase, name, baseDir, vhostFile.getName());
                     }
                     if (apache.hasDir()) {
                         for (String dir : apache.getDir()) {

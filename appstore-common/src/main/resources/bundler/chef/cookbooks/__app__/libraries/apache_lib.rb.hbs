@@ -15,10 +15,6 @@ class Chef::Recipe::{{app.chefName}}
             :local_mount => app[:local_mount],
             :doc_root => app[:doc_root],
 
-            {{#if app.web.apache.vhost}}
-            :vhost => :{{app.web.apache.vhost}},
-            {{/if}}
-
             {{#if app.auth.http_auth}}
             :auth => :{{app.auth.http_auth}},
             {{/if}}
@@ -47,6 +43,7 @@ class Chef::Recipe::{{app.chefName}}
 
             :server_name => nil
         }
+        config[:vhost] = File.exist? subst('@templates/apache_vhost.conf.erb', app)
 
         if config[:cert_name]
             # The cert will tell us what our hostname should be
@@ -75,25 +72,35 @@ class Chef::Recipe::{{app.chefName}}
         config = get_config(app)
         {{app.web.type}}_{{app.style}} chef, app, config
 
-{{#if app.web.mode.proxy}}
-        # proxy mode
-        app[:service_url] = "https://#{apache.get_server_name(nil, config[:mode], app[:hostname], app[:name])}/"
+{{#if app.web.mode.separate_hostname}}
+        # has its own hostname mode
+        {{#if app.web.mount}}
+        mount = '{{app.web.mount}}'
+        mount = "/#{mount}" unless mount.start_with? '/'
+        {{else}}
+        mount = '/'
+        {{/if}}
+        app[:service_url] = "https://#{apache.get_server_name(nil, config[:mode], app[:hostname], app[:name])}#{mount}"
 {{else}}
-    {{#if app.path}}
-        {{#if app.parent}}
+    {{#if app.web.mount}}
+        mount = '{{app.web.mount}}'
+        mount = "/#{mount}" unless mount.start_with? '/'
+        app[:service_url] = "https://#{app[:hostname]}/{{app.parent}}#{mount}"
+    {{else}}
+        {{#if app.path}}
+            {{#if app.parent}}
         # path/parent mode
         path = '{{app.path}}'
         path = "/#{path}" unless path.start_with? '/'
         app[:service_url] = "https://#{app[:hostname]}/{{app.parent}}/#{path}"
-        {{else}}
+            {{else}}
         # path/noparent mode (web mode was {{app.web.mode}})
         app[:service_url] = "https://#{app[:hostname]}/{{app.path}}"
-        {{/if}}
-    {{else}}
+            {{/if}}
+        {{else}}
         # default mode
-        mount = app[:mount]
-        mount ||= app[:name]
-        app[:service_url] = "https://#{app[:hostname]}/#{mount}/"
+        app[:service_url] = "https://#{app[:hostname]}/#{app[:name]}/"
+        {{/if}}
     {{/if}}
 {{/if}}
     end

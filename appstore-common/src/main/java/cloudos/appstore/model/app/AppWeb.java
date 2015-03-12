@@ -26,8 +26,6 @@ public class AppWeb {
     @Getter @Setter private String local_mount;
     @Getter @Setter private String ssl_cert_name;
 
-    @JsonIgnore public boolean hasVhost() { return apache != null && apache.hasVhost(); }
-
     @JsonIgnore public boolean getIs_separate_hostname() { return mode.isSeparateHostname(); }
 
     @Getter @Setter private AppFilterConfig[] filters;

@@ -2,15 +2,11 @@ package cloudos.appstore.model.app;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 
 public class AppWebApache {
 
     @Getter @Setter private String[] mods;
     @Getter @Setter private AppWebApachePhpSet[] php_set;
-
-    @Getter @Setter private String vhost;
-    public boolean hasVhost () { return !StringUtils.isEmpty(vhost); }
 
     @Getter @Setter private String[] dir;
     public boolean hasDir() { return dir != null && dir.length > 0; }
