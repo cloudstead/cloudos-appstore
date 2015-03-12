@@ -157,7 +157,7 @@ public class AppManifest {
     public String getDefaultPath() {
         if (!isInteractive() || !hasWeb()) return null;
         if (web.hasMount()) return web.getMount();
-        if (web.getMode().isRoot()) return null;
+        if (web.getMode().isSeparateHostname()) return null;
         return name;
     }
 
