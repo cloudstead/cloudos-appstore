@@ -63,7 +63,7 @@ public class AppConfigurationMap {
         }
 
         final AppManifest manifest = AppManifest.load(manifestFile);
-        if (manifest.hasDatabags()) {
+        if (manifest.hasConfig()) {
             appConfigs.put(app, AppConfiguration.readAppConfiguration(manifest, databagDir, locale));
         }
     }

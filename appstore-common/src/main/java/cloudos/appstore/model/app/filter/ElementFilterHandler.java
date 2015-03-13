@@ -22,8 +22,8 @@ public class ElementFilterHandler extends AppFilterHandlerBase {
     @Override public String apply(String document, Map<String, Object> scope) {
 
         final Pattern pattern = elementPattern(getElement(), getMatch_attr_name(), getMatch_attr_value());
-            final String renderedValue = render(getValue(), scope);
-            final String val = getReplacement(renderedValue);
+        final String renderedValue = render(getValue(), scope);
+        final String val = getReplacement(renderedValue);
         int start = 0;
         while (true) {
             final Matcher matcher = pattern.matcher(document);

@@ -43,4 +43,10 @@ public class AppConfigMetadata {
         return JsonUtil.fromJson(FileUtil.toString(metadataFile), AppConfigMetadata.class);
     }
 
+    public boolean hasPasswords() {
+        for (AppConfigMetadataDatabag bag : categories.values()) {
+            if (bag.getHas_passwords()) return true;
+        }
+        return false;
+    }
 }

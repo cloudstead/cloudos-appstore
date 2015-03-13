@@ -4,7 +4,7 @@ import java.util.Map;
 
 public interface AppFilterHandler {
 
-    public static final String FSCOPE_COS_CONFIG = "cos_config";
+    public static final String FSCOPE_SYSTEM = "system";
     public static final String FSCOPE_RUNTIME = "runtime";
     public static final String FSCOPE_APP = "app";
     public static final String FSCOPE_APP_URI = "app_uri";

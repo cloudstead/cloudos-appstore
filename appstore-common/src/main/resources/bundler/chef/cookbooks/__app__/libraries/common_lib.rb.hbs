@@ -134,11 +134,7 @@ class Chef::Recipe::{{app.chefName}}
                 raise 'Error determining login for auto-generated password: {{@key}}' if login.to_s.empty?
 
                 # Write generated password to databag, update databag struct, email password to admin
-                new_password = base.random_password
-                if %x(cat #{databag_file} | cos json -o write -p '{{@key}}' -v '"#{new_password}"' -w #{databag_file} && echo $?).to_i != 0
-                    raise 'Error generating random password'
-                end
-                notify_generated_password chef, app, login, new_password
+                generate_password_and_notify chef, app, login, '{{@key}}', databag_file
             end
                         {{/if}}
                     {{/each}}
@@ -853,15 +849,15 @@ cos sudo --command group --name #{name} --operation create #{description} #{quot
 
     def self.remove_cloudos_group (chef, app, name)
         chef.bash "create cloudos_group: #{name} with mirror=#{mirror} and members=#{members}" do
-        user 'root'
-        cwd '/tmp'
-        code <<-EOH
+            user 'root'
+            cwd '/tmp'
+            code <<-EOH
 cos sudo --command group --name #{name} --operation delete
 EOH
         end
     end
 
-    def self.notify_generated_password(chef, app, login, password)
+    def self.generate_password_and_notify(chef, app, login, path, databag_file)
         base = Chef::Recipe::Base
 
         # Determine who should receive it
@@ -870,29 +866,13 @@ EOH
         end
         admin = chef.data_bag_item('base', 'admin')
 
-        rval=%x(
-sendmail -oi -t <<EOMAIL
-From: do-not-reply@#{%x(hostname).strip}
-To: #{admin['email']}
-Subject: Auto-generated password for CloudOs app: #{app[:name]}
-
-Hello #{admin['name']},
-
-This is an automated message from your private Cloudstead.
-
-When the #{app[:name]} app was recently installed, the password auto-generator was used to create a password.
-
-username: #{login}
-password: #{password}
-
-It is highly recommended that you change this password immediately by logging into the #{app[:name]} app
-with the above username and password.
-
-EOMAIL
-echo $?
-).to_i
-        if rval.nil? || rval != 0
-            raise "Error emailing auto-generated password for #{app[:name]}/#{login}"
+        lib = self;
+        chef.bash "generate #{path} password for #{app[:name]} login #{login} and notify #{admin['name']}" do
+            user 'root'
+            cwd '/tmp'
+            code <<-EOH
+#{lib.subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8
+EOH
         end
     end
 
@@ -902,7 +882,7 @@ echo $?
         chef.bash "create_dns: type=#{type} fqdn=#{fqdn} ip=#{ip} options=#{options} ttl=#{ttl}" do
             user 'root'
             code <<-EOH
-cos cos-dns --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
+java -cp $(find ~cloudos/cloudos/target -type f -name "cloudos-server-*.jar") cloudos.dns.main.DnsMain --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
 EOH
         end
     end

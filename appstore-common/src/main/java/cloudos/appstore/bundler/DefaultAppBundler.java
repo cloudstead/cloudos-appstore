@@ -12,6 +12,7 @@ import com.github.jknack.handlebars.io.TemplateLoader;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
+import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
@@ -45,10 +46,10 @@ public class DefaultAppBundler implements AppBundler {
     @Override
     public void bundle(BundlerOptions options, AppManifest manifest) throws Exception {
 
-        validate(options, manifest);
-
         final File outputDir = mkdirOrDie(options.getOutputDir());
         final String outputBase = abs(outputDir) + "/";
+
+        validate(options, manifest);
 
         final String name = manifest.getName();
         final AppStyle style = manifest.getStyle();
@@ -172,11 +173,6 @@ public class DefaultAppBundler implements AppBundler {
             }
         }
 
-        final File messagesFile = new File(baseDir + "files/messages.properties");
-        if (messagesFile.exists()) {
-            FileUtils.copyFile(messagesFile, outputFile(outputBase, CHEF_FILES, name, messagesFile.getName()));
-        }
-
         final String libName = name + "_lib.rb";
         final File libraryFile = new File(baseDir + "libraries/" + libName);
         if (libraryFile.exists()) {
@@ -258,7 +254,20 @@ public class DefaultAppBundler implements AppBundler {
         if (configDir.exists()) {
             final File configMetaFile = new File(configDir, AppConfigMetadata.CONFIG_METADATA_JSON);
             if (configMetaFile.exists()) {
-                try { AppConfigMetadata.loadOrDie(configMetaFile); } catch (Exception e) {
+                try {
+                    final AppConfigMetadata metadata = AppConfigMetadata.loadOrDie(configMetaFile);
+                    if (metadata.hasPasswords()) {
+
+                        final File outputDir = mkdirOrDie(options.getOutputDir());
+                        final String outputBase = abs(outputDir) + "/";
+
+                        final File autogenPass = outputFile(outputBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
+                        FileUtil.toFile(autogenPass,
+                                        StreamUtil.loadResourceAsString("bundler/"+CHEF_FILES+"/autogen_pass.sh"));
+                        CommandShell.chmod(autogenPass, "u+rx");
+
+                    }
+                } catch (Exception e) {
                     die("Invalid " + AppConfigMetadata.CONFIG_METADATA_JSON + " file ("+abs(configMetaFile)+"): " + e, e);
                 }
             }

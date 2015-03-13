@@ -1,6 +1,6 @@
 package cloudos.appstore.model.app.config;
 
-import cloudos.appstore.model.app.AppDatabagDef;
+import cloudos.appstore.model.app.AppConfigDef;
 import cloudos.appstore.model.app.AppLayout;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.appstore.model.app.config.validation.AppConfigFieldValidatorBase;
@@ -74,9 +74,9 @@ public class AppConfiguration {
      */
     public static AppConfiguration readAppConfiguration(AppManifest manifest, File databagsDir, String locale) {
         final AppConfiguration config = new AppConfiguration();
-        if (manifest.hasDatabags()) {
+        if (manifest.hasConfig()) {
             databagsDir = new File(databagsDir, manifest.getName());
-            for (AppDatabagDef databag : manifest.getConfig()) {
+            for (AppConfigDef databag : manifest.getConfig()) {
 
                 final String databagName = databag.getName();
                 final File databagFile = new File(databagsDir, databagName+".json");
@@ -126,8 +126,8 @@ public class AppConfiguration {
     }
 
     public void writeAppConfiguration(AppManifest manifest, File databagsDir) {
-        if (manifest.hasDatabags()) {
-            for (AppDatabagDef databag : manifest.getConfig()) {
+        if (manifest.hasConfig()) {
+            for (AppConfigDef databag : manifest.getConfig()) {
 
                 final String databagName = databag.getName();
 
@@ -218,7 +218,9 @@ public class AppConfiguration {
             if (cat.hasValues()) {
                 final Map<String, String> databagValues = cat.getValues();
                 for (String key : databagValues.keySet()) {
-                    final String value = databagValues.get(key);
+
+                    final String value = basic_subst(databagValues.get(key));
+
                     if (key.contains(".")) values.put(key.replace(".", "_"), value);
                     values.put(key, value);
                 }
@@ -226,6 +228,13 @@ public class AppConfiguration {
             databags.put(cat.getName(), values);
         }
         return databags;
+    }
+
+    private String basic_subst(String value) {
+        if (empty(value)) return "";
+        return value.replace("@hostname", CommandShell.hostname())
+                    .replace("@locale", CommandShell.locale())
+                    .replace("@lang", CommandShell.lang());
     }
 
     public List<ConstraintViolationBean> validate(AppConfigValidationResolver entityResolver) {
@@ -238,7 +247,7 @@ public class AppConfiguration {
         for (AppConfigurationCategory cat : getCategories()) {
             for (String item : cat.getItems()) {
                 final String catName = cat.getName();
-                final String value = cat.get(item);
+                final String value = basic_subst(cat.get(item));
 
                 final AppConfigMetadataDatabagField fieldMetadata = getFieldMetadata(cat, item);
 
