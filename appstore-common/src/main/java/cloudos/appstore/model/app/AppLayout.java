@@ -81,7 +81,6 @@ public class AppLayout {
     public File getBundleFile  () { return new File(versionDir, AppLayout.BUNDLE_TARBALL); }
     public File getChefDir     () { return new File(versionDir, AppLayout.CHEF_DIR); }
     public File getManifest    () { return new File(versionDir, AppManifest.CLOUDOS_MANIFEST_JSON);  }
-    public File getPluginJar   () { return new File(versionDir, AppManifest.PLUGIN_JAR); }
 
     public File getDatabagsDir() { return new File(getChefDir(), ChefSolo.DATABAGS_DIR); }
 
@@ -100,6 +99,8 @@ public class AppLayout {
 
     // versionDir/chef/cookbooks/app/files/default
     public File getChefFilesDir() { return new File(new File(getChefAppCookbookDir(), "files"), "default"); }
+
+    public File getPluginJar () { return new File(getChefFilesDir(), AppManifest.PLUGIN_JAR); }
 
     public JsonNode getDatabag(String databagName) {
         final File databagFile = getDatabagFile(databagName);

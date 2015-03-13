@@ -49,7 +49,8 @@ if [[ -d ${APP_BASE}/src ]] ; then
   fi
 
   # copy jar
-  mkdir -p ${BUNDLE_DIR} && cp "$(find ${TARGET} -type f -name "${JAR_MATCH}")" ${BUNDLE_DIR}/plugin.jar || die "error copying jar to plugin.jar"
+  JAR_DIR="${BUNDLE_DIR}/chef/cookbooks/${APP}/files/default"
+  mkdir -p ${JAR_DIR} && cp "$(find ${TARGET} -type f -name "${JAR_MATCH}")" ${JAR_DIR}/plugin.jar || die "error copying plugin.jar to ${JAR_DIR}/plugin.jar"
 fi
 
 # Run bundler

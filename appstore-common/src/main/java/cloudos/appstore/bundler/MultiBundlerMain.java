@@ -17,6 +17,7 @@ import java.util.*;
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.abs;
+import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 
 @Slf4j @AllArgsConstructor
 public class MultiBundlerMain {
@@ -121,6 +122,8 @@ public class MultiBundlerMain {
                     pluginJar = f;
                 }
             }
+            final File filesDir = new File(abs(outputDir)+"/chef/cookbooks/"+appName+"/files/default");
+            mkdirOrDie(filesDir);
             FileUtils.copyFile(pluginJar, new File(outputDir, AppManifest.PLUGIN_JAR));
         }
 
