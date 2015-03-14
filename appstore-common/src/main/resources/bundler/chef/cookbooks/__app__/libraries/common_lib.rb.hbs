@@ -49,10 +49,10 @@ class Chef::Recipe::{{app.chefName}}
     {{/each}}
 {{/if}}
 
-{{#if app.repo}}
-    {{#if app.repo.dir}}
+{{#if app.repo.dir}}
         app[:repo_dir] = '{{app.repo.dir}}'
-    {{else}}
+{{else}}
+    {{#if app.repo.url}}
         app[:repo_dir] = Chef::Recipe::Git.base_name '{{app.repo.url}}'
     {{/if}}
 {{/if}}
