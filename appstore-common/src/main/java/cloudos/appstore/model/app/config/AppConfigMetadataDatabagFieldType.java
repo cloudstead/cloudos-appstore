@@ -27,6 +27,7 @@ public enum AppConfigMetadataDatabagFieldType {
     url            (new RegexFieldValidator(URL_PATTERN)),
     http           (new RegexFieldValidator(HTTP_PATTERN)),
     https          (new RegexFieldValidator(HTTPS_PATTERN)),
+    email_name     (new RegexFieldValidator(EMAIL_NAME_PATTERN)),
 
     // custom types
     integer    (new IntegerFieldValidator()),

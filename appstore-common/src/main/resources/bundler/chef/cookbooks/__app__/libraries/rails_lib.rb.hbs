@@ -32,7 +32,7 @@ gem install #{gem} --no-ri --no-rdoc
     def self.init_rails (chef, app)
         rails_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
 
-        chef.bash 'install gems required by {{app.name}} in #{rails_dir}' do
+        chef.bash "install gems required by {{app.name}} in #{rails_dir}" do
           user app[:run_as]
           cwd rails_dir
           code <<-EOF

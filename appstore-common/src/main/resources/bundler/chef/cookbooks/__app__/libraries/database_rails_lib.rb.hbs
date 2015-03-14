@@ -28,15 +28,19 @@ class Chef::Recipe::{{app.chefName}}
           action :create
         end
 
-{{#if app.database.options.rake_tasks}}
-        rake_tasks = [ {{#each app.database.options.rake_tasks}}{{safe this}}, {{/each}} ]
-{{else}}
         if do_create
+{{#if app.database.options.rake_create_tasks}}
+            rake_tasks = [ {{#each app.database.options.rake_create_tasks}}{{quoted_or_nil this}}, {{/each}} ]
+{{else}}
             rake_tasks = %w( db:schema:load db:seed )
-        else
-            rake_tasks = %w( db:migrate )
-        end
 {{/if}}
+        else
+{{#if app.database.options.rake_migrate_tasks}}
+            rake_tasks = [ {{#each app.database.options.rake_migrate_tasks}}{{quoted_or_nil this}}, {{/each}} ]
+{{else}}
+            rake_tasks = %w( db:migrate )
+{{/if}}
+        end
 
         chef.bash "initialize {{app.name}} database via rake tasks: #{rake_tasks}" do
           user app[:run_as]

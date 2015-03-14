@@ -42,16 +42,22 @@ class Chef::Recipe::{{app.chefName}}
     {{/each}}
 {{/if}}
 
-        {{#if app.passwords}}
+{{#if app.passwords}}
         app[:passwords] = {}
-            {{#each app.passwords}}
+    {{#each app.passwords}}
         app[:passwords]['{{this}}'] = base.password '{{this}}'
-            {{/each}}
-        {{/if}}
+    {{/each}}
+{{/if}}
 
-        {{#if app.web.mount}}
+{{#if app.repo.dir}}
+        app[:repo_dir] = '{{app.repo.dir}}'
+{{else}}
+        app[:repo_dir] = git.base_name '{{app.repo.url}}'
+{{/if}}
+
+{{#if app.web.mount}}
         app[:mount] = '{{app.web.mount}}'
-        {{/if}}
+{{/if}}
 
         app[:databag] = {}
         app[:databag_replacements] = {}
@@ -623,30 +629,7 @@ fi
             run_as = subst_string(run_as, app) unless run_as.nil?
             run_as ||= app[:run_as]
 
-            # If this is the first service being defined, use the service name
-            # Otherwise qualify with the script name
-            if app[:services].empty?
-                svc = app[:service_name]
-            else
-                base_svc_name = "#{app[:service_name]}_#{File.basename(start_script, File.extname(start_script))}"
-                svc = nil ; i=0
-                while svc.nil?
-                    candidate_svc_name = (i == 0) ? base_svc_name : "#{base_svc_name}_#{i}"
-                    ok = true
-                    app[:services].each do |service|
-                        if service[:service_name] != candidate_svc_name
-                            # service name already exists, choose a next one
-                            ok = false ; break
-                        end
-                    end
-                    if ok
-                        svc = candidate_svc_name
-                        break
-                    else
-                        i += 1
-                    end
-                end
-            end
+            svc = get_service_name(app, start_script)
 
             init_svc = "/etc/init.d/#{svc}"
             app[:services] << { :service_name => svc, :proc_pattern => pattern }
@@ -676,8 +659,8 @@ fi
 
         else
             command = subst(command, app)
+            svc = get_service_name(app, command)
 
-            svc = "#{app[:service_name]}_#{File.basename(command, File.extname(command))}"
             init_svc = "/etc/init.d/#{svc}"
             app[:services] << { :service_name => svc, :proc_pattern => command }
 
@@ -700,9 +683,36 @@ fi
         end
     end
 
+    def self.get_service_name(app, command)
+        # If this is the first service being defined, use the service name
+        # Otherwise qualify with the script name
+        if app[:services].empty?
+            return app[:service_name]
+        end
+
+        base_svc_name = "#{app[:service_name]}_#{File.basename(command, File.extname(command))}"
+        i = 0
+        while i < 100
+            candidate_svc_name = (i == 0) ? base_svc_name : "#{base_svc_name}_#{i}"
+            ok = true
+            app[:services].each do |service|
+                if service[:service_name] != candidate_svc_name
+                    # service name already exists, choose a next one
+                    ok = false ; break
+                end
+            end
+            if ok
+                return candidate_svc_name
+            end
+            i += 1
+        end
+        raise "Error generating service name"
+    end
+
     def self.service (chef, app, name, pattern, provider = nil)
         pattern = name if pattern.to_s.empty?
-
+        pattern = subst_string(pattern, app)
+        %x(echo "using pattern=#{pattern} for svc=#{name}" > /tmp/svc_#{name}.pattern)
         svc = name;
         init_svc = "/etc/init.d/#{svc}"
         app[:services] << { :service_name => svc, :proc_pattern => pattern }
@@ -711,7 +721,7 @@ fi
             pattern pattern
             provider provider
             supports :start => true, :stop => true, :restart => true
-            action [ :enable, :restart ]
+            action [ :enable, :start ]
         end
     end
 
@@ -722,11 +732,11 @@ fi
 service #{service[:service_name]} stop
 if [ $? -ne 0 ] ; then
     sleep 2s
-    num_procs=$(ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | wc -l | tr -d ' ')
+    num_procs=$(ps auxwwwww | egrep -- '#{service[:proc_pattern]}' | grep -v egrep | wc -l | tr -d ' ')
     if [ $num_procs -gt 0 ] ; then
         ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | awk '{print $2}' | xargs kill
         sleep 5s
-        num_procs=$(ps auxwwwww | grep -- "#{service[:proc_pattern]}" | wc -l | tr -d ' ')
+        num_procs=$(ps auxwwwww | egrep -- '#{service[:proc_pattern]}' | grep -v egrep | wc -l | tr -d ' ')
         if [ $num_procs -gt 0 ] ; then
             ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | awk '{print $2}' | xargs kill -9
         fi
@@ -740,7 +750,7 @@ EOH
         chef.bash "validating #{service[:service_name]} is running (pattern=#{service[:proc_pattern]})" do
             user 'root'
             code <<-EOH
-num_procs=$(ps auxwwwww | egrep -- "#{service[:proc_pattern]}" | grep -v egrep | wc -l | tr -d ' ')
+num_procs=$(ps auxwwwww | egrep -- '#{service[:proc_pattern]}' | grep -v egrep | wc -l | tr -d ' ')
 if [ $num_procs -gt 0 ] ; then exit 0 ; else exit 1 ; fi
 EOH
         end
@@ -758,12 +768,13 @@ EOH
             user 'root'
 code <<-EOH
 
-if [ ! -z "#{service_map.join('" "')}" ] ; then
-  for service in "#{service_map.join('" "')}" ; do
-    service_name = $(echo -n ${service} | awk -F '|' '{print $1}')
-    proc_pattern = $(echo -n ${service} | awk -F '|' '{print $2}')
-    num_procs=$(ps auxwwwww | egrep -- ${proc_pattern} | grep -v egrep | wc -l | tr -d ' ')
+if [ ! -z '#{service_map.join("' '")}' ] ; then
+  for service in '#{service_map.join("' '")}' ; do
+    service_name="$(echo -n ${service} | awk -F '|' '{print $1}')"
+    proc_pattern="$(echo -n ${service} | awk -F '|' '{print $2}')"
+    num_procs=$(ps auxwwwww | egrep -- "${proc_pattern}" | grep -v egrep | wc -l | tr -d ' ')
     if [ $num_procs -eq 0 ] ; then
+      echo "Restarting service that does not appear to be running: ${service_name} (pattern ${proc_pattern})" >> /tmp/validate_restart.log
       service ${service_name} restart
     fi
   done
@@ -877,12 +888,51 @@ EOH
     end
 
     def self.create_dns (chef, type, fqdn, ip, options = nil, ttl = nil)
+
+        base = Chef::Recipe::Base
+
         ttl ||= 14400
         options_arg = options.to_s.empty? ? '' : "--options=\"#{options}\""
+
         chef.bash "create_dns: type=#{type} fqdn=#{fqdn} ip=#{ip} options=#{options} ttl=#{ttl}" do
             user 'root'
             code <<-EOH
-java -cp $(find ~cloudos/cloudos/target -type f -name "cloudos-server-*.jar") cloudos.dns.main.DnsMain --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
+
+# Call DNS command without using 'cos' in case that script is not yet available
+CLOUDOS_INIT=/etc/init.d/cloudos
+if [ ! -f ${CLOUDOS_INIT} ] ; then
+  echo "create_dns: cannot create DNS records before cloudos app is installed"
+  exit 1
+fi
+
+CLOUDOS_BASE=$(head /etc/init.d/cloudos | grep -m 1  APP_BASE | awk -F '=' '{print $2}' | tr -d '"')
+if [ ! -d ${CLOUDOS_BASE} ] ; then
+  echo "create_dns: cloudos base dir does not exist: ${CLOUDOS_BASE}"
+  exit 1
+fi
+
+JAR_PATTERN="cloudos-server-*.jar"
+JAR_DIR="${CLOUDOS_BASE}/target"
+JAR_COUNT=$(find ${JAR_DIR} -type f -name "${JAR_PATTERN}" | wc -l | tr -d ' ')
+if [ ${JAR_COUNT} -eq ] ; then
+  echo "No ${JAR_PATTERN} jar found in ${JAR_DIR}"
+  exit 1
+elif [ ${JAR_COUNT} -gt 1 ] ; then
+  echo "Multiple jars match pattern ${JAR_PATTERN} in ${JAR_DIR}"
+  exit 1
+fi
+
+JAR="$(find ${JAR_DIR} -type f -name "${JAR_PATTERN}")"
+
+java -cp ${JAR} cloudos.dns.main.DnsMain \
+  --config #{base.chef_dir}/data_bags/cloudos/init.json \
+  --config-node dns \
+  --operation add \
+  --record #{type.downcase} \
+  --fqdn #{fqdn} \
+  --value #{ip} \
+  --ttl #{ttl} #{options_arg}
+
 EOH
         end
     end
