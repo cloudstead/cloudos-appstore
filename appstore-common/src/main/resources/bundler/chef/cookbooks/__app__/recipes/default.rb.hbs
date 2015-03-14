@@ -126,10 +126,6 @@ app_lib.database self, app
 
 {{#if app.web}}
 app_lib.{{app.web.type}} self, app
-    {{#if app.web.mode.separate_hostname}}
-app_lib.create_dns self, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
-app_lib.create_dns self, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
-    {{/if}}
 {{/if}}
 
 {{#if app.copy}}
@@ -197,6 +193,11 @@ app_lib.permission(self, '@doc_root', app, nil, nil, 'a+rx') if app[:doc_root]
     {{#each app.logrotate}}
 app_lib.logrotate self, app, '{{this}}'
     {{/each}}
+{{/if}}
+
+{{#if app.web.mode.separate_hostname}}
+    app_lib.create_dns self, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
+    app_lib.create_dns self, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
 {{/if}}
 
 {{#if app.sysinit}}
