@@ -46,17 +46,24 @@ public class DefaultAppBundler implements AppBundler {
     @Override
     public void bundle(BundlerOptions options, AppManifest manifest) throws Exception {
 
-        final File outputDir = mkdirOrDie(options.getOutputDir());
-        final String outputBase = abs(outputDir) + "/";
-
         validate(options, manifest);
 
+        final File outputDir = mkdirOrDie(options.getOutputDir());
+        final String outputBase = abs(outputDir) + "/";
         final String name = manifest.getName();
         final AppStyle style = manifest.getStyle();
-        if (style == null) throw new IllegalArgumentException("style not defined. use one of: "+Arrays.asList(AppStyle.values()));
         final String styleName = style.name().toLowerCase();
         final String baseDir = abs(options.getManifest().getParentFile()) + "/";
         final File configMetadataFile = new File(baseDir+"config/"+AppConfigMetadata.CONFIG_METADATA_JSON);
+
+        // If we have a plugin, build it and move it into the right place
+        final File pluginJar = buildPlugin(options, manifest);
+        if (pluginJar != null) {
+            final String filesPath = "/chef/cookbooks/" + name + "/files/default";
+            final File filesDir = new File(abs(outputDir) + filesPath);
+            mkdirOrDie(filesDir);
+            FileUtils.copyFile(pluginJar, new File(abs(outputDir) + filesPath + "/" + AppManifest.PLUGIN_JAR));
+        }
 
         final Map<String, Object> scope = new HashMap<>();
         scope.put("app", manifest);
@@ -204,6 +211,49 @@ public class DefaultAppBundler implements AppBundler {
         FileUtils.copyFile(manifestFile, new File(databagDir, CLOUDOS_MANIFEST_JSON));
     }
 
+    private File buildPlugin(BundlerOptions options, AppManifest manifest) {
+
+        final String baseDir = options.getManifest().getParent();
+        final File srcDir = new File(baseDir, "src");
+        final File pomFile = new File(baseDir, "pom.xml");
+        boolean hasPlugin = srcDir.exists() && srcDir.isDirectory() && pomFile.exists() && pomFile.isFile();
+
+        if (!hasPlugin) return null;
+
+        // Build the plugin (remove debug options from env, if present)
+        final Map<String, String> env = scrubMavenOpts();
+        final String mvnOutput = CommandShell.execScript("cd "+abs(srcDir)+" && mvn clean package", env);
+
+        // Find the jar that was built, there should be only one
+        File jarFile = null;
+        for (File artifact : FileUtil.listFiles(new File(baseDir, "target"))) {
+            if (artifact.getName().endsWith(".jar")) {
+                if (jarFile != null) die("Multiple jar files produced by plugin build: "+abs(jarFile)+", "+abs(artifact));
+                jarFile = artifact;
+            }
+        }
+        if (jarFile == null) die("Error building plugin jar: "+mvnOutput);
+        return jarFile;
+    }
+
+    private Map<String, String> scrubMavenOpts() {
+        final Map<String, String> env = new HashMap<>(System.getenv());
+        final String mavenOpts = env.get("MAVEN_OPTS");
+        if (mavenOpts == null) return env;
+        final StringBuilder b = new StringBuilder();
+        for (String part : mavenOpts.split("\\s+")) {
+            if (!part.startsWith("-Xdebug") && !part.startsWith("-Djava.compiler") && !part.startsWith("-Xrunjdwp")) {
+                b.append(part).append(" ");
+            }
+        }
+        if (b.length() > 0) {
+            env.put("MAVEN_OPTS", b.toString());
+        } else {
+            env.remove("MAVEN_OPTS");
+        }
+        return env;
+    }
+
     public Handlebars getHandlebars() {
         final TemplateLoader loader = new ClassPathTemplateLoader("/bundler/");
         final Handlebars handlebars = new Handlebars(loader);
@@ -243,6 +293,9 @@ public class DefaultAppBundler implements AppBundler {
     }
 
     private void validate(BundlerOptions options, AppManifest manifest) {
+
+        if (manifest.getStyle() == null) die("style not defined. use one of: "+Arrays.asList(AppStyle.values()));
+
         // If filters are declared, make sure they can actually be used (based on web mode)
         if (manifest.hasWeb() && manifest.getWeb().hasFilters()) {
             final AppWebMode mode = manifest.getWeb().getMode();
@@ -263,7 +316,7 @@ public class DefaultAppBundler implements AppBundler {
 
                         final File autogenPass = outputFile(outputBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
                         FileUtil.toFile(autogenPass,
-                                        StreamUtil.loadResourceAsString("bundler/"+CHEF_FILES+"/autogen_pass.sh"));
+                                StreamUtil.loadResourceAsString("bundler/"+CHEF_FILES+"/autogen_pass.sh"));
                         CommandShell.chmod(autogenPass, "u+rx");
 
                     }

@@ -17,7 +17,6 @@ import java.util.*;
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 
 @Slf4j @AllArgsConstructor
 public class MultiBundlerMain {
@@ -100,32 +99,12 @@ public class MultiBundlerMain {
         final AppBundlerFactory factory = new DefaultAppBundlerFactory();
         final AppBundler bundler = factory.getBundler(manifest);
 
-        // If a src dir exists and a pom file exists, run maven
-        final File srcDir = new File(manifestFile.getParentFile(), "src");
-        boolean hasPlugin = srcDir.exists() && new File(manifestFile.getParentFile(), "pom.xml").exists();
-        if (hasPlugin) CommandShell.execScript("cd "+abs(srcDir)+" && mvn clean package");
-
         // Recreate output dir
         final String appBundleDir = appName + "-bundle";
         final File targetDir = new File(manifestFile.getParentFile(), TARGET_DIR);
         final File outputDir = new File(targetDir, appBundleDir);
         if (outputDir.exists()) FileUtils.deleteDirectory(outputDir);
         FileUtil.mkdirOrDie(outputDir);
-
-        // If we have a plugin, move it into the right place
-        if (hasPlugin) {
-            final File[] targetFiles = FileUtil.list(targetDir);
-            File pluginJar = null;
-            for (File f : targetFiles) {
-                if (f.isFile() && f.getName().contains(manifest.getName()) && f.getName().endsWith(".jar")) {
-                    if (pluginJar != null) die("Multiple plugin candidate jars found: "+abs(pluginJar)+" and "+abs(f));
-                    pluginJar = f;
-                }
-            }
-            final File filesDir = new File(abs(outputDir)+"/chef/cookbooks/"+appName+"/files/default");
-            mkdirOrDie(filesDir);
-            FileUtils.copyFile(pluginJar, new File(outputDir, AppManifest.PLUGIN_JAR));
-        }
 
         final BundlerOptions options = new BundlerOptions();
         options.setManifest(manifestFile);

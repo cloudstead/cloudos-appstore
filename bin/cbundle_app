@@ -7,6 +7,23 @@ function die () {
 
 SCRIPT_BASE=$(cd $(dirname $0) && pwd)
 
+debug="${1}"
+if [ "x${debug}" = "xdebug" ] ; then
+  shift
+  ARG_LEN=$(echo -n "${1}" | wc -c)
+  ARG_NUMERIC_LEN=$(echo -n "${1}" | tr -dc [:digit:] | wc -c)  # strip all non-digits
+  if [ ${ARG_LEN} -eq ${ARG_NUMERIC_LEN} ] ; then
+    # Second arg is the debug port
+    DEBUG_PORT="${1}"
+    shift
+  else
+    DEBUG_PORT=5005
+  fi
+  debug="-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${DEBUG_PORT}"
+else
+  debug=""
+fi
+
 APP_BASE=${1}
 if [ -z "${APP_BASE}" ] ; then
   die "No app dir specified"
@@ -33,29 +50,9 @@ rm -rf ${BUNDLE_DIR}
 rm -rf ${TARBALL}
 mkdir -p ${BUNDLE_DIR}
 
-# if there is a src dir, and the jar is not there, build it
-JAR_MATCH="*${APP}-*.jar"
-if [[ -d ${APP_BASE}/src ]] ; then
-  if [[ ! -d ${TARGET} || $(find ${TARGET} -type f -name "${JAR_MATCH}" | wc -l | tr -d [:blank:]) -eq 0 ]] ; then
-    cd ${APP_BASE} && mvn clean package 1>&2
-    if [ $? -ne 0 ] ; then
-      die "Build failed"
-    fi
-  fi
-
-  # ensure that only 1 jar matches
-  if [ $(find ${TARGET} -type f -name "${JAR_MATCH}" | wc -l | tr -d [:blank:]) -ne 1 ] ; then
-    die "Build did not produce exactly 1 jar"
-  fi
-
-  # copy jar
-  JAR_DIR="${BUNDLE_DIR}/chef/cookbooks/${APP}/files/default"
-  mkdir -p ${JAR_DIR} && cp "$(find ${TARGET} -type f -name "${JAR_MATCH}")" ${JAR_DIR}/plugin.jar || die "error copying plugin.jar to ${JAR_DIR}/plugin.jar"
-fi
-
 # Run bundler
 cd ${SCRIPT_BASE}/../appstore-common && \
-mvn exec:java \
+MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
   -Dexec.mainClass=cloudos.appstore.bundler.BundlerMain \
   -Dexec.args="-m ${APP_BASE}/cloudos-manifest.json -o ${BUNDLE_DIR}" \
   1>&2
