@@ -195,11 +195,6 @@ app_lib.logrotate self, app, '{{this}}'
     {{/each}}
 {{/if}}
 
-{{#if app.web.mode.separate_hostname}}
-    app_lib.create_dns self, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
-    app_lib.create_dns self, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
-{{/if}}
-
 {{#if app.sysinit}}
     {{#each app.sysinit}}
 app_lib.sysinit self, app, '{{this}}'
@@ -214,6 +209,11 @@ app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
 app_lib.service self, app, '{{name}}', '{{safe pattern}}'
         {{/if}}
     {{/each}}
+{{/if}}
+
+{{#if app.web.mode.separate_hostname}}
+    app_lib.create_dns self, app, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
+    app_lib.create_dns self, app, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
 {{/if}}
 
 {{#if app.web}}

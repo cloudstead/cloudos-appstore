@@ -889,7 +889,7 @@ EOH
         end
     end
 
-    def self.create_dns (chef, type, fqdn, ip, options = nil, ttl = nil)
+    def self.create_dns (chef, app, type, fqdn, ip, options = nil, ttl = nil)
 
         base = Chef::Recipe::Base
 
@@ -899,42 +899,7 @@ EOH
         chef.bash "create_dns: type=#{type} fqdn=#{fqdn} ip=#{ip} options=#{options} ttl=#{ttl}" do
             user 'root'
             code <<-EOH
-
-# Call DNS command without using 'cos' in case that script is not yet available
-CLOUDOS_INIT=/etc/init.d/cloudos
-if [ ! -f ${CLOUDOS_INIT} ] ; then
-  echo "create_dns: cannot create DNS records before cloudos app is installed"
-  exit 1
-fi
-
-CLOUDOS_BASE=$(head /etc/init.d/cloudos | grep -m 1  APP_BASE | awk -F '=' '{print $2}' | tr -d '"')
-if [ ! -d ${CLOUDOS_BASE} ] ; then
-  echo "create_dns: cloudos base dir does not exist: ${CLOUDOS_BASE}"
-  exit 1
-fi
-
-JAR_PATTERN="cloudos-server-*.jar"
-JAR_DIR="${CLOUDOS_BASE}/target"
-JAR_COUNT=$(find ${JAR_DIR} -type f -name "${JAR_PATTERN}" | wc -l | tr -d ' ')
-if [ ${JAR_COUNT} -eq ] ; then
-  echo "No ${JAR_PATTERN} jar found in ${JAR_DIR}"
-  exit 1
-elif [ ${JAR_COUNT} -gt 1 ] ; then
-  echo "Multiple jars match pattern ${JAR_PATTERN} in ${JAR_DIR}"
-  exit 1
-fi
-
-JAR="$(find ${JAR_DIR} -type f -name "${JAR_PATTERN}")"
-
-java -cp ${JAR} cloudos.dns.main.DnsMain \
-  --config #{base.chef_dir}/data_bags/cloudos/init.json \
-  --config-node dns \
-  --operation add \
-  --record #{type.downcase} \
-  --fqdn #{fqdn} \
-  --value #{ip} \
-  --ttl #{ttl} #{options_arg}
-
+cos cos-dns --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
 EOH
         end
     end
