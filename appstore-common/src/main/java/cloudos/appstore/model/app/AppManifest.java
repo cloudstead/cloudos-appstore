@@ -82,6 +82,9 @@ public class AppManifest {
 
     @Getter @Setter private AppShellCommand[] prep_code;
     @Getter @Setter private AppShellCommand[] post_install;
+    @Getter @Setter private AppShellCommand[] post_validate;
+
+    @JsonIgnore public boolean hasPost_validate () { return !empty(post_validate); }
 
     @Getter @Setter private AppDatabase database;
     @JsonIgnore public boolean hasDatabase () { return database != null; }

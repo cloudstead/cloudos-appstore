@@ -17,7 +17,18 @@ class Chef::Recipe::{{app.chefName}}
             chef.bash "install ruby gem for {{app.name}}: #{gem}" do
                 user 'root'
                 code <<-EOF
-gem install #{gem} --no-ri --no-rdoc
+success=0
+for i in 1 2 3 ; do
+    gem install #{gem} --no-ri --no-rdoc
+    if [ $? -eq 0 ] ; then
+        success=1
+        break
+    fi
+done
+if [ ${success} -ne 1 ] ; then
+    echo "gem install #{gem} failed for {{app.name}}"
+    exit 1
+fi
                 EOF
             end
         end
@@ -36,8 +47,18 @@ gem install #{gem} --no-ri --no-rdoc
           user app[:run_as]
           cwd rails_dir
           code <<-EOF
-bundle install --path vendor/bundle
-#sudo -u #{app[:run_as]} -H bash -c 'cd #{rails_dir} && bundle install --path vendor/bundle'
+success=0
+for i in 1 2 3 ; do
+  bundle install --path vendor/bundle
+  if [ $? -eq 0 ] ; then
+    success=1
+    break
+  fi
+done
+if [ ${success} -ne 1 ] ; then
+  echo "bundle install for {{app.name}} failed, dir was $(pwd)"
+  exit 1
+fi
           EOF
         end
 

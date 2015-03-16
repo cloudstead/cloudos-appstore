@@ -53,7 +53,7 @@ public class DefaultAppBundler implements AppBundler {
         final String name = manifest.getName();
         final AppStyle style = manifest.getStyle();
         final String styleName = style.name().toLowerCase();
-        final String baseDir = abs(options.getManifest().getParentFile()) + "/";
+        final String baseDir = options.getAppSourceDir();
         final File configMetadataFile = new File(baseDir+"config/"+AppConfigMetadata.CONFIG_METADATA_JSON);
 
         // If we have a plugin, build it and move it into the right place
@@ -294,6 +294,7 @@ public class DefaultAppBundler implements AppBundler {
 
     private void validate(BundlerOptions options, AppManifest manifest) {
 
+        // must define style
         if (manifest.getStyle() == null) die("style not defined. use one of: "+Arrays.asList(AppStyle.values()));
 
         // If filters are declared, make sure they can actually be used (based on web mode)
@@ -332,6 +333,16 @@ public class DefaultAppBundler implements AppBundler {
                         die("Invalid translations file " + abs(f) + ": " + e, e);
                     }
                 }
+            }
+        }
+
+        // Ensure post-install validation is correct
+        if (manifest.hasPost_validate()) {
+            if (new File(options.getAppSourceDir()+"recipes/validate.rb").exists()) {
+                die("Cannot specify post_validate when recipes/validate.rb exists");
+            }
+            if (new File(options.getAppSourceDir()+"files/validate.sh").exists()) {
+                die("Cannot specify post_validate when files/validate.sh exists");
             }
         }
     }

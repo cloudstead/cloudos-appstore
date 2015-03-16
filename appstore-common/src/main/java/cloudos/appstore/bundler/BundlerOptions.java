@@ -6,6 +6,8 @@ import org.kohsuke.args4j.Option;
 
 import java.io.File;
 
+import static org.cobbzilla.util.io.FileUtil.abs;
+
 public class BundlerOptions {
 
     public static final File pwd = new File(System.getProperty("user.dir"));
@@ -22,4 +24,7 @@ public class BundlerOptions {
     @Option(name=OPT_OUTPUT_DIR, aliases=LONGOPT_OUTPUT_DIR, usage=USAGE_OUTPUT_DIR)
     @Getter @Setter private File outputDir = pwd;
 
+    public String getAppSourceDir() {
+        return abs(getManifest().getParentFile()) + "/";
+    }
 }

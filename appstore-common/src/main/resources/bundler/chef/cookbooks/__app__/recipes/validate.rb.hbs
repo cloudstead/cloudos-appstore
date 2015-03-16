@@ -56,3 +56,9 @@ app_lib.validate_web self, app
     {{/if}}
 
 {{/if}}
+
+{{#if app.post_validate}}
+    {{#each app.post_validate}}
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+    {{/each}}
+{{/if}}
