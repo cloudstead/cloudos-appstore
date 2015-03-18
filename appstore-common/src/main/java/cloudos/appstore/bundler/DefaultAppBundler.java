@@ -140,11 +140,6 @@ public class DefaultAppBundler implements AppBundler {
             templates.add(CHEF_LIBRARIES + webType + "_lib.rb");
             templates.add(CHEF_LIBRARIES + webType + "_" + styleName +"_lib.rb");
 
-            if (!manifest.getValidation().hasWeb()) {
-                manifest.getValidation().setWeb(true);
-                manifest.getValidation().addPort("@config[ports][primary]");
-            }
-
             if (webType == AppWebType.apache) {
                 final AppWebApache apache = manifest.getWeb().getApache();
                 if (apache != null) {

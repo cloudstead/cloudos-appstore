@@ -14,51 +14,52 @@ base_lib = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 app = app_lib.define_app self
 
+validate_services = false
+{{#if app.services}}
+# Call app_lib.service first to ensure that:
+# (1) the required init scripts are actually in place and
+# (2) the app[:services] array is populated with the service info (name and proc_pattern)
+validate_services = true
+    {{#each app.services}}
+        {{#if ports}}
+            {{#each ports}}
+base_lib.restart_unless_port(self, app_lib.subst_string('{{this}}', app), '{{name}}')
+            {{/each}}
+        {{/if}}
+        {{#if chefProvider}}
+app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
+        {{else}}
+app_lib.service self, app, '{{name}}', '{{safe pattern}}'
+        {{/if}}
+    {{/each}}
+{{/if}}
+
+{{#if app.sysinit}}
+# Call app_lib.sysinit first to ensure that:
+# (1) the required init scripts are actually in place and
+# (2) the app[:services] array is populated with the service info (name and proc_pattern)
+validate_services = true
+    {{#each app.sysinit}}
+app_lib.sysinit self, app, '{{this}}'
+    {{/each}}
+{{/if}}
+
 {{#if app.validation.pre_scripts}}
     {{#each app.validation.pre_scripts}}
 app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
 
-{{#if app.validation.ports}}
-    {{#each app.validation.ports}}
-base_lib.is_tcp_port_listening self, app_lib.subst_string('{{this}}', app)
-    {{/each}}
-{{/if}}
-
-{{#if app.validation.services}}
-    {{#if app.sysinit}}
-# Call app_lib.sysinit first to ensure that:
-# (1) the required init scripts are actually in place and
-# (2) the app[:services] array is populated with the service info (name and proc_pattern)
-        {{#each app.sysinit}}
-app_lib.sysinit self, app, '{{this}}'
-        {{/each}}
-    {{/if}}
-
-    {{#if app.services}}
-# Call app_lib.service first to ensure that:
-# (1) the required init scripts are actually in place and
-# (2) the app[:services] array is populated with the service info (name and proc_pattern)
-        {{#each app.services}}
-            {{#if chefProvider}}
-app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
-            {{else}}
-app_lib.service self, app, '{{name}}', '{{safe pattern}}'
-            {{/if}}
-        {{/each}}
-    {{/if}}
-
-app[:services].each do |service|
-    app_lib.validate_service self, app, service
+if validate_services
+    app[:services].each do |service|
+        app_lib.validate_service self, app, service
+    end
 end
 
-    {{#if app.web}}
+{{#if app.web}}
 # Call app_lib.{{app.web.type}} first to ensure that app[:service_url] is set
 app_lib.{{app.web.type}} self, app
 app_lib.validate_web self, app
-    {{/if}}
-
 {{/if}}
 
 {{#if app.validation.post_scripts}}
