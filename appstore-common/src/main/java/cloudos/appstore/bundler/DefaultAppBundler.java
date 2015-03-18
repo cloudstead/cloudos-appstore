@@ -29,6 +29,7 @@ import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.util.string.StringUtil.replaceLast;
+import static org.cobbzilla.util.system.CommandShell.execScript;
 
 @Slf4j
 public class DefaultAppBundler implements AppBundler {
@@ -96,7 +97,7 @@ public class DefaultAppBundler implements AppBundler {
         if (!new File(baseDir+"recipes/validate.rb").exists()) {
             templates.add(CHEF_RECIPES + "validate.rb");
             if (new File(baseDir+"files/validate.sh").exists()) {
-                manifest.setValidation_script(true);
+                manifest.getValidation().addPreScript("@files/validate.sh");
             }
         }
 
@@ -138,6 +139,11 @@ public class DefaultAppBundler implements AppBundler {
             if (webType == null) throw new IllegalArgumentException("web.type not defined. use one of: "+Arrays.asList(AppWebType.values()));
             templates.add(CHEF_LIBRARIES + webType + "_lib.rb");
             templates.add(CHEF_LIBRARIES + webType + "_" + styleName +"_lib.rb");
+
+            if (!manifest.getValidation().hasWeb()) {
+                manifest.getValidation().setWeb(true);
+                manifest.getValidation().addPort("@config[ports][primary]");
+            }
 
             if (webType == AppWebType.apache) {
                 final AppWebApache apache = manifest.getWeb().getApache();
@@ -220,19 +226,38 @@ public class DefaultAppBundler implements AppBundler {
 
         if (!hasPlugin) return null;
 
+        // do not build waste time building plugin if no source file is newer than the jar
+        File pluginJar = findPluginJar(baseDir);
+        if (pluginJar != null && pluginJar.exists()) {
+            try {
+                if (pluginJar.lastModified() > CommandShell.mostRecentFileMod(srcDir)) {
+                    log.info("buildPlugin: Plugin jar is newer than most recent source modification, not rebuilding");
+                    return pluginJar;
+                }
+            } catch (Exception e) {
+                log.warn("buildPlugin: Error comparing src dir mod times against plugin mod time (assuming we need to build the plugin): "+e);
+            }
+        }
+
         // Build the plugin (remove debug options from env, if present)
         final Map<String, String> env = scrubMavenOpts();
-        final String mvnOutput = CommandShell.execScript("cd "+abs(srcDir)+" && mvn clean package", env);
+        final String mvnOutput = execScript("cd " + abs(baseDir) + " && mvn clean package", env);
 
         // Find the jar that was built, there should be only one
+        pluginJar = findPluginJar(baseDir);
+        if (pluginJar == null) die("buildPlugin: Error building plugin jar: "+mvnOutput);
+
+        return pluginJar;
+    }
+
+    private File findPluginJar(String baseDir) {
         File jarFile = null;
         for (File artifact : FileUtil.listFiles(new File(baseDir, "target"))) {
             if (artifact.getName().endsWith(".jar")) {
-                if (jarFile != null) die("Multiple jar files produced by plugin build: "+abs(jarFile)+", "+abs(artifact));
+                if (jarFile != null) die("findPluginJar: Multiple jar files produced by plugin build: "+abs(jarFile)+", "+abs(artifact));
                 jarFile = artifact;
             }
         }
-        if (jarFile == null) die("Error building plugin jar: "+mvnOutput);
         return jarFile;
     }
 
@@ -333,16 +358,6 @@ public class DefaultAppBundler implements AppBundler {
                         die("Invalid translations file " + abs(f) + ": " + e, e);
                     }
                 }
-            }
-        }
-
-        // Ensure post-install validation is correct
-        if (manifest.hasPost_validate()) {
-            if (new File(options.getAppSourceDir()+"recipes/validate.rb").exists()) {
-                die("Cannot specify post_validate when recipes/validate.rb exists");
-            }
-            if (new File(options.getAppSourceDir()+"files/validate.sh").exists()) {
-                die("Cannot specify post_validate when files/validate.sh exists");
             }
         }
     }

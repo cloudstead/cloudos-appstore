@@ -7,6 +7,23 @@ function die () {
 
 SCRIPT_BASE=$(cd $(dirname $0) && pwd)
 
+debug="${1}"
+if [ "x${debug}" = "xdebug" ] ; then
+  shift
+  ARG_LEN=$(echo -n "${1}" | wc -c)
+  ARG_NUMERIC_LEN=$(echo -n "${1}" | tr -dc [:digit:] | wc -c)  # strip all non-digits
+  if [ ${ARG_LEN} -eq ${ARG_NUMERIC_LEN} ] ; then
+    # Second arg is the debug port
+    DEBUG_PORT="${1}"
+    shift
+  else
+    DEBUG_PORT=5005
+  fi
+  debug="-Xdebug -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${DEBUG_PORT}"
+else
+  debug=""
+fi
+
 APP_BASE=${1}
 if [ -z "${APP_BASE}" ] ; then
   die "No app dir specified"
@@ -15,7 +32,7 @@ APP_BASE=$(cd ${APP_BASE} && pwd)
 
 # Run bundler
 cd ${SCRIPT_BASE}/../appstore-common && \
-mvn exec:java \
+MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
   -Dexec.mainClass=cloudos.appstore.bundler.MultiBundlerMain \
   -Dexec.args="${APP_BASE}" \
   1>&2

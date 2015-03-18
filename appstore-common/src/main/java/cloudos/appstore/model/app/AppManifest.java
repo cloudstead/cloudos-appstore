@@ -34,8 +34,6 @@ public class AppManifest {
     @Getter @Setter private String name;
     @JsonIgnore public String getChefName () { return StringUtils.capitalize(getId()); }
 
-    @Getter @Setter private boolean validation_script = false;
-
     @JsonIgnore @Getter(lazy=true) private final String id = initId();
     private String initId () { return scrub(getName()); }
 
@@ -82,15 +80,14 @@ public class AppManifest {
 
     @Getter @Setter private AppShellCommand[] prep_code;
     @Getter @Setter private AppShellCommand[] post_install;
-    @Getter @Setter private AppShellCommand[] post_validate;
 
-    @JsonIgnore public boolean hasPost_validate () { return !empty(post_validate); }
+    @Getter @Setter private AppValidation validation = new AppValidation();
 
     @Getter @Setter private AppDatabase database;
     @JsonIgnore public boolean hasDatabase () { return database != null; }
 
     @Getter @Setter private AppWeb web;
-    @JsonIgnore public boolean hasWeb () { return web != null; }
+    @JsonIgnore public boolean hasWeb() { return web != null; }
 
     @JsonIgnore public String getLocalMount () {
         if (web == null || empty(web.getLocal_mount())) return null;

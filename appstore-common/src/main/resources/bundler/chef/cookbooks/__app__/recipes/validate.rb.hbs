@@ -14,15 +14,19 @@ base_lib = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 app = app_lib.define_app self
 
-{{#if app.validation_script}}
-bash 'validating {{app.name}} installation' do
-    user 'root'
-    code <<-EOH
-#{app_lib.subst('@files/validate.sh', app)} #{base_lib.chef_dir}
-EOH
-end
-{{else}}
+{{#if app.validation.pre_scripts}}
+    {{#each app.validation.pre_scripts}}
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+    {{/each}}
+{{/if}}
 
+{{#if app.validation.ports}}
+    {{#each app.validation.ports}}
+base_lib.is_tcp_port_listening self, app_lib.subst_string('{{this}}', app)
+    {{/each}}
+{{/if}}
+
+{{#if app.validation.services}}
     {{#if app.sysinit}}
 # Call app_lib.sysinit first to ensure that:
 # (1) the required init scripts are actually in place and
@@ -57,8 +61,8 @@ app_lib.validate_web self, app
 
 {{/if}}
 
-{{#if app.post_validate}}
-    {{#each app.post_validate}}
+{{#if app.validation.post_scripts}}
+    {{#each app.validation.post_scripts}}
 app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
