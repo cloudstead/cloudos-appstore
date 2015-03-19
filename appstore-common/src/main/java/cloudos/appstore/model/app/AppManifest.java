@@ -22,7 +22,8 @@ import static org.cobbzilla.util.string.StringUtil.empty;
 @ToString
 public class AppManifest {
 
-    public static final String CLOUDOS_MANIFEST_JSON = "cloudos-manifest.json";
+    public static final String CLOUDOS_MANIFEST = "cloudos-manifest";
+    public static final String CLOUDOS_MANIFEST_JSON = CLOUDOS_MANIFEST + ".json";
     public static final String PLUGIN_JAR = "plugin.jar";
     public static final String ROOT_HOSTNAME = "_root_";
 
@@ -32,10 +33,10 @@ public class AppManifest {
     }
 
     @Getter @Setter private String name;
-    @JsonIgnore public String getChefName () { return StringUtils.capitalize(getId()); }
+    @JsonIgnore public String getChefName () { return StringUtils.capitalize(scrub(getName())); }
 
-    @JsonIgnore @Getter(lazy=true) private final String id = initId();
-    private String initId () { return scrub(getName()); }
+    @Getter private String id = CLOUDOS_MANIFEST;
+    public void setId(String id) { /* noop */ }
 
     public static String scrub(String string) { return string == null ? null : string.replace('-', '_').replaceAll("\\W", ""); }
 
