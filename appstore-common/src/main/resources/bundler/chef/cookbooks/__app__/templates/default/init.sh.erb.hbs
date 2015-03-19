@@ -1,8 +1,95 @@
 #!/bin/bash
 
+APP="<%=@service_name%>"
+COMMAND="<%=@command%>"
+PROC_SIG="<%=@pattern%>"
+RUN_AS_USER="<%=@run_as%>"
+STOP_TIMEOUT=6
+
 if [ $(whoami) != "root" ] ; then
   echo "must be root"
   exit 1
 fi
 
-sudo -u <%=@app[:run_as]%> -H <%=@command%> "$@"
+function is_running () {
+    PROC_SIG="$@"
+    PIDS=$(ps auxwwww | egrep -- "${PROC_SIG}" | grep -v egrep | awk '{print $2}' | tr -d ' ')
+    if [ -z "${PIDS}" ] ; then
+        return 0
+    fi
+    echo "${PIDS}"
+    num_pids=$(echo $PIDS | wc -l | tr -d ' ')
+    if [ $num_pids -gt 1 ] ; then
+        return 2
+    fi
+    return 1
+}
+
+case "$1" in
+    start)
+        is_running "${PROC_SIG}"
+        if [ $? -ge 1 ] ; then
+            echo "$(date): start: ${APP} server already running (proc pattern=${PROC_SIG}), NOT starting"
+            exit 0
+        fi
+        RUN_AS_USER_HOME=$(echo $(bash -c "cd ~${RUN_AS_USER} && pwd"))
+        echo "$(date): start: starting ${APP} as ${RUN_AS_USER}, setting HOME=${RUN_AS_USER_HOME}, was ${HOME}"
+
+        set -m
+        sudo -u ${RUN_AS_USER} -H ${COMMAND} start
+        exit $?
+    ;;
+
+    stop)
+        pid=$(is_running "${PROC_SIG}")
+        if [ $? -eq 0 ] ; then
+            echo "$(date): stop: ${APP} server not running"
+        else
+            # Try stop script first
+            echo "$(date): stop: stopping ${APP}..."
+            sudo -u ${RUN_AS_USER} -H ${COMMAND} stop && sleep 5s
+            pid=$(is_running "${PROC_SIG}")
+            if [ $? -eq 0 ] ; then
+                echo "$(date): stop: ${APP} stopped normally"
+                exit 0
+            fi
+
+            echo "$(date): stop: stopping ${APP} server (pid=${pid})..."
+            kill ${pid}
+            start=$(date +%s)
+            while [ $(expr $(date +%s) - ${start}) -le ${STOP_TIMEOUT} ] ; do
+                is_running "${PROC_SIG}"
+                if [ $? -eq 0 ] ; then
+                    echo "$(date): stop: ${APP} server stopped"
+                    exit 0
+                else
+                    echo "$(date): stop: ${APP} still running..."
+                    sleep 1s
+                fi
+            done
+
+            echo "$(date): stop: ${APP} server didn't stop (pid=${pid}), killing it"
+            kill -9 ${pid}
+            exit 2
+        fi
+    ;;
+
+    status)
+        pid=$(is_running "${PROC_SIG}")
+        if [ $? -ge 1 ] ; then
+            echo "$(date): status: ${APP} is running (pid ${pid})"
+        else
+            echo "$(date): status: ${APP} is NOT running"
+        fi
+    ;;
+
+    restart)
+        $0 stop
+        $0 start
+    ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+    ;;
+esac

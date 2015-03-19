@@ -184,6 +184,8 @@ class Chef::Recipe::{{app.chefName}}
         app[:service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
         app[:ldap_domain] = "dc=#{app[:domain].gsub(/\./, ',dc=')}"
 
+        # note: init is defined in libraries/{{app.style}}_lib.rb
+        init chef, app
         init_user chef, app
 
         return app
@@ -387,13 +389,16 @@ EOH
         can_login = '{{app.run_as.can_login}}' == 'true'
 {{else}}
     {{#if app.parent}}
-        app[:run_as] = '{{app.parent}}'
+        app[:run_as] ||= '{{app.parent}}'
     {{/if}}
 {{/if}}
         app[:run_as] ||= '{{app.name}}'
-        app[:run_as_home] = "/home/#{app[:run_as]}"
+        app[:run_as_home] ||= "/home/#{app[:run_as]}"
 
-        self.user chef, app, app[:run_as], app[:run_as_home], nil, can_login, false
+        base = Chef::Recipe::Base
+        unless base.user_exists app[:run_as]
+          self.user chef, app, app[:run_as], app[:run_as_home], nil, can_login, false
+        end
 
 {{#if app.web.doc_root}}
         app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
@@ -647,6 +652,7 @@ fi
                         :start_script => start_script,
                         :stop_script => stop_script,
                         :app => app,
+                        :service_name => svc,
                         :pattern => pattern,
                         :run_as => run_as
                     })
@@ -661,11 +667,18 @@ fi
             end
 
         else
-            command = subst(command, app)
+            command_parts = command.split(':')
+            command = subst(command_parts[0], app)
+            pattern = subst_string(command_parts[1], app)
+            pattern ||= command
+            run_as = command_parts[3]
+            run_as = subst_string(run_as, app) unless run_as.nil?
+            run_as ||= app[:run_as]
+
             svc = get_service_name(app, command)
 
             init_svc = "/etc/init.d/#{svc}"
-            app[:services] << { :service_name => svc, :proc_pattern => command }
+            app[:services] << { :service_name => svc, :proc_pattern => pattern }
 
             unless File.exists? init_svc
                 chef.template init_svc do
@@ -673,7 +686,13 @@ fi
                     owner 'root'
                     group 'root'
                     mode '0755'
-                    variables({ :command => command, :app => app })
+                    variables({
+                        :command => command,
+                        :pattern => pattern,
+                        :run_as => run_as,
+                        :service_name => svc,
+                        :app => app
+                    })
                     action :create
                 end
 

@@ -50,9 +50,6 @@ end
     {{/each}}
 {{/if}}
 
-# init and init_{{app.style}} (a few lines down) are defined in libraries/{{app.style}}_lib.rb
-app_lib.init self, app
-
 {{#if app.users}}
     {{#each app.users}}
         {{#if kerberos}}
@@ -110,7 +107,7 @@ app_lib.init_{{app.style}} self, app if defined? app_lib.init_{{app.style}}
 
 {{#if app.dirs}}
     {{#each app.dirs}}
-        app_lib.dir self, '{{this}}', app
+app_lib.dir self, '{{this}}', app
     {{/each}}
 {{/if}}
 
@@ -184,9 +181,9 @@ app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe std
 {{/if}}
 
 # ensure doc root is owned by / readable by apache user
-app_lib.permission(self, '@doc_root', app, nil, nil, '-R u+rx') if app[:doc_root]
+app_lib.permission(self, '@doc_root', app, app[:run_as], app[:run_as], '-R u+rx') if app[:doc_root]
 
-# ensure doc root base world readable/listable
+# ensure doc root base world readable/listable (but not recursively, there may be private folders within)
 app_lib.permission(self, '@doc_root', app, nil, nil, 'a+rx') if app[:doc_root]
 
 {{#if app.logrotate}}
@@ -212,10 +209,11 @@ app_lib.service self, app, '{{name}}', '{{safe pattern}}'
 {{/if}}
 
 {{#if app.web.mode.separate_hostname}}
-    app_lib.create_dns self, app, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
-    app_lib.create_dns self, app, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
+app_lib.create_dns self, app, 'A', "#{app[:name]}-#{app[:hostname]}", app[:ipaddress]
+app_lib.create_dns self, app, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipaddress]
 {{/if}}
 
 {{#if app.web}}
+app_lib.permission(self, '/var/www', app, 'root.root', nil, '755')
 app_lib.{{app.web.type}}_reload self
 {{/if}}
