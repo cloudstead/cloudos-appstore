@@ -400,11 +400,23 @@ EOH
           self.user chef, app, app[:run_as], app[:run_as_home], nil, can_login, false
         end
 
+        unless app[:doc_root]
 {{#if app.web.doc_root}}
-        app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
+            app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
 {{else}}
-        app[:doc_root] = "#{app[:run_as_home]}/{{app.name}}"
+    {{#if app.parent}}
+            parent_manifest = chef.data_bag_item('{{app.parent}}', 'cloudos-manifest')
+            if parent_manifest['web'] && parent_manifest['web']['doc_root']
+                parent_doc_root = parent_manifest['web']['doc_root']
+            else
+                parent_doc_root = "#{app[:run_as_home]}/{{app.parent}}"
+            end
+            app[:doc_root] = parent_doc_root
+    {{else}}
+            app[:doc_root] = "#{app[:run_as_home]}/{{app.name}}"
+    {{/if}}
 {{/if}}
+        end
     end
 
     def self.dir (chef, dir, app)
