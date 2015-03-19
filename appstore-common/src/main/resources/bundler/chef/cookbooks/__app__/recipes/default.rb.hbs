@@ -61,7 +61,7 @@ kerberos_password = app[:users]['{{label}}'][:password] = base.password('{{user}
 Chef::Recipe::Kerberos.create_user self, '{{user}}', kerberos_password
 
         {{else}}
-app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil group}}, {{can_login}}, {{system}}
+app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil creation_group}}, {{can_login}}, {{system}}
         {{/if}}
     {{/each}}
 {{/if}}

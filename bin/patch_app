@@ -39,5 +39,5 @@ cd ${app} && \
 rm -rf ./target/ && \
 ${script_dir}/cbundle_app $(pwd) && \
 rsync -avzc ./target/${app_name}-bundle/chef/cookbooks/* \
-             ${name}@${name}.${CS_DOMAIN}:chef/cookbooks/ && \
+             ${name}@${name}.${CS_DOMAIN}:chef/cookbooks/ | grep -v -- '/$' && \
 scp ./target/${app_name}-bundle/cloudos-manifest.json ${name}@${name}.${CS_DOMAIN}:chef/data_bags/${app_name}/

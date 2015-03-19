@@ -1,5 +1,6 @@
 package cloudos.appstore.model.app;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,7 +18,11 @@ public class AppUser {
     public String getLabel () { return empty(label) ? user : label; }
 
     @Setter private String group;
-    public String getGroup () { return empty(group) ? user : group; }
+    public String getGroup () { return empty(group) ? getUser() : group; }
+
+    @JsonIgnore public String getCreation_group () {
+        return empty(group) ? null : getGroup();
+    }
 
     @Getter @Setter private boolean can_login = false;
     @Getter @Setter private boolean system = true;
