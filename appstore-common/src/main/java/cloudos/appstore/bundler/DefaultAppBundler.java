@@ -141,12 +141,14 @@ public class DefaultAppBundler implements AppBundler {
             templates.add(CHEF_LIBRARIES + webType + "_" + styleName +"_lib.rb");
 
             if (webType == AppWebType.apache) {
+
+                final File vhostFile = new File(baseDir + "templates/apache_vhost.conf.erb");
+                if (vhostFile.exists()) {
+                    copyToTemplates(outputBase, name, baseDir, vhostFile.getName());
+                }
+
                 final AppWebApache apache = manifest.getWeb().getApache();
                 if (apache != null) {
-                    final File vhostFile = new File(baseDir + "templates/apache_vhost.conf.erb");
-                    if (vhostFile.exists()) {
-                        copyToTemplates(outputBase, name, baseDir, vhostFile.getName());
-                    }
                     if (apache.hasDir()) {
                         for (String dir : apache.getDir()) {
                             final String dirFile = "apache_dir_" + dir.replace("@doc_root", "doc_root").replace("/", "_") + ".conf.erb";
