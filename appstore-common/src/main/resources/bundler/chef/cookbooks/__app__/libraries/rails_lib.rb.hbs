@@ -13,6 +13,8 @@ class Chef::Recipe::{{app.chefName}}
             end
         end
 
+        app[:service_name] = "app-#{app[:service_name]}"
+
         %w( bundler rake foreman ).each do |gem|
             chef.bash "install ruby gem for {{app.name}}: #{gem}" do
                 user 'root'
