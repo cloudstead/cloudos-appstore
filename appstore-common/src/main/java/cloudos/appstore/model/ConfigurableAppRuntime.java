@@ -9,7 +9,6 @@ import org.cobbzilla.util.http.HttpRequestBean;
 import org.cobbzilla.util.http.URIUtil;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.mustache.MustacheUtil;
-import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.util.xml.XPathUtil;
 import org.cobbzilla.wizard.util.BufferedResponse;
@@ -18,13 +17,13 @@ import java.io.ByteArrayInputStream;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.util.string.StringUtil.urlEncode;
 
 @Slf4j
 public class ConfigurableAppRuntime extends AppRuntimeBase {
 
-    @Override
-    public boolean isLoginPage(String document) {
+    @Override public boolean isLoginPage(String document) {
         if (document == null) return false;
         return containsAllMarkers(document, authentication.getLogin_page_markers());
     }
@@ -32,9 +31,14 @@ public class ConfigurableAppRuntime extends AppRuntimeBase {
     @Override
     public boolean isRegistrationPage(String document) {
         if (document == null
-                || StringUtil.empty(authentication.getRegistration_path())
+                || empty(authentication.getRegistration_path())
                 || authentication.getRegistration_page_markers().isEmpty()) return false;
         return containsAllMarkers(document, authentication.getRegistration_page_markers());
+    }
+
+    @Override public boolean isErrorPage(String document) {
+        if (document == null) return true;
+        return containsAnyMarkers(document, authentication.getError_page_markers());
     }
 
     protected boolean containsAllMarkers(String document, List<String> markers) {
@@ -42,6 +46,13 @@ public class ConfigurableAppRuntime extends AppRuntimeBase {
             if (!document.contains(marker)) return false;
         }
         return true;
+    }
+
+    protected boolean containsAnyMarkers(String document, List<String> markers) {
+        for (String marker : markers) {
+            if (document.contains(marker)) return true;
+        }
+        return false;
     }
 
     @Override

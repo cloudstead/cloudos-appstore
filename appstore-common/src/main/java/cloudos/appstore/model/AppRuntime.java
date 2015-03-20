@@ -14,6 +14,7 @@ public interface AppRuntime {
 
     public boolean isLoginPage(String document);
     public boolean isRegistrationPage(String document);
+    public boolean isErrorPage(String document);
 
     public HttpRequestBean<String> buildLoginRequest(CloudOsAccount account,
                                                      BufferedResponse initialResponse,

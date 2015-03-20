@@ -29,7 +29,7 @@ public class AppAuthConfig {
     @Getter @Setter private Map<String, String> login_fields = new HashMap<>();
     @Getter @Setter private String login_path = "";
 
-    // how we recognize a login page. default is the presence of the names of the login fields
+    // how we recognize a login page. default is the presence of the names of the login fields (and absence of any error markers)
     @Setter private List<String> login_page_markers = new ArrayList<>();
     @Getter(value=AccessLevel.PROTECTED, lazy=true) private final List<String> defaultLoginPageMarkers = initDefaultLoginPageMarkers();
     private List<String> initDefaultLoginPageMarkers() { return new ArrayList<>(login_fields.keySet()); }
@@ -62,4 +62,5 @@ public class AppAuthConfig {
         return registration_page_markers.isEmpty() ? getDefaultRegistrationPageMarkers() : registration_page_markers;
     }
 
+    @Getter @Setter private List<String> error_page_markers = new ArrayList<>();
 }
