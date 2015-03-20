@@ -10,7 +10,6 @@ class Chef::Recipe::{{app.chefName}}
     def self.apache_php (chef, app, config)
 
         apache = Chef::Recipe::Apache
-        app_lib = Chef::Recipe::{{app.chefName}}
 
         apache.enable_module(chef, 'php5')
 
