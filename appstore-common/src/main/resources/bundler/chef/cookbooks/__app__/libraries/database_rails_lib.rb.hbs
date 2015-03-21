@@ -32,27 +32,13 @@ class Chef::Recipe::{{app.chefName}}
 {{#if app.database.options.rake_create_tasks}}
             rake_tasks = [ {{#each app.database.options.rake_create_tasks}}{{quoted_or_nil this}}, {{/each}} ]
 {{else}}
-            rake_tasks = %w( db:schema:load db:seed )
+            rake_tasks = %w( db:schema:load db:seed assets:precompile )
 {{/if}}
         else
 {{#if app.database.options.rake_migrate_tasks}}
             rake_tasks = [ {{#each app.database.options.rake_migrate_tasks}}{{quoted_or_nil this}}, {{/each}} ]
 {{else}}
-            rake_tasks = %w( db:migrate )
-{{/if}}
-
-{{#if app.database.inserts}}
-    {{#each app.database.inserts}}
-        {{#if dbname}}
-            insertIntoDb = '{{dbname}}'
-        {{else}}
-            insertIntoDb = app[:dbname]
-        {{/if}}
-            database.insert(chef, app[:dbuser], insertIntoDb, {
-                :sql => app_lib.subst_string('{{safe sql}}', app),
-                :unless => app_lib.subst_string('{{safe unless}}', app)
-            })
-    {{/each}}
+            rake_tasks = %w( db:migrate assets:precompile )
 {{/if}}
         end
 
@@ -63,7 +49,7 @@ class Chef::Recipe::{{app.chefName}}
 for task in "#{rake_tasks.join(' ')}" ; do
   echo "yes" | bundle exec rake ${task} RAILS_ENV=production
 done
-        EOF
+EOF
           not_if { database.count_tables(app[:dbname], app[:dbuser], app[:dbpass]) > 0  }
         end
 

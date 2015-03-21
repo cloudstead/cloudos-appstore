@@ -28,7 +28,6 @@ class Chef::Recipe::{{app.chefName}}
     def self.set_database_config (app)
         database = Chef::Recipe::{{app.database.chefType}}
         base = Chef::Recipe::Base
-        app_lib = Chef::Recipe::{{app.chefName}}
 
         app[:dbtype] = '{{app.database.type}}'
 
@@ -56,7 +55,6 @@ class Chef::Recipe::{{app.chefName}}
 
         database = Chef::Recipe::{{app.database.chefType}}
         base = Chef::Recipe::Base
-        app_lib = Chef::Recipe::{{app.chefName}}
 
         set_database_config app
 
@@ -122,12 +120,12 @@ EOF
 
             {{#if app.database.schema}}
             # Load the schema specified in the manifest
-            schema_file = app_lib.subst('{{app.database.schema}}', app)
+            schema_file = subst('{{app.database.schema}}', app)
             schema_file = "#{app[:run_as_home]}/#{schema_file}" unless schema_file.start_with? '/'
             {{else}}
             # No schema specified in manifest, look for schema file in standard locations
             [ '_schema', '-schema', '' ].each do |suffix|
-                schema_file = app_lib.subst("@files/{{app.name}}#{suffix}.sql", app)
+                schema_file = subst("@files/{{app.name}}#{suffix}.sql", app)
                 # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
                 if File.exists? schema_file
                   tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
@@ -143,20 +141,6 @@ EOF
             {{/if}}
 
             database.initialize_db(chef, schema_file, app[:dbuser], app[:dbpass], app[:dbname], unless_table) unless schema_file.nil? || !File.exists?(schema_file)
-        {{/if}}
-
-        {{#if app.database.inserts}}
-          {{#each app.database.inserts}}
-            {{#if dbname}}
-            insertIntoDb = '{{dbname}}'
-            {{else}}
-            insertIntoDb = app[:dbname]
-            {{/if}}
-            database.insert(chef, app[:dbuser], insertIntoDb, {
-                    :sql => app_lib.subst_string('{{safe sql}}', app),
-                    :unless => app_lib.subst_string('{{safe unless}}', app)
-                })
-          {{/each}}
         {{/if}}
 
         {{#if app.database.auto_migration}}
@@ -200,6 +184,22 @@ EOF
             {{/if}}
             EOF
             end
+        {{/if}}
+        end
+
+        if do_create
+        {{#if app.database.inserts}}
+            {{#each app.database.inserts}}
+                {{#if dbname}}
+            insertIntoDb = '{{dbname}}'
+                {{else}}
+            insertIntoDb = app[:dbname]
+                {{/if}}
+            database.insert(chef, app[:dbuser], insertIntoDb, {
+                :sql => subst_string('{{safe sql}}', app),
+                :unless => subst_string('{{safe unless}}', app)
+            })
+            {{/each}}
         {{/if}}
         end
 
