@@ -40,6 +40,20 @@ class Chef::Recipe::{{app.chefName}}
 {{else}}
             rake_tasks = %w( db:migrate )
 {{/if}}
+
+{{#if app.database.inserts}}
+    {{#each app.database.inserts}}
+        {{#if dbname}}
+            insertIntoDb = '{{dbname}}'
+        {{else}}
+            insertIntoDb = app[:dbname]
+        {{/if}}
+            database.insert(chef, app[:dbuser], insertIntoDb, {
+                :sql => app_lib.subst_string('{{safe sql}}', app),
+                :unless => app_lib.subst_string('{{safe unless}}', app)
+            })
+    {{/each}}
+{{/if}}
         end
 
         chef.bash "initialize {{app.name}} database via rake tasks: #{rake_tasks}" do
