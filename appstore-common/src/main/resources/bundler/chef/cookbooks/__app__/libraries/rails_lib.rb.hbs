@@ -7,7 +7,7 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.init (chef, app)
 
-        %w( ruby1.9.1 ruby1.9.1-dev ).each do |pkg|
+        %w( ruby1.9.1 ruby1.9.1-dev libxml2 libxml2-dev libxslt1.1 libxslt1-dev ).each do |pkg|
             chef.package pkg do
                 action :install
             end
