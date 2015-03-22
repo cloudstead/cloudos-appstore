@@ -19,6 +19,8 @@ class Chef::Recipe::{{app.chefName}}
         ports_bag = base.ports_databag chef, '{{app.name}}'
         app[:port] = config[:port] = ports_bag['primary']
 
+        rails_app_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
+
 {{#unless app.sysinit}}
         chef.template "#{app[:run_as_home]}/{{app.name}}/Procfile" do
           owner app[:run_as]
@@ -30,12 +32,40 @@ class Chef::Recipe::{{app.chefName}}
 
         chef.bash 'setup foreman/upstart for {{app.name}}' do
           user 'root'
-          cwd "#{app[:run_as_home]}/{{app.name}}"
+          cwd rails_app_dir
           code <<-EOF
 export PORT=#{app[:port]}
 export RAILS_ENV=production
 foreman export --user #{app[:run_as]} --log $(pwd)/log/ upstart /etc/init
-        EOF
+EOF
+        end
+
+        chef.bash 'configure {{app.name}} to serve static assets' do
+            user app[:run_as]
+            cwd rails_app_dir
+            code <<-EOF
+PROD_ENV_FILE="#{rails_app_dir}/config/environments/production.rb"
+if [ ! -f ${PROD_ENV_FILE} ] ; then
+    echo "No ${PROD_ENV_FILE} found" && exit 1
+fi
+has_serve_static=$(cat ${PROD_ENV_FILE} | grep config.serve_static_assets | wc -l)
+case "${has_serve_static}" in
+    0)
+        sed -i 's/Application.configure do/Application.configure do\n  config.serve_static_assets = true\n/' ${PROD_ENV_FILE}
+        ;;
+
+    1)
+        sed -i 's/config.serve_static_assets\s*=\s*false/config.serve_static_assets = true/g' ${PROD_ENV_FILE}
+        ;;
+
+    *)
+        echo "More than one config.serve_static_assets directive found in ${PROD_ENV_FILE}"
+        exit 1
+        ;;
+esac
+
+bundle exec rake assets:precompile RAILS_ENV=production
+EOF
         end
 
         chef.bash 'start {{app.name}} app' do

@@ -61,6 +61,9 @@ if [ ${success} -ne 1 ] ; then
   echo "bundle install for {{app.name}} failed, dir was $(pwd)"
   exit 1
 fi
+
+# Add env file for foreman, turn on production mode
+echo "RAILS_ENV=production" > #{rails_dir}/.env
           EOF
         end
 

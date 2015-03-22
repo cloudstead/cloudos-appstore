@@ -32,13 +32,13 @@ class Chef::Recipe::{{app.chefName}}
 {{#if app.database.options.rake_create_tasks}}
             rake_tasks = [ {{#each app.database.options.rake_create_tasks}}{{quoted_or_nil this}}, {{/each}} ]
 {{else}}
-            rake_tasks = %w( db:schema:load db:seed assets:precompile )
+            rake_tasks = %w( db:schema:load db:seed )
 {{/if}}
         else
 {{#if app.database.options.rake_migrate_tasks}}
             rake_tasks = [ {{#each app.database.options.rake_migrate_tasks}}{{quoted_or_nil this}}, {{/each}} ]
 {{else}}
-            rake_tasks = %w( db:migrate assets:precompile )
+            rake_tasks = %w( db:migrate )
 {{/if}}
         end
 
