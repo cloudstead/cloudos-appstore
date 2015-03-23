@@ -124,6 +124,8 @@ public class AppManifest {
     @Getter @Setter private String[] logrotate;
     public void addLogrotate (String path) { logrotate = ArrayUtil.append(logrotate, path); }
 
+    @Getter @Setter private AppSysctl[] sysctl;
+
     // name of java class within plugin.jar that implements AppRuntime interface
     @Getter @Setter private String plugin = ConfigurableAppRuntime.class.getName();
 

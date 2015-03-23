@@ -22,6 +22,13 @@ require 'securerandom'
 base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 
+{{#if app.sysctl}}
+# Handle sysctl changes first
+    {{#each app.sysctl}}
+base.sysctl '{{setting}}' '{{min_value}}'
+    {{/each}}
+{{/if}}
+
 # Install any certs provided
 base.local_certs('{{app.name}}').each do |cert_name|
   base.install_ssl_cert self, '{{app.name}}', cert_name
@@ -46,7 +53,7 @@ end
 
 {{#if app.post_package}}
     {{#each app.post_package}}
-        app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
 
@@ -64,23 +71,21 @@ app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil crea
 {{/if}}
 
 {{#if app.groups}}
-    app[:groups] = {}
+app[:groups] = {}
     {{#each app.groups}}
-
-        app[:groups]['{{label}}'] = {
-          :name => '{{group}}'
-        }
-
+app[:groups]['{{label}}'] = {
+    :name => '{{group}}'
+}
         {{#if members}}
-            members = []
+members = []
             {{#each members}}
-                members << app_lib.subst_string('{{this}}', app)
+members << app_lib.subst_string('{{this}}', app)
             {{/each}}
-            app[:groups]['{{label}}'][:members] = members
+app[:groups]['{{label}}'][:members] = members
         {{else}}
-            members = nil
+members = nil
         {{/if}}
-        app_lib.define_group self, app, '{{group}}', members
+app_lib.define_group self, app, '{{group}}', members
     {{/each}}
 {{/if}}
 
