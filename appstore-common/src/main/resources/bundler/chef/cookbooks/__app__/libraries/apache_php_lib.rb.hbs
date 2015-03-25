@@ -15,7 +15,7 @@ class Chef::Recipe::{{app.chefName}}
 
         {{#if app.web.apache.php_set}}
           {{#each app.web.apache.php_set}}
-            apache.set_php_ini(chef, '{{name}}', '{{value}}')
+            apache.set_php_ini(chef, '{{name}}', subst_string('{{value}}', app))
           {{/each}}
         {{/if}}
 
