@@ -169,6 +169,11 @@ public class DefaultAppBundler implements AppBundler {
                             copyToTemplates(outputBase, name, baseDir, htaccessFile);
                         }
                     }
+                    if (apache.hasMixins()) {
+                        for (String mixin : apache.getMixins()) {
+                            copyToTemplates(outputBase, name, baseDir, mixin+".erb");
+                        }
+                    }
                 }
             }
         }

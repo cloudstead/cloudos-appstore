@@ -31,6 +31,10 @@ class Chef::Recipe::{{app.chefName}}
             :htaccess => %w( {{#each app.web.apache.htaccess}}{{this}} {{/each}}),
             {{/if}}
 
+            {{#if app.web.apache.mixins}}
+            :mixins => %w( {{#each app.web.apache.mixins}}{{this}} {{/each}}),
+            {{/if}}
+
             {{#if app.web.ssl_cert_name}}
             :cert_name => subst_string('{{app.web.ssl_cert_name}}', app), # likely pulling from databag here
             {{else}}
