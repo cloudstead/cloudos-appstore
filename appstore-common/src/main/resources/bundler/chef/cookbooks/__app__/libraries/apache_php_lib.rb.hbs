@@ -20,7 +20,7 @@ class Chef::Recipe::{{app.chefName}}
         {{/if}}
 
         # always ensure date.timezone is defined. most PHP apps require this to be set.
-        apache.set_php_ini(chef, 'date.timezone', %x(cat /etc/timezone).strip)
+        apache.set_php_ini(chef, 'date.timezone', %x(cat /etc/timezone).strip, true)
 
         apache.define_app(chef, '{{app.name}}', config)
     end
