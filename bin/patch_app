@@ -2,7 +2,7 @@
 #
 # Update an app on a live cloudstead
 #
-# Usage: patch_app <app> <cs-name>
+# Usage: patch_app <app> <cs-name | user@host>
 #
 # app     : a path to a directory containing a cloudos-manifest.json file
 # cs-name : name of the cloudstead: the first portion of the hostname of the instance.
@@ -14,7 +14,7 @@ app="${1}"
 name="${2}"
 
 if [[ -z "${app}" || -z "${name}" ]] ; then
-  echo "Usage: $0 <app> <name>"
+  echo "Usage: $0 <app> <name | user@host>"
   exit 1
 fi
 
@@ -32,6 +32,12 @@ if [ -z "${CS_DOMAIN}" ] ; then
   CS_DOMAIN="cloudstead.io"
 fi
 
+if [[ "${name}" =~ '@' ]] ; then
+  remote_dest="${name}"
+else
+  remote_dest="${name}@${name}.${CS_DOMAIN}"
+fi
+
 script_dir=$(cd $(dirname ${0}) && pwd)
 app_name=$(basename ${app})
 
@@ -39,5 +45,5 @@ cd ${app} && \
 rm -rf ./target/ && \
 ${script_dir}/cbundle_app $(pwd) && \
 rsync -avzc ./target/${app_name}-bundle/chef/cookbooks/* \
-             ${name}@${name}.${CS_DOMAIN}:chef/cookbooks/ | grep -v -- '/$' && \
-scp ./target/${app_name}-bundle/cloudos-manifest.json ${name}@${name}.${CS_DOMAIN}:chef/data_bags/${app_name}/
+             ${remote_dest}:chef/cookbooks/ | grep -v -- '/$' && \
+scp ./target/${app_name}-bundle/cloudos-manifest.json ${remote_dest}:chef/data_bags/${app_name}/
