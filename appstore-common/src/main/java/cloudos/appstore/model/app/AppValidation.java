@@ -4,7 +4,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.cobbzilla.util.collection.ArrayUtil;
 
+import java.util.concurrent.TimeUnit;
+
 public class AppValidation {
+
+    @Getter @Setter private long timeout = TimeUnit.MINUTES.toSeconds(1);
+    @Getter @Setter private String service_url = null;
 
     @Getter @Setter private AppShellCommand[] pre_scripts;
     public void addPreScript(AppShellCommand script) { pre_scripts = ArrayUtil.append(pre_scripts, script); }

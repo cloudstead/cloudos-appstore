@@ -59,7 +59,13 @@ end
 {{#if app.web}}
 # Call app_lib.{{app.web.type}} first to ensure that app[:service_url] is set
 app_lib.{{app.web.type}} self, app
-app_lib.validate_web self, app
+    {{#if app.validation.service_url}}
+service_url = '{{app.validation.service_url}}'
+service_url = "#{app[:service_url].chomp('/')}#{service_url}" if service_url.start_with? '/'
+    {{else}}
+service_url = app[:service_url]
+    {{/if}}
+app_lib.validate_web self, app, {{app.validation.timeout}}, service_url
 {{/if}}
 
 {{#if app.validation.post_scripts}}

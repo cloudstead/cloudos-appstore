@@ -58,10 +58,6 @@ class Chef::Recipe::{{app.chefName}}
     {{/if}}
 {{/if}}
 
-{{#if app.web.mount}}
-        app[:mount] = '{{app.web.mount}}'
-{{/if}}
-
         app[:databag] = {}
         app[:databag_replacements] = {}
 
@@ -162,6 +158,8 @@ class Chef::Recipe::{{app.chefName}}
         {{/if}}
 
         {{#if app.web}}
+        app[:web] = {}
+        app[:web][:mode] = '{{app.web.mode}}'
           {{#if app.web.mount}}
         app[:mount] = subst_string('{{app.web.mount}}', app)
           {{else}}
@@ -807,15 +805,16 @@ EOH
         end
     end
 
-    def self.validate_web (chef, app, timeout = 1800)
-        raise "No service URL found for app: #{app[:name]}" unless app[:service_url]
+    def self.validate_web (chef, app, timeout = 1800, service_url = nil)
+        service_url ||= app[:service_url]
+        raise "No service URL found for app: #{app[:name]}" unless service_url
 
         service_map = []
         app[:services].each do |service|
             service_map << "#{service[:service_name]}|#{service[:proc_pattern]}"
         end
 
-        chef.bash "validating #{app[:name]} is listening at #{app[:service_url]}" do
+        chef.bash "validating #{app[:name]} is running: #{service_map} and listening on #{service_url}" do
             user 'root'
 code <<-EOH
 
@@ -833,7 +832,7 @@ fi
 
 start=$(date +%s)
 while [ $(expr $(date +%s) - ${start}) -lt #{timeout} ] ; do
-  http_status="$(curl -sL -w "%{http_code}" --max-time 10 "#{app[:service_url]}" -o /dev/null)"
+  http_status="$(curl -sL -w "%{http_code}" --max-time 10 "#{service_url}" -o /dev/null)"
   rval=$?
 {{#if app.auth.http_auth}}
   if [[ ${rval} -eq 0 && ${http_status} == 401 ]] ; then
