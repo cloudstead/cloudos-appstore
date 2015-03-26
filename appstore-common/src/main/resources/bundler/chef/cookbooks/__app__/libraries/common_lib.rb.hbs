@@ -328,6 +328,23 @@ class Chef::Recipe::{{app.chefName}}
         value
     end
 
+    def self.install_package (chef, pkg)
+        if pkg.start_with? 'pecl/'
+            pecl_package = pkg['pecl/'.length..-1]
+            chef.bash "install pecl package #{pecl_package}" do
+                user 'root'
+code <<-EOH
+pecl install #{pecl_package}
+EOH
+                only_if { %x(pecl list | grep "^#{pecl_package} " | wc -l | tr -d ' ').strip.empty? }
+            end
+        else
+            chef.package pkg do
+                action :install
+            end
+        end
+    end
+
     def self.define_group(chef, app, group_name, members_list = nil)
         if members_list
             chef.group group_name do

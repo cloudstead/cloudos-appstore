@@ -39,15 +39,13 @@ app = app_lib.define_app self
 
 {{#if app.pre_package}}
   {{#each app.pre_package}}
-      app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
   {{/each}}
 {{/if}}
 
 {{#if app.packages}}
   {{#each app.packages}}
-package '{{this}}' do
-  action :install
-end
+app_lib.install_package self, '{{this}}'
   {{/each}}
 {{/if}}
 
