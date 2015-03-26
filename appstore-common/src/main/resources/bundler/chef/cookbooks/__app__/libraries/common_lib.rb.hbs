@@ -417,7 +417,7 @@ EOH
 
         unless app[:doc_root]
 {{#if app.web.doc_root}}
-            app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
+            app[:doc_root] = subst('{{app.web.doc_root}}', app)
 {{else}}
     {{#if app.parent}}
             parent_manifest = chef.data_bag_item('{{app.parent}}', 'cloudos-manifest')
