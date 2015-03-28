@@ -185,7 +185,7 @@ class Chef::Recipe::{{app.chefName}}
         # note: init is defined in libraries/{{app.style}}_lib.rb
         init chef, app
         init_user chef, app
-        set_database_config app
+        set_database_config app if defined? set_database_config
 
         return app
     end
@@ -933,7 +933,7 @@ EOH
             user 'root'
             cwd '/tmp'
             code <<-EOH
-#{lib.subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8
+#{lib.subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8 || exit 1
 EOH
         end
     end
