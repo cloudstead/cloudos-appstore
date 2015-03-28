@@ -185,6 +185,7 @@ class Chef::Recipe::{{app.chefName}}
         # note: init is defined in libraries/{{app.style}}_lib.rb
         init chef, app
         init_user chef, app
+        set_database_config app
 
         return app
     end
