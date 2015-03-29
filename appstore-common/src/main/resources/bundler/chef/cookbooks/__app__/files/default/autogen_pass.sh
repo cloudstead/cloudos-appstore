@@ -16,6 +16,13 @@ if [ -z "${new_password}" ] ; then
   exit 2
 fi
 
+# sanity check that password is not already set
+current_pass=$(cat ${DATABAG_FILE} | cos json -o read -p ''"${JSON_PATH}"'' | tr -d ' ')
+if [ ! -z "${current_pass}" ] ; then
+  echo "Password already generated"
+  exit 0
+fi
+
 backup=$(mktemp /tmp/json.XXXXXX)
 
 cat ${DATABAG_FILE} > ${backup}
