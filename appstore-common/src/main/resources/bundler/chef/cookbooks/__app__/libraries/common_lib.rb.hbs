@@ -928,14 +928,8 @@ EOH
         end
         admin = chef.data_bag_item('base', 'admin')
 
-        lib = self;
-        chef.bash "generate #{path} password for #{app[:name]} login #{login} and notify #{admin['name']}" do
-            user 'root'
-            cwd '/tmp'
-            code <<-EOH
-#{lib.subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8 || exit 1
-EOH
-        end
+        gen_output = %x(#{subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8 2>&1)
+        raise "Error generating password: #{gen_outuput}" unless $? == 0
     end
 
     def self.create_dns (chef, app, type, fqdn, ip, options = nil, ttl = nil)
