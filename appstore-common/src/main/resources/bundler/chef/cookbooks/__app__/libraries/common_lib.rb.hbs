@@ -929,7 +929,7 @@ EOH
         admin = chef.data_bag_item('base', 'admin')
 
         gen_output = %x(#{subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8 2>&1)
-        raise "Error generating password: #{gen_outuput}" unless $? == 0
+        raise "Error generating password: #{gen_output}" unless $? == 0
     end
 
     def self.create_dns (chef, app, type, fqdn, ip, options = nil, ttl = nil)
