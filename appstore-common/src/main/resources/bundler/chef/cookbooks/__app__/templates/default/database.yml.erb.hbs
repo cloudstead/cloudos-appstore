@@ -5,6 +5,8 @@ production:
   host: 127.0.0.1
   username: <%=@app[:dbuser]%>
   password: <%=@app[:dbpass]%>
+  pool: 5
+  timeout: 5000
 
 development:
   adapter: <%=@app[:dbtype]%>
@@ -13,3 +15,5 @@ development:
   host: 127.0.0.1
   username: <%=@app[:dbuser]%>
   password: <%=@app[:dbpass]%>
+  pool: 5
+  timeout: 5000
