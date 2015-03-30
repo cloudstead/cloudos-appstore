@@ -923,12 +923,19 @@ EOH
         base = Chef::Recipe::Base
 
         # Determine who should receive it
-        unless File.exist?("#{base.chef_databags('base')}/admin.json")
-            raise 'notify_generated_password: no base/admin.json databag found'
+        if File.exist?("#{base.chef_databags('base')}/admin.json")
+            admin = chef.data_bag_item('base', 'admin')
+            admin_name = admin['name']
+            admin_email = admin['email']
+        else
+            admin_name = 'cloudos administrator'
+            admin_email = "postmaster@#{app[:hostname]}"
         end
-        admin = chef.data_bag_item('base', 'admin')
 
-        gen_output = %x(#{subst('@files/autogen_pass.sh', app)} #{app[:name]} #{login} #{path} #{databag_file} #{admin['name']} #{admin['email']} 8 2>&1)
+        json_editor = "#{base.chef_files('base')}/json-editor"
+        raise "No json-editor found: #{json_editor}" unless File.exist? json_editor
+
+        gen_output = %x(#{subst('@files/autogen_pass.sh', app)} #{json_editor} #{app[:name]} #{login} #{path} #{databag_file} #{admin_name} #{admin_email} 8 2>&1)
         raise "Error generating password: #{gen_output}" unless $? == 0
     end
 

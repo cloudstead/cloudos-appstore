@@ -1,37 +1,53 @@
 #!/bin/bash
 
-APP_NAME=${1}
-LOGIN=${2}
-JSON_PATH=${3}
-DATABAG_FILE=${4}
-ADMIN_NAME=${5}
-ADMIN_EMAIL=${6}
-LENGTH=${7}
+echo "autogen_pass called as: $0 $@"
+
+JSON_EDITOR="${1}"
+APP_NAME="${2}"
+LOGIN="${3}"
+JSON_PATH="${4}"
+DATABAG_FILE="${5}"
+ADMIN_NAME="${6}"
+ADMIN_EMAIL="${7}"
+LENGTH=${8}
+
+if [ -z "${JSON_EDITOR}" ] ; then
+  echo "No JSON_EDITOR specified as first argument"
+  exit 2
+fi
+
+# if this is a brand new cloudstead, we might not have sendmail yet
+if [ -z "$(which sendmail)" ] ; then
+  echo "No sendmail found, installing postfix..."
+  apt-get install -y postfix
+  echo "postfix installed"
+fi
+
+# check that password is not already set
+current_pass=$(cat ${DATABAG_FILE} | ${JSON_EDITOR} -p "${JSON_PATH}" | tr -d ' ')
+if [ ! -z "${current_pass}" ] ; then
+  echo "Password already generated, exiting"
+  exit 0
+fi
 
 new_password="$(tr -dc A-Za-z0-0_ < /dev/urandom | head -c ${LENGTH})"
-
-# sanity check
 if [ -z "${new_password}" ] ; then
   echo "Empty password generated!"
   exit 2
 fi
 
-# sanity check that password is not already set
-current_pass=$(cat ${DATABAG_FILE} | cos json -o read -p ''"${JSON_PATH}"'' | tr -d ' ')
-if [ ! -z "${current_pass}" ] ; then
-  echo "Password already generated"
-  exit 0
-fi
-
 backup=$(mktemp /tmp/json.XXXXXX)
 
 cat ${DATABAG_FILE} > ${backup}
+echo "Generated password, updating ${DATABAG_FILE} (path=${JSON_PATH})"
 
-if ! $(cat ${DATABAG_FILE} | cos json -o write -p ''"${JSON_PATH}"'' -v '"'${new_password}'"' -w ${DATABAG_FILE}) ; then
+cat ${DATABAG_FILE} | ${JSON_EDITOR} -p "${JSON_PATH}" -v ${new_password} -o ${DATABAG_FILE}
+if [ $? -ne 0 ] ; then
   echo "Error updating databag ${DATABAG_FILE} with autogen password"
   cp ${backup} ${DATABAG_FILE}
   exit 1
 fi
+echo "Databag updated, sending email"
 
 sendmail -oi -t 2> /tmp/autogen_$(date +%s) <<EOMAIL
 From: do-not-reply@$(hostname)
@@ -54,8 +70,11 @@ EOMAIL
 rval=$?
 
 if [ ${rval} -ne 0 ] ; then
+    echo "Failed to send email, rolling back databag ${DATABAG_FILE}"
     cp ${backup} ${DATABAG_FILE}
     exit 1
 fi
 
+echo "Email sent successfully, removing backup databag file"
 rm ${backup}
+exit 0
