@@ -6,6 +6,7 @@
 #
 
 require 'time'
+require 'digest/sha1'
 
 class Chef::Recipe::{{app.chefName}}
 
@@ -311,6 +312,7 @@ class Chef::Recipe::{{app.chefName}}
         { '@lower'  => lambda { |val| val.downcase },
           '@length' => lambda { |val| val.length },
           '@now'    => lambda { |val| val == 'mysql' ? Time.now.strftime('%Y-%m-%d %H:%M:%S') : Time.now.strftime(val) },
+          '@sha1'   => lambda { |val| Digest::SHA1.hexdigest(val) },
           '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
           '@md5'    => lambda { |val| Digest::MD5.hexdigest(val) },
           '@exec'   => lambda { |val| %x(#{val}).strip } }.each do |fname, func|
