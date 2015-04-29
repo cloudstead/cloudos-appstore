@@ -20,20 +20,6 @@ timestamp = app[:backup_timestamp] = Time.new.strftime("%Y-%m-%d-%H%M%S")
 backup_dir = app[:backup_dir] = "/var/cloudos/backup/{{app.name}}"
 
 tarball = "{{app.name}}-#{timestamp}.tar"
-{{#if app.database}}
-database = Chef::Recipe::{{app.database.chefType}}
-dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
-  {{#if app.database.dbname}}
-dbname = app[:dbname] = '{{ident app.database.dbname}}'
-  {{/if}}
-  {{#if app.parent}}
-dbname ||= app[:dbname] ||= '{{ident app.parent}}'
-  {{/if}}
-
-default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
-dbname ||= app[:dbname] ||= default_db_val
-
-{{/if}}
 
 init_bag = data_bag_item('cloudos', 'init')
 run_as = init_bag['run_as']
@@ -60,9 +46,45 @@ directory "#{backup_dir}/tmp" do
     action :create
 end
 
-{{#if app.database}}
+{{#if app.backup.databases}}
+# Backup multiple databases
+database = Chef::Recipe::{{app.database.chefType}}
+
+  {{#each app.backup.databases}}
+# Backup database: {{this}}
+dbname = app_lib.subst('{{this}}', app)
+if dbname.include? '*'
+  database.find_matching_databases(dbname).each do |db|
+    dumpfile = "dbdump-{{app.name}}-#{db}-#{timestamp}.sql"
+    full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
+    database.dump self, db, full_dumpfile
+  end
+
+else
+  dumpfile = "dbdump-{{app.name}}-#{dbname}-#{timestamp}.sql"
+  full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
+  database.dump self, dbname, full_dumpfile
+end
+
+  {{/each}}
+{{else}}
+  {{#if app.database}}
+# Backup database
+database = Chef::Recipe::{{app.database.chefType}}
+dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
+    {{#if app.database.dbname}}
+dbname = app[:dbname] = '{{ident app.database.dbname}}'
+    {{/if}}
+    {{#if app.parent}}
+dbname ||= app[:dbname] ||= '{{ident app.parent}}'
+    {{/if}}
+
+default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+dbname ||= app[:dbname] ||= default_db_val
+
 full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
 database.dump self, dbname, full_dumpfile
+  {{/if}}
 {{/if}}
 
 {{#if app.backup.files}}
