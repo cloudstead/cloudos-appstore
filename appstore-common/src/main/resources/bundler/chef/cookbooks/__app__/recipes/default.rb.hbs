@@ -69,22 +69,11 @@ app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil crea
 {{/if}}
 
 {{#if app.groups}}
-app[:groups] = {}
-    {{#each app.groups}}
-app[:groups]['{{label}}'] = {
-    :name => '{{group}}'
-}
-        {{#if members}}
-members = []
-            {{#each members}}
-members << app_lib.subst_string('{{this}}', app)
-            {{/each}}
-app[:groups]['{{label}}'][:members] = members
-        {{else}}
-members = nil
-        {{/if}}
-app_lib.define_group self, app, '{{group}}', members
-    {{/each}}
+# Define OS-level user groups
+  {{#each app.groups}}
+raise "No group defined: {{label}}" unless app[:groups]['{{label}}']
+app_lib.define_group self, app, '{{group}}', app[:groups]['{{label}}'][:members]
+  {{/each}}
 {{/if}}
 
 {{#if app.tarball}}
@@ -184,8 +173,8 @@ app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe std
 {{/if}}
 
 if app[:doc_root]
-  # ensure doc root is owned by / readable by apache user
-  app_lib.permission(self, '@doc_root', app, app[:run_as], app[:run_as], '-R u+rx')
+  # ensure doc root is owned by / readable by apache group
+  app_lib.permission(self, '@doc_root', app, nil, app[:run_as], '-R u+rx')
 
   # ensure doc root base world readable/listable (but not recursively, there may be private folders within)
   app_lib.permission(self, '@doc_root', app, nil, nil, 'a+rx')
@@ -199,16 +188,16 @@ app_lib.logrotate self, app, '{{this}}'
 
 {{#if app.sysinit}}
     {{#each app.sysinit}}
-app_lib.sysinit self, app, '{{this}}'
+app_lib.create_sysinit self, app, '{{this}}'
     {{/each}}
 {{/if}}
 
 {{#if app.services}}
     {{#each app.services}}
         {{#if chefProvider}}
-app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
+app_lib.create_service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
         {{else}}
-app_lib.service self, app, '{{name}}', '{{safe pattern}}'
+app_lib.create_service self, app, '{{name}}', '{{safe pattern}}'
         {{/if}}
     {{/each}}
 {{/if}}
@@ -222,3 +211,8 @@ app_lib.create_dns self, app, 'A', "#{app[:name]}.#{app[:hostname]}", app[:ipadd
 app_lib.permission(self, '/var/www', app, 'root.root', nil, '755')
 app_lib.{{app.web.type}}_reload self
 {{/if}}
+
+# Ensure services are running
+app[:services].each do |service|
+  app_lib.restart_if_not_running self, app, service
+end

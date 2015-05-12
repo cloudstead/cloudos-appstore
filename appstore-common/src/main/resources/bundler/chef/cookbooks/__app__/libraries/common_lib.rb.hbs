@@ -21,11 +21,16 @@ class Chef::Recipe::{{app.chefName}}
             :uniq => [],
             :rand => [],
             :services => [],
+            :service_names => {},
             :chef_user => base.chef_user,
             :chef_user_home => base.chef_user_home,
             :mail_user => 'cloudos_system_mailer',
-            :mail_password => base.password('system_mailer')
+            :mail_password => base.password('system_mailer'),
+            :cloudos_port => base.primary_port(chef, 'cloudos')
         }
+
+        # default service name
+        app[:default_service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
 
         (0...9).each do |n|
         app[:uniq] << base.password("{{app.name}}_#{n}")
@@ -180,13 +185,43 @@ class Chef::Recipe::{{app.chefName}}
         app[:mount] = app[:local_mount] = ''
         {{/if}}
 
-        app[:service_name] = app[:name].gsub('-', '_').gsub(/\W/, '')
         app[:ldap_domain] = "dc=#{app[:domain].gsub(/\./, ',dc=')}"
 
         # note: init is defined in libraries/{{app.style}}_lib.rb
         init chef, app
         init_user chef, app
         set_database_config app if defined? set_database_config
+
+        app[:groups] = {}
+        {{#if app.groups}}
+          {{#each app.groups}}
+        app[:groups]['{{label}}'] = { :name => '{{group}}' }
+            {{#if members}}
+        members = []
+                {{#each members}}
+        members << subst_string('{{this}}', app)
+                {{/each}}
+        app[:groups]['{{label}}'][:members] = members
+            {{else}}
+        members = nil
+            {{/if}}
+          {{/each}}
+        {{/if}}
+
+        {{#if app.services}}
+          {{#each app.services}}
+        declare_service chef, app, '{{name}}', '{{safe pattern}}'
+          {{/each}}
+        {{/if}}
+        {{#if app.sysinit}}
+          {{#each app.sysinit}}
+        declare_sysinit chef, app, '{{this}}'
+          {{/each}}
+        {{/if}}
+
+        {{#if app.web}}
+        app[:service_url] = {{app.web.type}}_service_url(app)
+        {{/if}}
 
         return app
     end
@@ -288,6 +323,7 @@ class Chef::Recipe::{{app.chefName}}
         if value.include? '@currency_code'
           money_locale = %x(locale | grep LC_MONETARY | tr '=".' ' ' | awk '{print $2}').strip
           if money_locale.length > 0
+            money_locale = 'en_US' if money_locale == 'POSIX'
             locale_file="/usr/share/i18n/locales/#{money_locale}"
             if File.exists? locale_file
               currency_code = %x(cat #{locale_file} | grep int_curr_symbol | awk '{print $2}' | tr -d '"' | sed -e 's,<U, ,g' | tr -d '>').strip.split(" ").map(&:hex).pack('C*').force_encoding('utf-8').strip
@@ -462,7 +498,7 @@ EOH
         end
     end
 
-    def self.symlink(chef, symlink_target, symlink_link, app)
+    def self.symlink(chef, symlink_target, symlink_link, app, force = false)
 
         symlink_link = subst(symlink_link, app)
 
@@ -477,12 +513,14 @@ EOH
             symlink_target = subst(symlink_target, app)
         end
 
+        force_command = force ? "rm #{symlink_link}" : ""
         chef.bash "ln -s #{symlink_target} #{symlink_link}" do
             user 'root'
             code <<-EOH
+#{force_command}
 ln -s #{symlink_target} #{symlink_link}
             EOH
-            not_if { File.exists? symlink_link }
+            not_if { File.exists?(symlink_link) && !force }
         end
     end
 
@@ -633,122 +671,90 @@ fi
         base.logrotate chef, subst(path, app)
     end
 
-    def self.sysinit (chef, app, command)
-        if command.start_with? 'jrun'
-            command_parts = command.split(':')
-            java_class = command_parts[1]
-            java_yml = command_parts[2]
-            java_yml = subst(java_yml, app) unless java_yml.nil?
-            run_as = command_parts[3]
-            run_as = subst_string(run_as, app) unless run_as.nil?
-            run_as ||= app[:run_as]
+    def self.parse_jrun (app, command)
+        command_parts = command.split(':')
 
+        java_class = command_parts[1]
+        java_yml = command_parts[2]
+        java_yml = subst(java_yml, app) unless java_yml.nil?
+        run_as = command_parts[3]
+        run_as = subst_string(run_as, app) unless run_as.nil?
+        run_as ||= app[:run_as]
+
+        { :run_as => run_as, :java_class => java_class, :java_yml => java_yml }
+    end
+
+    def self.parse_wrap (app, command)
+        command_parts = command.split(':')
+
+        start_script = command_parts[1]
+        stop_script = ''
+        if start_script.include? ';'
+            script_parts = start_script.split(';')
+            start_script = subst(script_parts[0], app)
+            stop_script = subst(script_parts[1], app)
+        else
+            start_script = subst(start_script, app)
+        end
+
+        pattern = subst_string(command_parts[2], app)
+        pattern ||= start_script
+
+        run_as = command_parts[3]
+        run_as = subst_string(run_as, app) unless run_as.nil?
+        run_as ||= app[:run_as]
+
+        { :run_as => run_as, :start_script => start_script, stop_script => stop_script, :pattern => pattern }
+    end
+
+    def self.parse_sysinit (app, command)
+        command_parts = command.split(':')
+        command = subst(command_parts[0], app)
+        pattern = subst_string(command_parts[1], app)
+        pattern ||= command
+        run_as = command_parts[3]
+        run_as = subst_string(run_as, app) unless run_as.nil?
+        run_as ||= app[:run_as]
+
+        { :run_as => run_as, :command => command, :pattern => pattern }
+    end
+
+    def self.declare_sysinit (chef, app, command)
+        if command.start_with? 'jrun'
+            sysinit = parse_jrun app, command
             java = Chef::Recipe::Java
-            app_config = java.define_service(chef, subst('@name', app), run_as, java_class, java_yml)
+            app_config = java.declare_service subst('@name', app), sysinit[:java_class], sysinit[:java_yml]
             app[:services] << app_config
 
         elsif command.start_with? 'wrap'
-            command_parts = command.split(':')
-
-            start_script = command_parts[1]
-            stop_script = ''
-            if start_script.include? ';'
-                script_parts = start_script.split(';')
-                start_script = subst(script_parts[0], app)
-                stop_script = subst(script_parts[1], app)
-            else
-                start_script = subst(start_script, app)
-            end
-
-            pattern = subst_string(command_parts[2], app)
-            pattern ||= start_script
-
-            run_as = command_parts[3]
-            run_as = subst_string(run_as, app) unless run_as.nil?
-            run_as ||= app[:run_as]
-
-            svc = get_service_name(app, start_script)
-
-            init_svc = "/etc/init.d/#{svc}"
-            app[:services] << { :service_name => svc, :proc_pattern => pattern }
-
-            unless File.exists? init_svc
-                chef.template init_svc do
-                    source "init_wrapper.sh.erb"
-                    owner 'root'
-                    group 'root'
-                    mode '0755'
-                    variables({
-                        :start_script => start_script,
-                        :stop_script => stop_script,
-                        :app => app,
-                        :service_name => svc,
-                        :pattern => pattern,
-                        :run_as => run_as
-                    })
-                    action :create
-                end
-
-                chef.service svc do
-                    pattern pattern
-                    supports [ :start => true, :stop => true ]
-                    action [ :enable, :start ]
-                end
-            end
+            sysinit = parse_wrap app, command
+            svc = generate_service_name app, sysinit[:start_script]
+            app[:services] << { :service_name => svc, :proc_pattern => sysinit[:pattern] }
 
         else
-            command_parts = command.split(':')
-            command = subst(command_parts[0], app)
-            pattern = subst_string(command_parts[1], app)
-            pattern ||= command
-            run_as = command_parts[3]
-            run_as = subst_string(run_as, app) unless run_as.nil?
-            run_as ||= app[:run_as]
-
-            svc = get_service_name(app, command)
+            sysinit = parse_sysinit app, command
+            svc = generate_service_name app, command
 
             init_svc = "/etc/init.d/#{svc}"
-            app[:services] << { :service_name => svc, :proc_pattern => pattern }
-
-            unless File.exists? init_svc
-                chef.template init_svc do
-                    source 'init.sh.erb'
-                    owner 'root'
-                    group 'root'
-                    mode '0755'
-                    variables({
-                        :command => command,
-                        :pattern => pattern,
-                        :run_as => run_as,
-                        :service_name => svc,
-                        :app => app
-                    })
-                    action :create
-                end
-
-                chef.service app[:service_name] do
-                    pattern command
-                    supports [ :start => true, :stop => true ]
-                    action [ :enable, :start ]
-                end
-            end
+            app[:services] << { :service_name => svc, :proc_pattern => sysinit[:pattern] }
         end
+        app[:service_names][command] = svc
     end
 
-    def self.get_service_name(app, command)
+    def self.generate_service_name(app, command)
         # If this is the first service being defined, use the service name
         # Otherwise qualify with the script name
         if app[:services].empty?
-            return app[:service_name]
+            return app[:default_service_name]
         end
 
-        base_svc_name = "#{app[:service_name]}_#{File.basename(command, File.extname(command))}"
+        base_svc_name = "#{app[:default_service_name]}_#{File.basename(command, File.extname(command))}"
         i = 0
         while i < 100
             candidate_svc_name = (i == 0) ? base_svc_name : "#{base_svc_name}_#{i}"
             ok = true
             app[:services].each do |service|
-                if service[:service_name] != candidate_svc_name
+                if service[:service_name] == candidate_svc_name
                     # service name already exists, choose a next one
                     ok = false ; break
                 end
@@ -761,15 +767,83 @@ fi
         raise "Error generating service name"
     end
 
-    def self.service (chef, app, name, pattern, provider = nil)
+    def self.create_sysinit (chef, app, command)
+        svc = app[:service_names][command]
+        if command.start_with? 'jrun'
+            sysinit = parse_jrun app, command
+            java = Chef::Recipe::Java
+            java.create_service chef, subst('@name', app), sysinit[:run_as], sysinit[:java_class], sysinit[:java_yml]
+
+        elsif command.start_with? 'wrap'
+            sysinit = parse_wrap app, command
+            init_svc = "/etc/init.d/#{svc}"
+
+            unless File.exists? init_svc
+                chef.template init_svc do
+                    source "init_wrapper.sh.erb"
+                    owner 'root'
+                    group 'root'
+                    mode '0755'
+                    variables({
+                        :start_script => sysinit[:start_script],
+                        :stop_script => sysinit[:stop_script],
+                        :app => app,
+                        :service_name => svc,
+                        :pattern => sysinit[:pattern],
+                        :run_as => sysinit[:run_as]
+                    })
+                    action :create
+                end
+
+                chef.service svc do
+                    pattern sysinit[:pattern]
+                    supports [ :start => true, :stop => true ]
+                    action [ :enable, :start ]
+                end
+            end
+
+        else
+            sysinit = parse_sysinit app, command
+            init_svc = "/etc/init.d/#{svc}"
+
+            unless File.exists? init_svc
+                chef.template init_svc do
+                    source 'init.sh.erb'
+                    owner 'root'
+                    group 'root'
+                    mode '0755'
+                    variables({
+                        :command => sysinit[:command],
+                        :pattern => sysinit[:pattern],
+                        :run_as => sysinit[:run_as],
+                        :service_name => svc,
+                        :app => app
+                    })
+                    action :create
+                end
+
+                chef.service svc do
+                    pattern sysinit[:command]
+                    supports [ :start => true, :stop => true ]
+                    action [ :enable, :start ]
+                end
+            end
+        end
+    end
+
+    def self.declare_service (chef, app, name, pattern)
         pattern = name if pattern.to_s.empty?
         pattern = subst_string(pattern, app)
-        %x(echo "using pattern=#{pattern} for svc=#{name}" > /tmp/svc_#{name}.pattern)
+        # %x(echo "using pattern=#{pattern} for svc=#{name}" > /tmp/svc_#{name}.pattern)
         svc = name;
-        init_svc = "/etc/init.d/#{svc}"
         app[:services] << { :service_name => svc, :proc_pattern => pattern }
+        app[:service_names]["#{name}_#{pattern}".to_sym] = svc
+    end
 
-        chef.service svc do
+    def self.create_service (chef, app, name, pattern, provider = nil)
+        pattern = name if pattern.to_s.empty?
+        pattern = subst_string(pattern, app)
+        chef.service app[:service_names]["#{name}_#{pattern}".to_sym] do
             pattern pattern
             provider provider
             supports :start => true, :stop => true, :restart => true
@@ -778,7 +852,7 @@ fi
     end
 
     def self.stop_service (chef, app, service)
-        chef.bash "stopping #{service[:service_name]}" do
+        chef.bash "stopping #{service[:service_name]} at #{Time.now}" do
             user 'root'
             code <<-EOH
 service #{service[:service_name]} stop
@@ -794,6 +868,28 @@ if [ $? -ne 0 ] ; then
         fi
     fi
 fi
+EOH
+        end
+    end
+
+    def self.restart_if_not_running (chef, app, service)
+        chef.bash "validating #{service[:service_name]} is running (pattern=#{service[:proc_pattern]}) at #{Time.now}" do
+            user 'root'
+            code <<-EOH
+num_procs=$(ps auxwwwww | egrep -- '#{service[:proc_pattern]}' | grep -v egrep | wc -l | tr -d ' ')
+if [ $num_procs -gt 0 ] ; then
+  exit 0
+else
+  service #{service[:service_name]} restart
+  start=$(date +%s)
+  while [ $(expr $(date +%s) - ${start}) -le 30 ] ; do
+    num_procs=$(ps auxwwwww | egrep -- '#{service[:proc_pattern]}' | grep -v egrep | wc -l | tr -d ' ')
+    if [ $num_procs -gt 0 ] ; then exit 0 ; fi
+    sleep 2s
+  done
+fi
+echo "service did not start: #{service[:service_name]}"
+exit 1
 EOH
         end
     end
@@ -826,7 +922,7 @@ if [ ! -z '#{service_map.join("' '")}' ] ; then
     service_name="$(echo -n ${service} | awk -F '|' '{print $1}')"
     proc_pattern="$(echo -n ${service} | awk -F '|' '{print $2}')"
     num_procs=$(ps auxwwwww | egrep -- "${proc_pattern}" | grep -v egrep | wc -l | tr -d ' ')
-    if [ $num_procs -eq 0 ] ; then
+    if [ ${num_procs} -eq 0 ] ; then
       echo "Restarting service that does not appear to be running: ${service_name} (pattern ${proc_pattern})" >> /tmp/validate_restart.log
       service ${service_name} restart
     fi

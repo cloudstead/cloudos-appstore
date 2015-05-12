@@ -18,26 +18,6 @@ timestamps_bag = data_bag_item('restore', 'timestamps')
 timestamp = app[:backup_timestamp] = timestamps_bag['{{app.name}}']
 backup_dir = app[:backup_dir] = "/var/cloudos/backup/{{app.name}}"
 
-{{#if app.database}}
-database = Chef::Recipe::{{app.database.chefType}}
-dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
-    {{#if app.database.dbname}}
-dbname = app[:dbname] = '{{ident app.database.dbname}}'
-    {{/if}}
-    {{#if app.database.dbuser}}
-dbuser = app[:dbuser] = '{{ident app.database.dbuser}}'
-    {{/if}}
-    {{#if app.parent}}
-dbname ||= app[:dbname] ||= '{{ident app.parent}}'
-dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
-    {{/if}}
-
-default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
-dbname ||= app[:dbname] ||= default_db_val
-dbuser ||= app[:dbuser] ||= '{{app.name}}'
-dbpass = app[:dbpass] = base.password("db_#{dbname}")
-{{/if}}
-
 init_bag = data_bag_item('cloudos', 'init')
 run_as = init_bag['run_as']
 
@@ -51,6 +31,13 @@ if active_version != '{{app.version}}'
 the restore recipe supports version {{app.version}}. It may be possible to reinstall {{app.name}} v{{app.version}} from
 a cloudos backup tarball.')
 end
+
+{{#if app.restore.suspend}}
+# Stop all services
+app[:services].each do |service|
+  app_lib.stop_service self, app, service
+end
+{{/if}}
 
 {{#if app.restore.pre}}
     {{#each app.restore.pre}}
@@ -85,12 +72,67 @@ EOF
 
 end
 
+{{#if app.perms}}
+# Ensure app filesystem ownership and permissions are set correctly
+if app[:run_as] != 'www-data' && app[:run_as_home] != nil
+  app_lib.permission self, app[:run_as_home], app, app[:run_as], 'root', '770', true
+end
+    {{#each app.perms}}
+app_lib.permission self, '{{@key}}', app, {{quoted_or_nil chown}}, {{quoted_or_nil chgrp}}, {{quoted_or_nil perms}}, {{recursive}}
+    {{/each}}
+{{/if}}
+
 {{#if app.database}}
-database.drop_db(self, dbname)
-database.drop_user(self, dbuser)
+database = Chef::Recipe::{{app.database.chefType}}
+
+  {{#if app.database.dbname}}
+dbname = app[:dbname] = '{{ident app.database.dbname}}'
+  {{/if}}
+  {{#if app.parent}}
+dbname ||= app[:dbname] ||= '{{ident app.parent}}'
+  {{/if}}
+default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
+dbname ||= app[:dbname] ||= default_db_val
+
+  {{#if app.database.dbuser}}
+dbuser = app[:dbuser] = '{{ident app.database.dbuser}}'
+  {{/if}}
+  {{#if app.parent}}
+dbuser ||= app[:dbuser] ||= '{{ident app.parent}}'
+  {{/if}}
+dbuser ||= app[:dbuser] ||= '{{app.name}}'
+dbpass = app[:dbpass] = base.password("db_#{dbname}")
+
+  {{#if app.backup.databases}}
+# Restore multiple databases
+dbnames = []
+    {{#each app.backup.databases}}
+# Restore databases(s): {{this}}
+db = app_lib.subst_string('{{this}}', app)
+if db.include? '*'
+  # Find matching database names in sql dump filenames
+  dbnames.concat %x(ls -1 /tmp/dbdump-{{app.name}}-#{db}-#{timestamp}.sql).lines.collect { |db| db.scan(/dbdump-{{app.name}}-(#{db.gsub('*', '.*')})-#{timestamp}.sql/)[0] }.collect {|db| db[0]}
+else
+  dbnames << db
+end
+    {{/each}}
+  {{else}}
+# Restore app database
+dbnames = [ dbname ]
+  {{/if}}
+
+# Drop all databases
+dbnames.each do |db|
+    database.drop_db(self, db)
+end
+
+# Create user and all databases, initialize databases
 database.create_user(self, dbuser, dbpass)
-database.create_db(self, dbname, dbuser)
-database.initialize_db(self, "/tmp/#{dumpfile}", dbuser, dbpass, dbname)
+dbnames.each do |db|
+    dumpfile = "dbdump-{{app.name}}-#{db}-#{timestamp}.sql"
+    database.create_db(self, db, dbuser)
+    database.initialize_db(self, "/tmp/#{dumpfile}", dbuser, dbpass, dbname)
+end
 {{/if}}
 
 {{#if app.restore.post}}
@@ -98,3 +140,8 @@ database.initialize_db(self, "/tmp/#{dumpfile}", dbuser, dbpass, dbname)
 app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
+
+# Ensure services are running
+app[:services].each do |service|
+  app_lib.restart_if_not_running self, app, service
+end

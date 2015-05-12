@@ -32,9 +32,16 @@ directory backup_dir do
     action :create
 end
 
+{{#if app.restore.suspend}}
+# Stop all services
+app[:services].each do |service|
+    app_lib.stop_service self, app, service
+end
+{{/if}}
+
 {{#if app.backup.pre}}
     {{#each app.backup.pre}}
-        app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
 
@@ -46,51 +53,45 @@ directory "#{backup_dir}/tmp" do
     action :create
 end
 
-{{#if app.backup.databases}}
+{{#if app.database}}
+database = Chef::Recipe::{{app.database.chefType}}
+  {{#if app.backup.databases}}
 # Backup multiple databases
-database = Chef::Recipe::{{app.database.chefType}}
-
-  {{#each app.backup.databases}}
-# Backup database: {{this}}
-dbname = app_lib.subst('{{this}}', app)
-if dbname.include? '*'
-  database.find_matching_databases(dbname).each do |db|
-    dumpfile = "dbdump-{{app.name}}-#{db}-#{timestamp}.sql"
-    full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
-    database.dump self, db, full_dumpfile
-  end
-
+dbnames = []
+    {{#each app.backup.databases}}
+# Backup database(s): {{this}}
+db = app_lib.subst_string('{{this}}', app)
+if db.include? '*'
+  matches = database.find_matching_databases(db)
+  dbnames.concat matches if matches
 else
-  dumpfile = "dbdump-{{app.name}}-#{dbname}-#{timestamp}.sql"
-  full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
-  database.dump self, dbname, full_dumpfile
+  dbnames << db
 end
-
-  {{/each}}
-{{else}}
-  {{#if app.database}}
-# Backup database
-database = Chef::Recipe::{{app.database.chefType}}
-dumpfile = "dbdump-{{app.name}}-#{timestamp}.sql"
+    {{/each}}
+  {{else}}
+# Backup app database
     {{#if app.database.dbname}}
 dbname = app[:dbname] = '{{ident app.database.dbname}}'
     {{/if}}
     {{#if app.parent}}
 dbname ||= app[:dbname] ||= '{{ident app.parent}}'
     {{/if}}
-
 default_db_val = ( (app[:run_as].nil? || app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
 dbname ||= app[:dbname] ||= default_db_val
-
-full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
-database.dump self, dbname, full_dumpfile
+dbnames = [ dbname ]
   {{/if}}
+
+dbnames.each do |db|
+    dumpfile = "dbdump-{{app.name}}-#{db}-#{timestamp}.sql"
+    full_dumpfile = "#{backup_dir}/tmp/#{dumpfile}"
+    database.dump self, db, full_dumpfile
+end
 {{/if}}
 
 {{#if app.backup.files}}
 backup_files = []
     {{#each app.backup.files}}
-backup_files << app_lib.subst('{{this}}',app)
+backup_files << app_lib.subst('{{this}}', app)
     {{/each}}
 filelist = backup_files.join(" ")
 {{/if}}
@@ -146,3 +147,8 @@ end
 app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
     {{/each}}
 {{/if}}
+
+# Ensure services are running
+app[:services].each do |service|
+  app_lib.restart_if_not_running self, app, service
+end

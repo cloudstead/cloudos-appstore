@@ -13,7 +13,20 @@ class Chef::Recipe::{{app.chefName}}
             end
         end
 
-        app[:service_name] = "app-#{app[:service_name]}"
+        base = Chef::Recipe::Base
+        ports_bag = base.ports_databag chef, '{{app.name}}'
+        app[:port] = ports_bag['primary']
+
+{{#unless app.sysinit}}
+{{#unless app.services}}
+        svc = #{app[:default_service_name]}
+        app[:services] << {
+            :service_name => svc,
+            :proc_pattern => "./script/rails s -p #{app[:port]}"
+        }
+        app[:service_names]['{{app.name}}'] = svc
+{{/unless}}
+{{/unless}}
 
         %w( bundler rake foreman ).each do |gem|
             chef.bash "install ruby gem for {{app.name}}: #{gem}" do

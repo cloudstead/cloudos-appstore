@@ -15,7 +15,7 @@ class Chef::Recipe::{{app.chefName}}
             end
         end
 
-        symlink(chef, '/usr/bin/nodejs', '/usr/bin/node', app)
+        symlink(chef, '/usr/bin/nodejs', '/usr/bin/node', app, true)
     end
 
 end

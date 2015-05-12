@@ -58,66 +58,70 @@ class Chef::Recipe::{{app.chefName}}
         config
     end
 
-    def self.apache (chef, app)
-        base = Chef::Recipe::Base
-        apache = Chef::Recipe::Apache
-
-        {{#if app.web.apache.mods}}
-          {{#each app.web.apache.mods}}
-            mod_name = '{{this}}'
-            if mod_name.start_with? '@'
-                mod_name = mod_name[1..mod_name.length-1]
-                apache.new_module(chef, mod_name)
-            end
-            apache.enable_module(chef, mod_name)
-          {{/each}}
-        {{/if}}
-
+    def self.apache_service_url (app)
+        apache_lib = Chef::Recipe::Apache
         config = get_config(app)
-        {{app.web.type}}_{{app.style}} chef, app, config
-
 {{#if app.web.mode.separate_hostname}}
         # has its own hostname mode
-        {{#if app.web.mount}}
+    {{#if app.web.mount}}
         mount = '{{app.web.mount}}'
         mount = "/#{mount}" unless mount.start_with? '/'
-        {{else}}
+    {{else}}
         mount = '/'
-        {{/if}}
-        app[:service_url] = "https://#{apache.get_server_name(nil, config[:mode], app[:hostname], app[:name])}#{mount}"
+    {{/if}}
+        "https://#{apache_lib.get_server_name(nil, config[:mode], app[:hostname], app[:name])}#{mount}"
 {{else}}
     {{#if app.web.mount}}
         # has mount mode
         mount = '{{app.web.mount}}'
         mount = "/#{mount}" unless mount.start_with? '/'
-        app[:service_url] = "https://#{app[:hostname]}#{mount}"
+        "https://#{app[:hostname]}#{mount}"
     {{else}}
         {{#if app.web.mode.root}}
         # root mode
-        app[:service_url] = "https://#{app[:hostname]}/"
+        "https://#{app[:hostname]}/"
         {{else}}
             {{#if app.path}}
         path = '{{app.path}}'
         path = "/#{path}" unless path.start_with? '/'
                 {{#if app.parent}}
         # path/parent mode
-        app[:service_url] = "https://#{app[:hostname]}/{{app.parent}}#{path}"
+        "https://#{app[:hostname]}/{{app.parent}}#{path}"
                 {{else}}
         # path/noparent mode (web mode was {{app.web.mode}})
-        app[:service_url] = "https://#{app[:hostname]}#{path}"
+        "https://#{app[:hostname]}#{path}"
                 {{/if}}
             {{else}}
         # default mode
-        app[:service_url] = "https://#{app[:hostname]}/#{app[:name]}/"
+        "https://#{app[:hostname]}/#{app[:name]}/"
             {{/if}}
         {{/if}}
     {{/if}}
 {{/if}}
     end
 
+    def self.apache (chef, app)
+        base = Chef::Recipe::Base
+        apache_lib = Chef::Recipe::Apache
+
+        {{#if app.web.apache.mods}}
+          {{#each app.web.apache.mods}}
+            mod_name = '{{this}}'
+            if mod_name.start_with? '@'
+                mod_name = mod_name[1..mod_name.length-1]
+                apache_lib.new_module(chef, mod_name)
+            end
+            apache_lib.enable_module(chef, mod_name)
+          {{/each}}
+        {{/if}}
+
+        config = get_config(app)
+        {{app.web.type}}_{{app.style}} chef, app, config
+    end
+
     def self.apache_uninstall (chef, app)
-        apache = Chef::Recipe::Apache
-        apache.uninstall_app chef, app, get_config(app)
+        apache_lib = Chef::Recipe::Apache
+        apache_lib.uninstall_app chef, app, get_config(app)
         apache_reload chef, "uninstalled #{app[:name]}"
     end
 

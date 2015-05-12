@@ -42,6 +42,7 @@ class Chef::Recipe::{{app.chefName}}
 {{#if app.parent}}
         app[:dbname] ||= '{{ident app.parent}}'
         app[:dbuser] ||= '{{ident app.parent}}'
+        app[:dbuser] ||= '{{ident app.parent}}'
         app[:dbpass] = db_password(app, app[:dbname])
 {{else}}
         default_db_val = ( (app[:run_as] == 'www-data') ? app[:name] : app[:run_as] ).gsub(/\W/, '_')
@@ -78,9 +79,8 @@ class Chef::Recipe::{{app.chefName}}
           {{/each}}
         {{/if}}
 
-        db_exists = database.db_exists(app[:dbname])
-
-        do_create = !db_exists
+        exists = database.db_exists(app[:dbname])
+        do_create = !(exists && database.has_tables(app[:dbname], app[:dbuser], app[:dbpass]))
 
         {{#if app.database.auto_migration}}
         do_migrate = false
@@ -96,7 +96,6 @@ class Chef::Recipe::{{app.chefName}}
         {{/if}}
 
         if do_create
-            # Database does not exist, create it...
         {{#if app.database.init_command}}
             db_init = '{{app.database.init_command.exec}}'
             db_init = app[:run_as_home] + '/' + db_init unless db_init.start_with?('/')
