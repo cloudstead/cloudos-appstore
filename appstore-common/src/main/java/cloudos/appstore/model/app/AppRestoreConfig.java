@@ -9,4 +9,5 @@ public class AppRestoreConfig {
     @Getter @Setter private List<String> files;
     @Getter @Setter private AppShellCommand[] pre;
     @Getter @Setter private AppShellCommand[] post;
+    @Getter @Setter private boolean suspend = true;
 }

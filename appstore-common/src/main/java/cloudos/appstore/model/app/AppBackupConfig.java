@@ -10,4 +10,5 @@ public class AppBackupConfig {
     @Getter @Setter private List<String> files;
     @Getter @Setter private List<String> databases;
     @Getter @Setter private AppShellCommand[] post;
+    @Getter @Setter private boolean suspend = true;
 }

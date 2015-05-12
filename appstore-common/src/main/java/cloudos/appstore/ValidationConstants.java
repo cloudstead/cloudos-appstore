@@ -23,6 +23,7 @@ public class ValidationConstants {
 
     public static final String ERR_MEMBER_ACCOUNT_UUID_EMPTY = "err.member.account.empty";
     public static final String ERR_MEMBER_ACCOUNT_UUID_LENGTH = "err.member.account.length";
+    public static final String ERR_MEMBER_ACCOUNT_ACTIVATION_LENGTH = "err.member.activation.length";
 
     public static final String ERR_APP_PUBLISHER_UUID_EMPTY = "err.app.publisher.empty";
     public static final String ERR_APP_PUBLISHER_UUID_LENGTH = "err.app.publisher.length";

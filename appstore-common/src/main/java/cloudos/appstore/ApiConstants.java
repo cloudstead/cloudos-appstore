@@ -11,6 +11,7 @@ public class ApiConstants {
     // publisher endpoints
     public static final String ACCOUNTS_ENDPOINT = "/accounts";
     public static final String PUBLISHERS_ENDPOINT = "/publishers";
+    public static final String MEMBERS_ENDPOINT = "/members";
     public static final String APPS_ENDPOINT = "/apps";
     public static final String EP_FOOTPRINT = "/footprint";
     public static final String EP_PRICES = "/prices";

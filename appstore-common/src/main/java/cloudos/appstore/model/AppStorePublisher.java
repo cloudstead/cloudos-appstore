@@ -2,6 +2,7 @@ package cloudos.appstore.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.cobbzilla.wizard.model.BasicConstraintConstants;
 import org.cobbzilla.wizard.model.IdentifiableBase;
 import org.cobbzilla.wizard.validation.HasValue;
@@ -13,7 +14,7 @@ import javax.validation.constraints.Size;
 import static cloudos.appstore.ValidationConstants.*;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 
-@Entity
+@Entity @Accessors(chain=true)
 public class AppStorePublisher extends IdentifiableBase {
 
     @HasValue(message=ERR_PUBLISHER_NAME_EMPTY)
