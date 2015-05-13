@@ -32,26 +32,7 @@ app_lib.{{app.web.type}}_uninstall self, app
 # Track files to delete here
 to_delete = []
 
-# Shut down services.
-# Call sysinit/service first to ensure that:
-# (1) the required init scripts are actually in place and
-# (2) the app[:services] array is populated with the service info (name and proc_pattern)
-{{#if app.sysinit}}
-    {{#each app.sysinit}}
-app_lib.sysinit self, app, '{{this}}'
-    {{/each}}
-{{/if}}
-
-{{#if app.services}}
-    {{#each app.services}}
-        {{#if chefProvider}}
-app_lib.service self, app, '{{name}}', '{{safe pattern}}', {{chefProvider}}
-        {{else}}
-app_lib.service self, app, '{{name}}', '{{safe pattern}}'
-        {{/if}}
-    {{/each}}
-{{/if}}
-
+# Stop all services
 app[:services].each do |service|
     app_lib.stop_service self, app, service
     to_delete << "/etc/init.d/#{service[:service_name]}"
@@ -134,6 +115,7 @@ to_delete << subst('{{this}}', app)
 # Remove kerberos and ubuntu users
     {{#each app.users}}
         {{#if kerberos}}
+# todo: move this check to the beginning, avoid leaving app half-unistalled
 raise "cannot create kerberos user without kerberos library." unless defined? Chef::Recipe::Kerberos.create_user
 Chef::Recipe::Kerberos.delete_user self, '{{user}}'
 
@@ -163,7 +145,12 @@ unless to_delete.empty?
     bash "deleting {{app.name}} files: #{to_delete}" do
         user 'root'
         code <<-EOF
-rm -rf #{to_delete}
+
+# Could be a lot of files, use xargs + heredoc to avoid any limits on command line length
+xargs rm -rf <<-DEL
+#{to_delete}
+DEL
+
 EOF
     end
 end

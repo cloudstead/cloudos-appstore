@@ -81,6 +81,7 @@ public class DefaultAppBundler implements AppBundler {
         templates.add(CHEF_RECIPES + "lib.rb");
         templates.add(CHEF_RECIPES + "backup.rb");
         templates.add(CHEF_RECIPES + "restore.rb");
+        templates.add(CHEF_RECIPES + "uninstall.rb");
 
         if (manifest.hasRepo()) templates.add(CHEF_LIBRARIES + "install_git_lib.rb");
         if (manifest.hasTarball()) templates.add(CHEF_LIBRARIES + "install_tarball_lib.rb");
