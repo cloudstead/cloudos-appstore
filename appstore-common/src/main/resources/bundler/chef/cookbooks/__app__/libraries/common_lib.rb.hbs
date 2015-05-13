@@ -610,11 +610,26 @@ mv #{from} #{to}
     def self.copy(chef, to, from, app)
         to = subst(to, app)
         from = subst(from, app)
-        chef.bash "rsync -avc #{from} #{to}" do
-            user 'root'
-            code <<-EOH
+        chown = to.start_with?(app[:run_as_home]) || (!app[:doc_root].nil? && to.start_with?(app[:doc_root]))
+        if chown
+            chef.bash "rsync -avc #{from} #{to} ; #{chown} (app[:run_as_home] was #{app[:run_as_home]} and app[:doc_root] was #{app[:doc_root]}" do
+                user 'root'
+                code <<-EOH
+files=$(rsync -avc #{from} #{to} | egrep -v "^sending incremental" | egrep -v "^sent .+ bytes" | egrep -v "^total size is ")
+if [ $(echo "${files}" | tr -d ' ' | wc -c) -gt 0 ] ; then
+    for file in ${files} ; do
+      chown -R #{app[:run_as]} #{to}/${file}
+    done
+fi
+                EOH
+            end
+        else
+            chef.bash "rsync -avc #{from} #{to}" do
+                user 'root'
+                code <<-EOH
 rsync -avc #{from} #{to}
-            EOH
+EOH
+            end
         end
     end
 
