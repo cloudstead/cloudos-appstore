@@ -186,7 +186,6 @@ EOF
         {{/if}}
         end
 
-        if do_create
         {{#if app.database.inserts}}
             {{#each app.database.inserts}}
                 {{#if dbname}}
@@ -200,7 +199,6 @@ EOF
             })
             {{/each}}
         {{/if}}
-        end
 
         database.restart chef
     end

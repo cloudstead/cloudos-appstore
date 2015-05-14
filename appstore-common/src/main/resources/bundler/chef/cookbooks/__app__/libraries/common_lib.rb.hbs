@@ -618,7 +618,11 @@ mv #{from} #{to}
 files=$(rsync -avc #{from} #{to} | egrep -v "^sending incremental" | egrep -v "^sent .+ bytes" | egrep -v "^total size is ")
 if [ $(echo "${files}" | tr -d ' ' | wc -c) -gt 0 ] ; then
     for file in ${files} ; do
-      chown -R #{app[:run_as]} #{to}/${file}
+      if [ -d "${file}" ] ; then
+        chown -R #{app[:run_as]} #{to}/${file}
+      else
+        chown #{app[:run_as]} #{to}/${file}
+      fi
     done
 fi
                 EOH
