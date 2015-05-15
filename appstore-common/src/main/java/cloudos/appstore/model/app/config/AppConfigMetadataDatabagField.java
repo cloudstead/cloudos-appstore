@@ -23,5 +23,6 @@ public class AppConfigMetadataDatabagField {
     @JsonIgnore public boolean hasLogin() { return !empty(login); }
 
     @JsonIgnore public boolean getIs_password () { return type != null && type.getIs_password(); }
+    @JsonIgnore public boolean getIs_locale () { return type != null && type.getIs_locale(); }
 
 }

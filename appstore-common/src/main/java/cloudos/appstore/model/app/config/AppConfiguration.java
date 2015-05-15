@@ -7,6 +7,7 @@ import cloudos.appstore.model.app.config.validation.AppConfigFieldValidatorBase;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -24,13 +25,12 @@ import rooty.toots.vendor.VendorSettingHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER;
+import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
 import static org.cobbzilla.util.string.StringUtil.empty;
 
@@ -47,11 +47,22 @@ public class AppConfiguration {
     @Getter @Setter private AppConfigTranslationsDatabag translations;
     @Getter @Setter private List<ConstraintViolationBean> violations;
 
+    private boolean hasTranslations() { return translations != null && translations.hasCategories(); }
+
     public AppConfigurationCategory getCategory(String name) {
         for (AppConfigurationCategory cat : categories) {
             if (cat.getName().equals(name)) return cat;
         }
         return null;
+    }
+
+    public AppConfigTranslationCategory addTranslationCategory(String catName) {
+        if (translations == null) translations = new AppConfigTranslationsDatabag();
+        AppConfigTranslationCategory translationCategory = translations.getCategories().get(catName);
+        if (translationCategory == null) {
+            translations.getCategories().put(catName, new AppConfigTranslationCategory());
+        }
+        return translations.getCategories().get(catName);
     }
 
     public static AppConfiguration fromLayout(AppLayout layout, String locale) {
@@ -74,8 +85,8 @@ public class AppConfiguration {
      */
     public static AppConfiguration readAppConfiguration(AppManifest manifest, File databagsDir, String locale) {
         final AppConfiguration config = new AppConfiguration();
+        databagsDir = new File(databagsDir, manifest.getName());
         if (manifest.hasConfig()) {
-            databagsDir = new File(databagsDir, manifest.getName());
             for (AppConfigDef databag : manifest.getConfig()) {
 
                 final String databagName = databag.getName();
@@ -120,9 +131,69 @@ public class AppConfiguration {
         config.setMetadata(AppConfigMetadata.load(databagsDir));
 
         // attach translations if found
-        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale));
+        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale, config.getMetadata()));
+
+        // if the metadata has locale fields, populate choices if we can
+        final Map<String, Map<String, AppConfigMetadataDatabagField>> localeFields = config.getMetadata().getLocaleFields();
+        final Map<String, String> defaultLocaleNames = getDefaultLocaleNames(databagsDir, locale);
+
+        if (!empty(localeFields) && !empty(defaultLocaleNames)) {
+            // Examine each category
+            for (Map.Entry<String, Map<String, AppConfigMetadataDatabagField>> category : localeFields.entrySet()) {
+
+                final String catName = category.getKey();
+                final Map<String, AppConfigMetadataDatabagField> fields = category.getValue();
+
+                AppConfigTranslationCategory translationCategory = config.hasTranslations() ? config.getTranslations().getCategories().get(catName) : null;
+                if (translationCategory == null) {
+                    translationCategory = config.addTranslationCategory(catName);
+                }
+
+                // Examine each locale field in the category
+                for (Map.Entry<String, AppConfigMetadataDatabagField> field : fields.entrySet()) {
+                    // Only examine locales codes for which this category declares it can support
+                    for (String choice : field.getValue().getChoices()) {
+                        final String choiceKey = field.getKey() + ".choice." + choice;
+                        if (!translationCategory.containsKey(choiceKey) && defaultLocaleNames.containsKey(choice.toLowerCase())) {
+                            translationCategory.put(choiceKey, new AppConfigTranslation().setLabel(defaultLocaleNames.get(choice.toLowerCase())));
+                        }
+                    }
+                }
+            }
+        }
 
         return config;
+    }
+
+    public static final String DEFAULT_LOCALE_NAMES = "default-locale-names.json";
+
+    public static Map<String, String> getDefaultLocaleNames(File databagsDir, String locale) {
+
+        if (empty(locale)) locale = "en";  // default locale if none specified
+
+        final Map<String, String> names = new HashMap<>();
+        final File dlNamesFile = new File(databagsDir, DEFAULT_LOCALE_NAMES);
+        if (!dlNamesFile.exists()) return names;
+
+        final JsonNode node = fromJsonOrDie(toStringOrDie(dlNamesFile), JsonNode.class);
+        if (node == null) return names;
+
+        final JsonNode localeNode = node.get(locale);
+        if (localeNode != null && localeNode.isObject()) {
+            for (Iterator<String> iter = localeNode.fieldNames(); iter.hasNext(); ) {
+                final String langCode = iter.next();
+                final JsonNode langEntry = localeNode.get(langCode);
+                if (langEntry instanceof TextNode) {
+                    names.put(langCode, langEntry.textValue());
+                } else {
+                    log.warn("invalid node: " + langEntry);
+                }
+            }
+        } else {
+            log.warn("node was not an object: " + locale);
+        }
+
+        return names;
     }
 
     public void writeAppConfiguration(AppManifest manifest, File databagsDir) {

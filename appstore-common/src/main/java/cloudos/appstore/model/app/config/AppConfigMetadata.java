@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Slf4j
 public class AppConfigMetadata {
@@ -49,4 +50,29 @@ public class AppConfigMetadata {
         }
         return false;
     }
+
+    public Map<String, Map<String, AppConfigMetadataDatabagField>> getLocaleFields() {
+
+        final Map<String, Map<String, AppConfigMetadataDatabagField>> localeFields = new HashMap<>();
+
+        for (Map.Entry<String, AppConfigMetadataDatabag> bag : categories.entrySet()) {
+
+            for (Map.Entry<String, AppConfigMetadataDatabagField> field : bag.getValue().getFields().entrySet()) {
+
+                if (field.getValue().getIs_locale()) {
+                    Map<String, AppConfigMetadataDatabagField> fields = localeFields.get(bag.getKey());
+                    if (fields == null) {
+                        fields = new HashMap<>();
+                        localeFields.put(bag.getKey(), fields);
+                    }
+                    fields.put(field.getKey(), field.getValue());
+                }
+            }
+        }
+
+        return localeFields;
+    }
+
+    public boolean hasLocaleFields() { return !empty(getLocaleFields()); }
+
 }

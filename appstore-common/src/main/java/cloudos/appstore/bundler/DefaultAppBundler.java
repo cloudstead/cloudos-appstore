@@ -12,7 +12,6 @@ import com.github.jknack.handlebars.io.TemplateLoader;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
-import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
@@ -27,6 +26,7 @@ import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
+import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
 import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.util.string.StringUtil.replaceLast;
 import static org.cobbzilla.util.system.CommandShell.execScript;
@@ -345,10 +345,18 @@ public class DefaultAppBundler implements AppBundler {
 
                         final File autogenPass = outputFile(outputBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
                         FileUtil.toFile(autogenPass,
-                                StreamUtil.loadResourceAsString("bundler/"+CHEF_FILES+"/autogen_pass.sh"));
+                                loadResourceAsString("bundler/" + CHEF_FILES + "/autogen_pass.sh"));
                         CommandShell.chmod(autogenPass, "u+rx");
-
                     }
+                    if (metadata.hasLocaleFields()) {
+                        final File outputDir = mkdirOrDie(options.getOutputDir());
+                        final String outputBase = abs(outputDir) + "/";
+
+                        final File defaultLocaleNames = outputFile(outputBase, CHEF_DATABAGS, manifest.getName(), "default-locale-names.json");
+                        FileUtil.toFile(defaultLocaleNames,
+                                loadResourceAsString("bundler/" + CHEF_DATABAGS + "/default-locale-names.json"));
+                    }
+
                 } catch (Exception e) {
                     die("Invalid " + AppConfigMetadata.CONFIG_METADATA_JSON + " file ("+abs(configMetaFile)+"): " + e, e);
                 }

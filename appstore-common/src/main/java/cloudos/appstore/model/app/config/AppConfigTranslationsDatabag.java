@@ -14,6 +14,7 @@ import java.util.Map;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
+import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Slf4j
 public class AppConfigTranslationsDatabag {
@@ -26,9 +27,11 @@ public class AppConfigTranslationsDatabag {
 
     @Getter @Setter private Map<String, AppConfigTranslationCategory> categories = new HashMap<>();
 
+    public boolean hasCategories() { return !empty(categories); }
+
     public AppConfigTranslationCategory getTranslations (String category) { return categories.get(category); }
 
-    public static AppConfigTranslationsDatabag load(File databagsDir, String locale) {
+    public static AppConfigTranslationsDatabag load(File databagsDir, String locale, AppConfigMetadata metadata) {
         final File translationsFile = LocaleUtil.findLocaleFile(new File(databagsDir, TRANSLATIONS_JSON), locale);
         try {
             return (translationsFile != null && translationsFile.exists())

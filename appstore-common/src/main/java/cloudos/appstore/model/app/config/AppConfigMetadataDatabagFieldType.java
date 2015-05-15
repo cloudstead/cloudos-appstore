@@ -39,6 +39,7 @@ public enum AppConfigMetadataDatabagFieldType {
     pick_one   (new PickOneFieldValidator()),
     pick_many  (new PickManyFieldValidator()),
     cron       (new CronFieldValidator()),
+    locale     (new LocaleFieldValidator()),
 
     // types that require entity-resolver
     cloudos_group (new CloudOsGroupFieldValidator()),
@@ -56,5 +57,6 @@ public enum AppConfigMetadataDatabagFieldType {
     }
 
     @JsonIgnore public boolean getIs_password() { return this == password; }
+    @JsonIgnore public boolean getIs_locale() { return this == locale; }
 
 }

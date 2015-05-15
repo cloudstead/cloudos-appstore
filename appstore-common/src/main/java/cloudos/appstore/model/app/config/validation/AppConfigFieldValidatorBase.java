@@ -21,8 +21,8 @@ public class AppConfigFieldValidatorBase implements AppConfigFieldValidator {
     protected boolean isValid(String value) { return true; }
 
     /**
-     *  @return true if it is OK for this otherwise required field to be empty, because Chef will generate a value for it automatically.
-     * @param meta
+     * @param meta the field metadata
+     * @return true if it is OK for this otherwise required field to be empty, because Chef will generate a value for it automatically.
      */
     protected boolean autofillAtChefTime(AppConfigMetadataDatabagField meta) { return false; }
 

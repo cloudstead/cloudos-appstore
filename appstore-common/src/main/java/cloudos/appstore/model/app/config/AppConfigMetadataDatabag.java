@@ -24,4 +24,11 @@ public class AppConfigMetadataDatabag {
         return false;
     }
 
+    @JsonIgnore public boolean getHas_locales() {
+        if (empty(fields)) return false;
+        for (AppConfigMetadataDatabagField f : fields.values()) {
+            if (f.getType() == AppConfigMetadataDatabagFieldType.locale) return true;
+        }
+        return false;
+    }
 }
