@@ -1062,7 +1062,7 @@ EOH
         json_editor = "#{base.chef_files('base')}/json-editor"
         raise "No json-editor found: #{json_editor}" unless File.exist? json_editor
 
-        gen_output = %x(#{subst('@files/autogen_pass.sh', app)} #{json_editor} #{app[:name]} #{login} #{path} #{databag_file} #{admin_name} #{admin_email} 8 2>&1)
+        gen_output = %x(#{subst('@files/autogen_pass.sh', app)} #{json_editor} #{app[:name]} #{login} #{path} #{databag_file} "#{admin_name}" #{admin_email} 8 2>&1)
         raise "Error generating password: #{gen_output}" unless $? == 0
     end
 
