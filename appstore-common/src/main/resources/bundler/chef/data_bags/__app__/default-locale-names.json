@@ -1,6 +1,6 @@
 {
   "id": "default-locale-names",
-  "en": {
+  "defaults": {
     "af": "Afrikaans",
     "ar": "العربية",
     "az": "Azeri",
@@ -16,6 +16,7 @@
     "en": "English",
     "eo": "Esperanto",
     "es": "espa&ntilde;ol",
+    "es_AR": "espa&ntilde;ol (Argentina)",
     "et": "eesti",
     "eu": "Euskal",
     "fa": "فارسی (فارسی)",
@@ -66,6 +67,7 @@
     "uk": "українська мова",
     "vi": "Việt Nam",
     "zh": "漢語",
+    "zh-cn": "漢語",
     "zh-tw": "中國傳統"
   }
 }

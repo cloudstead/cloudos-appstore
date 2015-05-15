@@ -135,7 +135,7 @@ public class AppConfiguration {
 
         // if the metadata has locale fields, populate choices if we can
         final Map<String, Map<String, AppConfigMetadataDatabagField>> localeFields = config.getMetadata().getLocaleFields();
-        final Map<String, String> defaultLocaleNames = getDefaultLocaleNames(databagsDir, locale);
+        final Map<String, String> defaultLocaleNames = getDefaultLocaleNames(databagsDir);
 
         if (!empty(localeFields) && !empty(defaultLocaleNames)) {
             // Examine each category
@@ -153,8 +153,13 @@ public class AppConfiguration {
                 for (Map.Entry<String, AppConfigMetadataDatabagField> field : fields.entrySet()) {
                     // Only examine locales codes for which this category declares it can support
                     for (String choice : field.getValue().getChoices()) {
+
                         final String choiceKey = field.getKey() + ".choice." + choice;
-                        if (!translationCategory.containsKey(choiceKey) && defaultLocaleNames.containsKey(choice.toLowerCase())) {
+
+                        if (!translationCategory.containsKey(choiceKey)
+                            && defaultLocaleNames.containsKey(choice.toLowerCase().replace("_", "-"))) {
+
+                            // fill in the missing translation with a default
                             translationCategory.put(choiceKey, new AppConfigTranslation().setLabel(defaultLocaleNames.get(choice.toLowerCase())));
                         }
                     }
@@ -167,9 +172,7 @@ public class AppConfiguration {
 
     public static final String DEFAULT_LOCALE_NAMES = "default-locale-names.json";
 
-    public static Map<String, String> getDefaultLocaleNames(File databagsDir, String locale) {
-
-        if (empty(locale)) locale = "en";  // default locale if none specified
+    public static Map<String, String> getDefaultLocaleNames(File databagsDir) {
 
         final Map<String, String> names = new HashMap<>();
         final File dlNamesFile = new File(databagsDir, DEFAULT_LOCALE_NAMES);
@@ -178,7 +181,7 @@ public class AppConfiguration {
         final JsonNode node = fromJsonOrDie(toStringOrDie(dlNamesFile), JsonNode.class);
         if (node == null) return names;
 
-        final JsonNode localeNode = node.get(locale);
+        final JsonNode localeNode = node.get("defaults");
         if (localeNode != null && localeNode.isObject()) {
             for (Iterator<String> iter = localeNode.fieldNames(); iter.hasNext(); ) {
                 final String langCode = iter.next();
@@ -190,7 +193,7 @@ public class AppConfiguration {
                 }
             }
         } else {
-            log.warn("node was not an object: " + locale);
+            log.warn("node was not an object: " + localeNode);
         }
 
         return names;
