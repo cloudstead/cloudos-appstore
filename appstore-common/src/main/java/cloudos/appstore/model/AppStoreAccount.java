@@ -7,11 +7,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.cobbzilla.wizard.filters.auth.TokenPrincipal;
+import org.cobbzilla.wizard.validation.IsUnique;
 
 import javax.persistence.Entity;
 import javax.persistence.Transient;
 
 @Entity @Accessors(chain=true)
+@IsUnique(unique="name", daoBean="appStoreAccountDAO", message="{err.name.notUnique}")
 public class AppStoreAccount extends AccountBase implements TokenPrincipal {
 
     // Set by ApiAuthFilter
