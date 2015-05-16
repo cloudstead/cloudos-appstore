@@ -630,6 +630,8 @@ if [ $(echo "${files}" | tr -d ' ' | wc -c) -gt 0 ] ; then
     for file in ${files} ; do
       if [ -d "${file}" ] ; then
         chown -R #{app[:run_as]} #{to}/${file}
+      elif [ -f "#{to}" ] ; then
+        chown #{app[:run_as]} #{to}
       else
         chown #{app[:run_as]} #{to}/${file}
       fi
