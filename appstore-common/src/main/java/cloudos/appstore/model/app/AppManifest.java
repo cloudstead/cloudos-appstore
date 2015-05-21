@@ -46,7 +46,8 @@ public class AppManifest {
 
     @JsonIgnore public String getScrubbedName () { return scrubDirname(getName()); }
     @JsonIgnore public String getScrubbedVersion () { return scrubDirname(getVersion()); }
-    @JsonIgnore public SemanticVersion getSemanticVersion () { return SemanticVersion.fromString(version); }
+    @JsonIgnore public SemanticVersion getSemanticVersion () { return new SemanticVersion(version); }
+    public void setVersion (SemanticVersion v) { this.version = v.toString(); }
 
     @Getter @Setter private AppStyle style;
     @Getter @Setter private String parent;

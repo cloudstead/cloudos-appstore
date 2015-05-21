@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
@@ -14,7 +15,11 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.*;
 
-@ToString
+import static org.cobbzilla.util.io.FileUtil.abs;
+import static org.cobbzilla.util.io.FileUtil.toFileOrDie;
+import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
+
+@ToString @Slf4j
 public class AppLayout {
 
     public static final String BUNDLE_TARBALL = "bundle.tar.gz";
@@ -24,29 +29,59 @@ public class AppLayout {
     public static final FilenameFilter VERSION_DIRNAME_FILTER = new FilenameFilter() {
         @Override
         public boolean accept(File dir, String name) {
-            try { SemanticVersion.fromString(name); return true; } catch (Exception ignored) {}
+            try { return SemanticVersion.isValid(name); } catch (Exception ignored) {}
             return false;
         }
     };
 
     @Getter @Setter private File appDir;
+    @Getter @Setter private String appName;
     @Getter @Setter private File versionDir;
 
     public boolean exists() { return versionDir != null && versionDir.exists() && versionDir.isDirectory(); }
 
+    public AppLayout (String name, File bundleDir) {
+        appName = name;
+        versionDir = bundleDir;
+    }
+
     public AppLayout (File appRepository, String name) {
         appDir = new File(appRepository, AppManifest.scrubDirname(name));
+        appName = appDir.getName();
         versionDir = getAppActiveVersionDir();
     }
 
     public AppLayout (File appRepository, String name, String version) {
         appDir = new File(appRepository, AppManifest.scrubDirname(name));
+        appName = appDir.getName();
         versionDir = getAppVersionDir(version);
     }
 
     public AppLayout (File appRepository, AppManifest manifest) {
         appDir = new File(appRepository, manifest.getScrubbedName());
+        appName = appDir.getName();
         versionDir = getAppVersionDir(manifest.getScrubbedVersion());
+    }
+
+    /**
+     * @return a list of all versions, in descending order
+     */
+    public List<SemanticVersion> getVersions () {
+        final File[] dirs;
+        try {
+            dirs = FileUtil.listDirs(appDir);
+        } catch (Exception e) {
+            log.warn("Error listing appDir ("+abs(appDir)+"): "+e);
+            return Collections.emptyList();
+        }
+        // list most recent versions first
+        final SortedSet<SemanticVersion> versions = new TreeSet<>(SemanticVersion.COMPARE_LATEST_FIRST);
+        for (File dir : dirs) {
+            if (SemanticVersion.VERSION_PATTERN.matcher(dir.getName()).matches()) {
+                versions.add(new SemanticVersion(dir.getName()));
+            }
+        }
+        return new ArrayList<>(versions);
     }
 
     public File getAppActiveVersionDir () {
@@ -64,7 +99,7 @@ public class AppLayout {
         final SortedSet<SemanticVersion> versions = new TreeSet<>();
         final String[] versionDirs = appDir.list(VERSION_DIRNAME_FILTER);
         if (versionDirs != null) {
-            for (String versionDir : versionDirs) versions.add(SemanticVersion.fromString(versionDir));
+            for (String versionDir : versionDirs) versions.add(new SemanticVersion(versionDir));
             return new File(appDir, versions.last().toString());
         }
         return null;
@@ -95,7 +130,7 @@ public class AppLayout {
     public File getChefCookbooksDir() { return new File(getChefDir(), ChefSolo.COOKBOOKS_DIR); }
 
     // versionDir/chef/cookbooks/app
-    public File getChefAppCookbookDir() { return new File(getChefCookbooksDir(), appDir.getName()); }
+    public File getChefAppCookbookDir() { return new File(getChefCookbooksDir(), appName); }
 
     // versionDir/chef/cookbooks/app/files/default
     public File getChefFilesDir() { return new File(new File(getChefAppCookbookDir(), "files"), "default"); }
@@ -130,4 +165,8 @@ public class AppLayout {
         return null;
     }
 
+    public void writeManifest(AppManifest manifest) {
+        toFileOrDie(getManifest(), toJsonOrDie(manifest));
+        toFileOrDie(new File(getDatabagsDir(), AppManifest.CLOUDOS_MANIFEST_JSON), toJsonOrDie(manifest));
+    }
 }

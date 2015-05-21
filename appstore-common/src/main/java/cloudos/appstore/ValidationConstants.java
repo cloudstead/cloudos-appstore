@@ -10,6 +10,8 @@ public class ValidationConstants {
 
     public static final String ERR_EXACTLY_ONE_TOS_REQUIRED = "err.account.tos.notOne";
 
+    public static final String ERR_NAME_NOT_UNIQUE = "err.account.name.notUnique";
+
     public static final String ERR_PUBLISHER_NAME_NOT_UNIQUE = "err.publisher.name.notUnique";
     public static final String ERR_PUBLISHER_NAME_EMPTY = "err.publisher.name.empty";
     public static final String ERR_PUBLISHER_NAME_LENGTH = "err.publisher.name.length";
@@ -29,7 +31,10 @@ public class ValidationConstants {
     public static final String ERR_APP_PUBLISHER_UUID_LENGTH = "err.app.publisher.length";
     public static final String ERR_APP_PUBLISHER_INVALID = "err.app.publisher.invalid";
 
-    public static final String ERR_APP_CANNOT_UNPUBLISH_ACTIVE_VERSION = "err.app.cannotUnpublishActiveVersion";
+    public static final String ERR_APP_AUTHOR_EMPTY = "err.app.author.empty";
+    public static final String ERR_APP_AUTHOR_INVALID = "err.app.author.invalid";
+
+    public static final String ERR_APP_CANNOT_DELETE_ACTIVE_VERSION = "err.app.cannotUnpublishActiveVersion";
 
     public static final String ERR_APP_CANNOT_CHANGE_SERVER_CONFIG = "err.app.cannotChangeServerConfig";
 
@@ -82,21 +87,18 @@ public class ValidationConstants {
     public static final String ERR_APP_BUNDLE_SHA_EMPTY = "err.app.bundleSha.empty";
     public static final String ERR_APP_BUNDLE_CONFIG_SHA_LENGTH = "err.app.serverConfigSha.length";
 
-    public static final String ERR_DATA_EMPTY = "err.data.empty";
-
     public static final String ERR_SHA_MISMATCH_PREFIX = "err.sha.mismatch.";
     public static final String ERR_SHA_CALCULATION_PREFIX = "err.sha.calculation.";
     public static final String ERR_URL_EMPTY = "err.url.empty.";
     public static final String ERR_SHA_EMPTY = "err.sha.empty.";
-    public static final String ERR_URL_INVALID_SCHEME_PREFIX = "err.url.invalidScheme.";
-    public static final String SMALL_ICON_URL = "smallIconUrl";
-    public static final String LARGE_ICON_URL = "largeIconUrl";
+
+    public static final String SMALL_ICON = "smallIcon";
+    public static final String LARGE_ICON = "largeIcon";
+    public static final String TASKBAR_ICON = "taskbarIcon";
     public static final String BUNDLE_URL = "bundleUrl";
 
     public static final String ERR_VERSION_APP_UUID_EMPTY = "err.app.version.app.empty";
     public static final String ERR_VERSION_APP_UUID_LENGTH = "err.app.version.app.length";
-
-    public static final String ERR_PROPOSED_APP_HAS_UUID = "err.app.new.hasUuid";
 
     public static final String ERR_APP_CLIENT_TYPE_INVALID = "err.app.client.type.invalid";
 

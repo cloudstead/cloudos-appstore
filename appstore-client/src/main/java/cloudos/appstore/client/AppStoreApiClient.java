@@ -1,14 +1,11 @@
 package cloudos.appstore.client;
 
-import cloudos.appstore.model.support.RefreshTokenRequest;
-import org.apache.http.client.HttpClient;
 import cloudos.appstore.model.*;
-import cloudos.appstore.model.support.ApiToken;
-import cloudos.appstore.model.support.AppListing;
-import cloudos.appstore.model.support.AppStoreAccountRegistration;
+import cloudos.appstore.model.support.*;
+import org.apache.http.client.HttpClient;
+import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.client.ApiClientBase;
-import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.model.ResultPage;
 import org.cobbzilla.wizard.util.RestResponse;
@@ -70,18 +67,13 @@ public class AppStoreApiClient extends ApiClientBase {
 
     public void deleteAccount() throws Exception { delete(ACCOUNTS_ENDPOINT); }
 
-    public CloudApp defineApp(CloudApp app) throws Exception {
-        final RestResponse restResponse = put(APPS_ENDPOINT, toJson(app));
-        return fromJson(restResponse.json, CloudApp.class);
+    public CloudAppVersion defineApp(DefineCloudAppRequest request) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT, toJson(request));
+        return fromJson(restResponse.json, CloudAppVersion.class);
     }
 
-    public CloudApp findApp(String uuid) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + uuid);
-        return fromJson(restResponse.json, CloudApp.class);
-    }
-
-    public CloudApp updateApp(CloudApp app) throws Exception {
-        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + app.getUuid(), toJson(app));
+    public CloudApp findApp(String name) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + name);
         return fromJson(restResponse.json, CloudApp.class);
     }
 
@@ -105,21 +97,6 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppPrice.class);
     }
 
-    public CloudAppVersion defineAppVersion(CloudAppVersion version) throws Exception {
-        final RestResponse restResponse = put(APP_VERSIONS_ENDPOINT, toJson(version));
-        return fromJson(restResponse.json, CloudAppVersion.class);
-    }
-
-    public CloudAppVersion updateAppVersion(CloudAppVersion version) throws Exception {
-        final RestResponse restResponse = post(APP_VERSIONS_ENDPOINT + "/" + version.getUuid(), toJson(version));
-        return fromJson(restResponse.json, CloudAppVersion.class);
-    }
-
-    public CloudAppVersion findAppVersion(String uuid) throws Exception {
-        final RestResponse restResponse = get(APP_VERSIONS_ENDPOINT + "/" + uuid);
-        return fromJson(restResponse.json, CloudAppVersion.class);
-    }
-
     public SearchResults<AppListing> searchAppStore(ResultPage page) throws Exception {
         final RestResponse restResponse = post(APPSTORE_ENDPOINT, toJson(page));
         return JsonUtil.PUBLIC_MAPPER.readValue(restResponse.json, AppListing.searchResultType);
@@ -130,4 +107,13 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppListing.class);
     }
 
+    public CloudAppStatus updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + app + "/versions/" + version + "/status", toJson(status));
+        return fromJson(restResponse.json, CloudAppStatus.class);
+    }
+
+    public AppStoreAppMetadata findVersionMetadata(String app, String version) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app + "/versions/" + version + "/metadata");
+        return fromJson(restResponse.json, AppStoreAppMetadata.class);
+    }
 }

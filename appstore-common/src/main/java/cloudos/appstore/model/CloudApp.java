@@ -3,15 +3,19 @@ package cloudos.appstore.model;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.cobbzilla.wizard.model.SemanticVersion;
 import org.cobbzilla.wizard.model.UniquelyNamedEntity;
 import org.cobbzilla.wizard.validation.HasValue;
 import org.cobbzilla.wizard.validation.IsUnique;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Transient;
 import javax.validation.constraints.Size;
+import java.util.List;
 
-import static cloudos.appstore.ValidationConstants.*;
+import static cloudos.appstore.ValidationConstants.ERR_APP_PUBLISHER_UUID_EMPTY;
+import static cloudos.appstore.ValidationConstants.ERR_APP_PUBLISHER_UUID_LENGTH;
 
 @Entity @Accessors(chain=true)
 @IsUnique(unique="name", daoBean="cloudAppDAO", message="{err.name.notUnique}")
@@ -22,9 +26,12 @@ public class CloudApp extends UniquelyNamedEntity {
     @Column(nullable=false, updatable=false, length=UUID_MAXLEN)
     @Getter @Setter private String publisher;
 
-    @Column(nullable=false, length=UUID_MAXLEN)
+    @Size(max=UUID_MAXLEN)
     @Getter @Setter private String author;
 
     @Column(length=UUID_MAXLEN)
     @Getter @Setter private String activeVersion;
+
+    @Transient
+    @Getter @Setter private List<SemanticVersion> versions;
 }

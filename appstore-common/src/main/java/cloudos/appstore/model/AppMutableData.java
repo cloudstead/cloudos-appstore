@@ -7,8 +7,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.cobbzilla.util.http.HttpUtil;
 import org.cobbzilla.util.http.URIUtil;
-import org.cobbzilla.util.io.FileUtil;
-import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.security.ShaUtil;
 import org.cobbzilla.wizard.validation.HasValue;
@@ -57,6 +55,7 @@ public class AppMutableData {
     @Size(max=URL_MAXLEN, message=ERR_APP_TB_ICON_URL_LENGTH)
     @Column(length=URL_MAXLEN)
     @Getter @Setter private String taskbarIconUrl;
+    public boolean hasTaskbarIconUrl () { return !empty(taskbarIconUrl); }
 
     @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_TB_ICON_SHA_LENGTH)
     @Column(length=HASHEDPASSWORD_MAXLEN)
@@ -66,6 +65,7 @@ public class AppMutableData {
     @Size(max=URL_MAXLEN, message=ERR_APP_SM_ICON_URL_LENGTH)
     @Column(nullable=false, length=URL_MAXLEN)
     @Getter @Setter private String smallIconUrl;
+    public boolean hasSmallIconUrl () { return !empty(smallIconUrl); }
 
     @HasValue(message=ERR_APP_SM_ICON_SHA_EMPTY)
     @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_SM_ICON_SHA_LENGTH)
@@ -76,6 +76,7 @@ public class AppMutableData {
     @Size(max=URL_MAXLEN, message=ERR_APP_LG_ICON_URL_LENGTH)
     @Column(nullable=false, length=URL_MAXLEN)
     @Getter @Setter private String largeIconUrl;
+    public boolean hasLargeIconUrl () { return !empty(largeIconUrl); }
 
     @HasValue(message=ERR_APP_LG_ICON_SHA_EMPTY)
     @Size(max=HASHEDPASSWORD_MAXLEN, message=ERR_APP_LG_ICON_SHA_LENGTH)
@@ -96,7 +97,7 @@ public class AppMutableData {
         }
         if (assetChanged) {
             // rewrite manifest with new asset URLs
-            FileUtil.toFileOrDie(layout.getManifest(), JsonUtil.toJson(manifest));
+            layout.writeManifest(manifest);
         }
     }
 
@@ -114,12 +115,7 @@ public class AppMutableData {
         final Object value = ReflectionUtil.get(assets, asset + "Url");
         final Object shaValue = ReflectionUtil.get(assets, asset + "UrlSha");
         if (value != null) {
-            // only update http:// and https:// asset URLs that do not start with the urlBase
             final String assetUrl = value.toString();
-            if (!assetUrl.startsWith("http://") || assetUrl.startsWith("https://") || assetUrl.startsWith(urlBase)) {
-                return false;
-            }
-
             final String ext = URIUtil.getFileExt(assetUrl);
             if (!isValidImageExtention(ext)) {
                 die("Invalid file extension for asset (must be one of: " + Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) + "): " + assetUrl);

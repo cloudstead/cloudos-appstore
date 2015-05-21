@@ -1,37 +1,53 @@
 package cloudos.appstore.model;
 
+import cloudos.appstore.model.app.AppManifest;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.cobbzilla.util.reflect.ReflectionUtil;
-import org.cobbzilla.util.string.StringUtil;
-import org.cobbzilla.wizard.validation.HasValue;
+import lombok.experimental.Accessors;
+import org.cobbzilla.wizard.model.SemanticVersion;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
 import javax.persistence.Transient;
-import javax.validation.constraints.Size;
+import java.util.Comparator;
 
-import static cloudos.appstore.ValidationConstants.ERR_PUBLISHED_APP_APPROVED_BY_UUID_EMPTY;
-import static cloudos.appstore.ValidationConstants.ERR_PUBLISHED_APP_APPROVED_BY_UUID_LENGTH;
+@NoArgsConstructor @Accessors(chain=true)
+public class PublishedApp {
 
-@Entity @NoArgsConstructor
-public class PublishedApp extends AppVersionBase {
+    public static final Comparator<PublishedApp> COMPARATOR_NAME = new Comparator<PublishedApp>() {
+        @Override public int compare(PublishedApp p1, PublishedApp p2) {
+            return p1.getAppName().compareTo(p2.getAppName());
+        }
+    };
 
-    @HasValue(message=ERR_PUBLISHED_APP_APPROVED_BY_UUID_EMPTY)
-    @Size(max=UUID_MAXLEN, message=ERR_PUBLISHED_APP_APPROVED_BY_UUID_LENGTH)
-    @Column(nullable=false, updatable=false, length=UUID_MAXLEN)
+    @Getter @Setter private String author;
+    @Getter @Setter private String publisher;
+
+    @Getter @Setter private String appName;
+    @Getter @Setter private String version;
+
+    @JsonIgnore
+    public SemanticVersion getSemanticVersion() { return new SemanticVersion(version); }
+
+    @Getter @Setter private CloudAppStatus status;
+
+    @Getter @Setter private boolean interactive;
+
+    @Getter @Setter private AppMutableData data;
+
+    @Getter @Setter private String bundleUrl;
+    @Getter @Setter private String bundleUrlSha;
+
     @Getter @Setter private String approvedBy;
 
-    public PublishedApp(CloudAppVersion version) { ReflectionUtil.copy(this, version); }
-
     // needed for ember
-    @Transient public String getId() { return getUuid(); }
-    public void setId(String id) { setUuid(id); }
+    @Transient public String getId() { return "published-app-"+appName+"-"+version; }
+    public void setId(String id) { /*noop*/ }
 
-    @Override
-    public void beforeCreate() {
-        if (StringUtil.empty(getUuid())) throw new IllegalArgumentException("PublishedApp.beforeCreate: uuid cannot be null");
+    public PublishedApp (AppManifest manifest) {
+        appName = manifest.getName();
+        version = manifest.getVersion();
+        interactive = manifest.isInteractive();
+        data = manifest.getAssets();
     }
-
 }

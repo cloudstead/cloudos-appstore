@@ -131,10 +131,12 @@ public class AppConfiguration {
         config.setMetadata(AppConfigMetadata.load(databagsDir));
 
         // attach translations if found
-        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale, config.getMetadata()));
+        final AppConfigMetadata metadata = config.getMetadata();
+        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale, metadata));
 
         // if the metadata has locale fields, populate choices if we can
-        final Map<String, Map<String, AppConfigMetadataDatabagField>> localeFields = config.getMetadata().getLocaleFields();
+        final Map<String, Map<String, AppConfigMetadataDatabagField>> localeFields
+                = (metadata == null) ? null : metadata.getLocaleFields();
         final Map<String, String> defaultLocaleNames = getDefaultLocaleNames(databagsDir);
 
         if (!empty(localeFields) && !empty(defaultLocaleNames)) {

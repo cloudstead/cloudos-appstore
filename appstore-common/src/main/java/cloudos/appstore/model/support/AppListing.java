@@ -17,11 +17,10 @@ public class AppListing {
 
     public static final JavaType searchResultType = SearchResults.jsonType(AppListing.class);
 
-    public String getId () { return appVersion.getUuid(); }
+    public String getId () { return app.getId(); }
     public void setId(String id) { /* no-op */ }
 
-    @Getter @Setter private PublishedApp appVersion;
-    @Getter @Setter private String name;
+    @Getter @Setter private PublishedApp app;
     @Getter @Setter private AppStorePublisher publisher;
     @Getter @Setter private List<AppPrice> prices;
     @Getter @Setter private AppCommunityData community;

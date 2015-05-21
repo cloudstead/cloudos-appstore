@@ -2,31 +2,26 @@ package cloudos.appstore.test;
 
 import cloudos.appstore.client.AppStoreApiClient;
 import cloudos.appstore.model.*;
-import cloudos.appstore.model.support.ApiToken;
-import cloudos.appstore.model.support.AppListing;
-import cloudos.appstore.model.support.AppStoreAccountRegistration;
+import cloudos.appstore.model.app.AppManifest;
+import cloudos.appstore.model.support.*;
 import lombok.Getter;
-import org.apache.http.client.HttpClient;
-import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.model.ResultPage;
+import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MockAppStoreApiClient extends AppStoreApiClient {
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 
-    public MockAppStoreApiClient () { super(""); }
-    public MockAppStoreApiClient(ApiConnectionInfo connectionInfo) { super(connectionInfo); }
-    public MockAppStoreApiClient(String baseUri) { super(baseUri); }
-    public MockAppStoreApiClient(ApiConnectionInfo connectionInfo, HttpClient httpClient) { super(connectionInfo, httpClient); }
-    public MockAppStoreApiClient(String baseUri, HttpClient httpClient) { super(baseUri, httpClient); }
+public class MockAppStoreApiClient extends AppStoreApiClient {
 
     @Getter private Map<String, AppStoreAccount> accounts = new HashMap<>();
     @Getter private Map<String, PublishedApp> publishedApps = new HashMap<>();
-    @Getter private Map<String, CloudApp> apps = new HashMap<>();
+    @Getter private Map<String, MockCloudApp> apps = new HashMap<>();
+    @Getter private Map<String, CloudAppStatus> appStatus = new HashMap<>();
     @Getter private Map<String, CloudAppVersion> appVersions = new HashMap<>();
     @Getter private Map<String, AppStorePublisher> publishers = new HashMap<>();
     @Getter private Map<String, String> accountPublisherMap = new HashMap<>();
@@ -34,27 +29,32 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Getter private Map<String, AppFootprint> footprints = new HashMap<>();
     @Getter private Map<String, String> sessions = new HashMap<>();
 
+    private AssetWebServer webServer;
+    public MockAppStoreApiClient(AssetWebServer webServer) {
+        super("");
+        this.webServer = webServer;
+    }
+
     @Override
-    public AppListing findPublishedApp(String uuid) throws Exception {
+    public AppListing findPublishedApp(String appName) throws Exception {
 
         PublishedApp publishedApp = null;
         for (PublishedApp app : publishedApps.values()) {
-            if (app.getUuid().equals(uuid)) {
+            if (app.getAppName().equals(appName)) {
                 publishedApp = app; break;
             }
         }
         if (publishedApp == null) return null;
 
-        final CloudApp app = apps.get(publishedApp.getApp());
+        final CloudApp app = apps.get(publishedApp.getAppName()+"/"+publishedApp.getVersion());
         if (app == null) return null;
 
         final AppStorePublisher publisher = publishers.get(app.getPublisher());
         if (publisher == null) return null;
 
         return new AppListing()
-                .setAppVersion(publishedApp)
-                .setPublisher(publisher)
-                .setName(app.getName());
+                .setApp(publishedApp)
+                .setPublisher(publisher);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         int totalCount = 0;
         int i = 0;
         for (PublishedApp app : publishedApps.values()) {
-            AppListing listing = findPublishedApp(app.getUuid());
+            AppListing listing = findPublishedApp(app.getAppName());
             if (isMatch(listing, page)) {
                 totalCount++;
                 if (page.containsResult(i)) {
@@ -77,27 +77,8 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     private boolean isMatch(AppListing listing, ResultPage page) {
-        if (page.getHasFilter()) return listing.getName().contains(page.getFilter());
+        if (page.getHasFilter()) return listing.getApp().getAppName().contains(page.getFilter());
         return true;
-    }
-
-    @Override
-    public CloudAppVersion findAppVersion(String uuid) throws Exception { return appVersions.get(uuid); }
-
-    @Override
-    public CloudAppVersion updateAppVersion(CloudAppVersion version) throws Exception {
-        if (version.getAppStatus() == CloudAppStatus.PUBLISHED) {
-            publishedApps.put(apps.get(version.getApp()).getName(), new PublishedApp(version));
-        }
-        appVersions.put(version.getUuid(), version);
-        return version;
-    }
-
-    @Override
-    public CloudAppVersion defineAppVersion(CloudAppVersion version) throws Exception {
-        version.initUuid();
-        appVersions.put(version.getUuid(), version);
-        return version;
     }
 
     @Override
@@ -132,18 +113,54 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public CloudApp updateApp(CloudApp app) throws Exception {
-        return apps.put(app.getUuid(), app);
+    public CloudApp findApp(String name) throws Exception { return apps.get(name); }
+
+    @Override
+    public CloudAppVersion defineApp(DefineCloudAppRequest request) throws Exception {
+
+        final List<ConstraintViolationBean> violations = new ArrayList<>();
+        final AppBundle bundle = new AppBundle(request.getBundleUrl(), request.getBundleUrlSha(), webServer.getBaseUrl(), violations);
+
+        final AppManifest manifest = bundle.getManifest();
+        final AppStoreAccount account = findAccount();
+        final AppStorePublisher publisher = findPublisher(account.getUuid());
+
+        final MockCloudApp app = (MockCloudApp) new MockCloudApp()
+                .setVersion(manifest.getVersion())
+                .setBundle(bundle)
+                .setPublisher(publisher.getUuid())
+                .setAuthor(account.getUuid())
+                .setName(manifest.getName());
+
+        final CloudAppVersion version = new CloudAppVersion(manifest.getName(), manifest.getVersion());
+        apps.put(app.getName()+"/"+manifest.getVersion(), app);
+        appStatus.put(version.toString(), CloudAppStatus.created);
+        return version;
     }
 
-    @Override
-    public CloudApp findApp(String uuid) throws Exception { return apps.get(uuid); }
 
     @Override
-    public CloudApp defineApp(CloudApp app) throws Exception {
-        app.initUuid();
-        apps.put(app.getUuid(), app);
-        return app;
+    public CloudAppStatus updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
+
+        final String key = app + "/" + version;
+        final MockCloudApp cloudApp = apps.get(key);
+        if (cloudApp == null) die("Not found: "+key);
+
+        final CloudAppStatus cloudAppStatus = appStatus.get(key);
+        if (cloudAppStatus != CloudAppStatus.created) die("Expected status to be 'created'");
+        appStatus.put(key, status);
+
+        if (status.isPublished()) {
+            final AppManifest manifest = cloudApp.getBundle().getManifest();
+            PublishedApp publishedApp = new PublishedApp(manifest);
+            publishedApp
+                    .setPublisher(cloudApp.getPublisher())
+                    .setAuthor(cloudApp.getAuthor())
+                    .setBundleUrl(webServer.getBundleUrl(manifest))
+                    .setBundleUrlSha(webServer.getBundleSha(manifest));
+            publishedApps.put(app, publishedApp);
+        }
+        return status;
     }
 
     @Override

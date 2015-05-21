@@ -16,8 +16,6 @@ public class ApiConstants {
     public static final String EP_FOOTPRINT = "/footprint";
     public static final String EP_PRICES = "/prices";
 
-    public static final String APP_VERSIONS_ENDPOINT = "/versions";
-
     // cloud-user endpoints
     public static final String CLOUDS_ENDPOINT = "/clouds/auth";
     public static final String CLOUDS_API_ENDPOINT = "/clouds/api";

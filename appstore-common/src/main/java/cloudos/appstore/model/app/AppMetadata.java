@@ -28,7 +28,7 @@ public class AppMetadata {
     @Getter @Setter private boolean interactive = false;
 
     @JsonIgnore public SemanticVersion getSemanticVersion () {
-        return empty(active_version) ? null : SemanticVersion.fromString(active_version);
+        return empty(active_version) ? null : new SemanticVersion(active_version);
     }
 
     @JsonIgnore public boolean isActive () { return !empty(active_version); }
