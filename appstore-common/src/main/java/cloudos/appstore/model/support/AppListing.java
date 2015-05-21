@@ -9,6 +9,7 @@ import cloudos.appstore.model.AppStorePublisher;
 import cloudos.appstore.model.PublishedApp;
 import lombok.experimental.Accessors;
 import org.cobbzilla.wizard.dao.SearchResults;
+import org.cobbzilla.wizard.model.ResultPage;
 
 import java.util.List;
 
@@ -16,6 +17,8 @@ import java.util.List;
 public class AppListing {
 
     public static final JavaType searchResultType = SearchResults.jsonType(AppListing.class);
+    public static final ResultPage DEFAULT_PAGE = new ResultPage()
+            .setSortField("name").setSortOrder(ResultPage.SortOrder.ASC);
 
     public String getId () { return app.getId(); }
     public void setId(String id) { /* no-op */ }

@@ -29,9 +29,6 @@ public class CloudApp extends UniquelyNamedEntity {
     @Size(max=UUID_MAXLEN)
     @Getter @Setter private String author;
 
-    @Column(length=UUID_MAXLEN)
-    @Getter @Setter private String activeVersion;
-
     @Transient
     @Getter @Setter private List<SemanticVersion> versions;
 }

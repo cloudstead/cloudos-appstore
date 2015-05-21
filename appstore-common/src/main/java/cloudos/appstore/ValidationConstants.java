@@ -34,8 +34,6 @@ public class ValidationConstants {
     public static final String ERR_APP_AUTHOR_EMPTY = "err.app.author.empty";
     public static final String ERR_APP_AUTHOR_INVALID = "err.app.author.invalid";
 
-    public static final String ERR_APP_CANNOT_DELETE_ACTIVE_VERSION = "err.app.cannotUnpublishActiveVersion";
-
     public static final String ERR_APP_CANNOT_CHANGE_SERVER_CONFIG = "err.app.cannotChangeServerConfig";
 
     public static final String ERR_PUBLISHED_APP_APPROVED_BY_UUID_EMPTY = "err.publishedApp.approvedBy.empty";

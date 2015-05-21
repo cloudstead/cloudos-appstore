@@ -107,13 +107,13 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppListing.class);
     }
 
-    public CloudAppStatus updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
+    public CloudAppVersion updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
         final RestResponse restResponse = post(APPS_ENDPOINT + "/" + app + "/versions/" + version + "/status", toJson(status));
-        return fromJson(restResponse.json, CloudAppStatus.class);
+        return fromJson(restResponse.json, CloudAppVersion.class);
     }
 
-    public AppStoreAppMetadata findVersionMetadata(String app, String version) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app + "/versions/" + version + "/metadata");
-        return fromJson(restResponse.json, AppStoreAppMetadata.class);
+    public CloudAppVersion findVersion(String app, String version) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app + "/versions/" + version);
+        return fromJson(restResponse.json, CloudAppVersion.class);
     }
 }

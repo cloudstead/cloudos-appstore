@@ -21,7 +21,6 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Getter private Map<String, AppStoreAccount> accounts = new HashMap<>();
     @Getter private Map<String, PublishedApp> publishedApps = new HashMap<>();
     @Getter private Map<String, MockCloudApp> apps = new HashMap<>();
-    @Getter private Map<String, CloudAppStatus> appStatus = new HashMap<>();
     @Getter private Map<String, CloudAppVersion> appVersions = new HashMap<>();
     @Getter private Map<String, AppStorePublisher> publishers = new HashMap<>();
     @Getter private Map<String, String> accountPublisherMap = new HashMap<>();
@@ -133,22 +132,26 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
                 .setName(manifest.getName());
 
         final CloudAppVersion version = new CloudAppVersion(manifest.getName(), manifest.getVersion());
-        apps.put(app.getName()+"/"+manifest.getVersion(), app);
-        appStatus.put(version.toString(), CloudAppStatus.created);
+        apps.put(app.getName(), app);
+
+        final String key = app.getName() + "/" + manifest.getVersion();
+        appVersions.put(key, version);
+
         return version;
     }
 
 
     @Override
-    public CloudAppStatus updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
+    public CloudAppVersion updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
 
         final String key = app + "/" + version;
         final MockCloudApp cloudApp = apps.get(key);
         if (cloudApp == null) die("Not found: "+key);
 
-        final CloudAppStatus cloudAppStatus = appStatus.get(key);
+        final CloudAppVersion appVersion = appVersions.get(key);
+        final CloudAppStatus cloudAppStatus = appVersion.getStatus();
         if (cloudAppStatus != CloudAppStatus.created) die("Expected status to be 'created'");
-        appStatus.put(key, status);
+        appVersion.setStatus(status);
 
         if (status.isPublished()) {
             final AppManifest manifest = cloudApp.getBundle().getManifest();
@@ -160,7 +163,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
                     .setBundleUrlSha(webServer.getBundleSha(manifest));
             publishedApps.put(app, publishedApp);
         }
-        return status;
+        return appVersion;
     }
 
     @Override

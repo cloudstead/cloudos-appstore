@@ -2,6 +2,7 @@ package cloudos.appstore.model;
 
 import cloudos.appstore.model.app.AppManifest;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,6 +13,7 @@ import javax.persistence.Transient;
 import java.util.Comparator;
 
 @NoArgsConstructor @Accessors(chain=true)
+@EqualsAndHashCode(of={"appName", "version"})
 public class PublishedApp {
 
     public static final Comparator<PublishedApp> COMPARATOR_NAME = new Comparator<PublishedApp>() {
