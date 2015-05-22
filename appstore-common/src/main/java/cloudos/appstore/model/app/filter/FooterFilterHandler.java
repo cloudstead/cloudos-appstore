@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 @Slf4j @NoArgsConstructor @AllArgsConstructor
 public class FooterFilterHandler extends AppFilterHandlerBase {

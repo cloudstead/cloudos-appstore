@@ -4,6 +4,7 @@ import com.google.common.collect.Multimap;
 import com.sun.jersey.api.core.HttpContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.util.http.HttpMethods;
 import org.cobbzilla.util.http.HttpRequestBean;
 import org.cobbzilla.util.http.URIUtil;
@@ -17,7 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.string.StringUtil.urlEncode;
 
 @Slf4j

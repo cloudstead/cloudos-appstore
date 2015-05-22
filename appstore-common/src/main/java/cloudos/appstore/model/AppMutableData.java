@@ -20,9 +20,9 @@ import java.util.Arrays;
 
 import static cloudos.appstore.ValidationConstants.*;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
-import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
 

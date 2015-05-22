@@ -668,7 +668,7 @@ EOF
         base.remove_from_file(chef, target, data.gsub('$', '\\\\$'))
     end
 
-    def self.exec (chef, app, exec, exec_user, dir, stdin = nil, unless_file = nil)
+    def self.exec (chef, app, exec, exec_user, dir, stdin = nil, unless_file = nil, env = nil)
 
         exec = subst_string(exec, app)
         exec_user ||= 'root'
@@ -677,14 +677,19 @@ EOF
         stdin = subst(stdin, app)
         unless_file = subst(unless_file, app)
 
-        cmd = (stdin.to_s == '') ? exec : "echo '#{self.subst(stdin)}' | #{exec}"
+        cmd = (stdin.to_s == '') ? exec : "echo '#{self.subst_string(stdin, app)}' | #{exec}"
         if cmd.start_with? '@bash'
           cmd = "#{cmd.sub('@bash', 'bash -c "')} #{cmd.gsub('"', '\"')} \""
         end
 
-        chef.bash "exec: #{exec} in #{dir} with stdin #{stdin}" do
+        if env
+            env.map { |k, v| [ k, subst_string(v, app) ] }
+        end
+
+        chef.bash "exec: #{exec.split(/\s/)[0]} in #{dir} at #{Time.now}" do
             user 'root'
             cwd dir
+            environment env if env
             code <<-EOH
 if [ "#{exec_user}" = 'root' ] ; then
     #{cmd}

@@ -6,7 +6,7 @@ import lombok.Setter;
 
 import java.util.Map;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 public class AppConfigMetadataDatabag {
 

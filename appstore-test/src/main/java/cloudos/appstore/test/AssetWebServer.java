@@ -19,9 +19,9 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
-import static org.cobbzilla.util.string.StringUtil.empty;
 
 public class AssetWebServer {
 
@@ -125,7 +125,7 @@ public class AssetWebServer {
     public String getUrl(String path) { return getBaseUrl() + "/" + path; }
 
     public TestApp getApp(AppManifest manifest) {
-        return apps.get(manifest.getName()+"/"+manifest.getVersion());
+        return apps.get(manifest.getName() + "/" + manifest.getVersion());
     }
 
     public String getBundleUrl (AppManifest manifest) { return getApp(manifest).getBundleUrl(); }

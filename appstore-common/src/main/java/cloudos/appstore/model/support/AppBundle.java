@@ -15,8 +15,8 @@ import java.util.List;
 
 import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.security.ShaUtil.sha256_file;
-import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Accessors(chain=true)
 public class AppBundle {

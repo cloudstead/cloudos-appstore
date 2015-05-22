@@ -11,10 +11,10 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
-import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Slf4j
 public class AppConfigTranslationsDatabag {

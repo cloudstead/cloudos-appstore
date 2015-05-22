@@ -41,7 +41,7 @@ end
 
 {{#if app.backup.pre}}
     {{#each app.backup.pre}}
-app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 
@@ -144,7 +144,7 @@ end
 
 {{#if app.backup.post}}
     {{#each app.backup.post}}
-app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, 'bash -c "{{safe exec}}"', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 

@@ -32,7 +32,7 @@ validate_services = true
 
 {{#if app.validation.pre_scripts}}
     {{#each app.validation.pre_scripts}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 
@@ -55,6 +55,6 @@ app_lib.validate_web self, app, {{app.validation.timeout}}, service_url
 
 {{#if app.validation.post_scripts}}
     {{#each app.validation.post_scripts}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}

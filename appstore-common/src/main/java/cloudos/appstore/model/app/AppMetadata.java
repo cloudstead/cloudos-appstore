@@ -7,13 +7,12 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
-import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.string.StringUtil.empty;
 
 @Accessors(chain=true) @ToString
 public class AppMetadata {
@@ -34,7 +33,7 @@ public class AppMetadata {
     @JsonIgnore public boolean isActive () { return !empty(active_version); }
 
     @Getter @Setter private String error;
-    public boolean hasError () { return !StringUtil.empty(error); }
+    public boolean hasError () { return !empty(error); }
 
     public static AppMetadata fromJson(File appDir) {
 

@@ -41,7 +41,7 @@ end
 
 {{#if app.restore.pre}}
     {{#each app.restore.pre}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 
@@ -137,7 +137,7 @@ end
 
 {{#if app.restore.post}}
     {{#each app.restore.post}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 

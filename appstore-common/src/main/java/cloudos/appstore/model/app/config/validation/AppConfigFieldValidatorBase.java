@@ -2,7 +2,7 @@ package cloudos.appstore.model.app.config.validation;
 
 import cloudos.appstore.model.app.config.AppConfigMetadataDatabagField;
 import cloudos.appstore.model.app.config.AppConfigValidationResolver;
-import org.cobbzilla.util.string.StringUtil;
+import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 import rooty.toots.vendor.VendorSettingHandler;
 
@@ -15,7 +15,7 @@ public class AppConfigFieldValidatorBase implements AppConfigFieldValidator {
     }
 
     public boolean empty (Object o) {
-        return StringUtil.empty(o) || o.toString().equals(VendorSettingHandler.VALUE_NOT_SET);
+        return ZillaRuntime.empty(o) || o.toString().equals(VendorSettingHandler.VALUE_NOT_SET);
     }
 
     protected boolean isValid(String value) { return true; }

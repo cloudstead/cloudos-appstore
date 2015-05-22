@@ -1,14 +1,15 @@
 package cloudos.appstore.test;
 
 import cloudos.appstore.client.AppStoreApiClient;
+import cloudos.appstore.model.CloudAppVersion;
 import cloudos.appstore.model.support.ApiToken;
 import cloudos.appstore.model.support.AppStoreAccountRegistration;
-import cloudos.appstore.model.CloudAppVersion;
 import cloudos.appstore.model.support.DefineCloudAppRequest;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.util.security.ShaUtil;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.wizardtest.RandomUtil.randomEmail;
 import static org.cobbzilla.wizardtest.RandomUtil.randomName;
 

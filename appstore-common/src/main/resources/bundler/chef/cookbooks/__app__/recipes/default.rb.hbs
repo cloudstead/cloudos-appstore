@@ -39,7 +39,7 @@ app = app_lib.define_app self
 
 {{#if app.pre_package}}
   {{#each app.pre_package}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
   {{/each}}
 {{/if}}
 
@@ -51,7 +51,7 @@ app_lib.install_package self, '{{this}}'
 
 {{#if app.post_package}}
     {{#each app.post_package}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 
@@ -91,7 +91,7 @@ app_lib.database_{{app.style}}_packages self, app if defined? app_lib.database_{
 
 {{#if app.prep_code}}
     {{#each app.prep_code}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 
@@ -168,7 +168,7 @@ app_lib.user_management self, app
 
 {{#if app.post_install}}
     {{#each app.post_install}}
-app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}'
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
     {{/each}}
 {{/if}}
 

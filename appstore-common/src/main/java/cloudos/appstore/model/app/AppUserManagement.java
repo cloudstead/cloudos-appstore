@@ -8,7 +8,7 @@ import org.cobbzilla.util.security.HashType;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 public class AppUserManagement {
 

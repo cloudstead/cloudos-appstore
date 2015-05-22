@@ -3,6 +3,7 @@ package cloudos.appstore.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import lombok.experimental.Accessors;
+import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.wizard.model.IdentifiableBase;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
@@ -10,7 +11,7 @@ import javax.persistence.*;
 import javax.validation.constraints.Size;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.wizard.model.UniquelyNamedEntity.NAME_MAXLEN;
 
 @Entity

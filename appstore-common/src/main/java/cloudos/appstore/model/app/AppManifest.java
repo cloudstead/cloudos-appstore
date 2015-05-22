@@ -15,9 +15,12 @@ import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 @ToString
 public class AppManifest {

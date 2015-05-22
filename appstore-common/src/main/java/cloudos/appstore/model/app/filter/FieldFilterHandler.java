@@ -2,9 +2,10 @@ package cloudos.appstore.model.app.filter;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.cobbzilla.util.daemon.ZillaRuntime;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 public class FieldFilterHandler extends ElementFilterHandler {
 

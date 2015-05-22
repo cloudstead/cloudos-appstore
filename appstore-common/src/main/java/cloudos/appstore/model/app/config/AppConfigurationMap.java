@@ -13,7 +13,7 @@ import rooty.toots.chef.ChefSolo;
 import java.io.File;
 import java.util.*;
 
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 /**
  * Aggregates AppConfiguration for multiple apps on a cloudstead.

@@ -5,7 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.cobbzilla.util.string.StringUtil;
+
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 @NoArgsConstructor @AllArgsConstructor @Accessors(chain=true)
 public class RefreshTokenRequest {
@@ -15,8 +16,8 @@ public class RefreshTokenRequest {
     @Getter @Setter private String secondFactor;
     @Getter @Setter private ApiToken apiToken;
 
-    public boolean hasToken () { return apiToken != null && !StringUtil.empty(apiToken.getToken()); }
-    public boolean hasEmail () { return email != null && !StringUtil.empty(email); }
+    public boolean hasToken () { return apiToken != null && !empty(apiToken.getToken()); }
+    public boolean hasEmail () { return email != null && !empty(email); }
 
     public RefreshTokenRequest (String email, String password) {
         this(email, password, null, null);

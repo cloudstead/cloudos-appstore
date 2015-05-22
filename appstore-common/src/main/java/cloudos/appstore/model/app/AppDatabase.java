@@ -4,11 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
+import org.cobbzilla.util.daemon.ZillaRuntime;
 
 import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.capitalize;
-import static org.cobbzilla.util.string.StringUtil.empty;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
 public class AppDatabase {
 

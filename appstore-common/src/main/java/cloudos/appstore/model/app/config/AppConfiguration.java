@@ -28,11 +28,11 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
 import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER;
 import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.security.ShaUtil.sha256_hex;
-import static org.cobbzilla.util.string.StringUtil.empty;
 
 /**
  * Represents the configuration for a given app+version
