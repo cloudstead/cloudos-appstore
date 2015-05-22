@@ -24,10 +24,10 @@ import java.util.*;
 
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
-import static org.cobbzilla.util.string.StringUtil.empty;
 import static org.cobbzilla.util.string.StringUtil.replaceLast;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 
@@ -305,6 +305,21 @@ public class DefaultAppBundler implements AppBundler {
             public CharSequence apply(Object src, Options options) {
                 if (empty(src)) return "";
                 return new Handlebars.SafeString("['"+ replaceLast(src.toString(), "password", "login").replace(".", "']['")+"']");
+            }
+        });
+        handlebars.registerHelper("hash_or_nil", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                if (empty(src)) return "nil";
+                if (!(src instanceof Map)) die("hash_or_nil: not a Map (was a "+src.getClass().getName()+"): "+src);
+                StringBuilder b = new StringBuilder();
+                final Map map = (Map) src;
+                for (Object key : map.keySet()) {
+                    if (b.length() > 0) b.append(", ");
+                    b.append("'").append(key.toString()).append("' => '").append(map.get(key).toString()).append("'");
+                }
+                b.insert(0, "{ ");
+                b.append(" }");
+                return new Handlebars.SafeString(b.toString());
             }
         });
         handlebars.registerHelper("ident", new Helper<Object>() {
