@@ -45,7 +45,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         }
         if (publishedApp == null) return null;
 
-        final CloudApp app = apps.get(publishedApp.getAppName()+"/"+publishedApp.getVersion());
+        final CloudApp app = apps.get(publishedApp.getAppName());
         if (app == null) return null;
 
         final AppStorePublisher publisher = publishers.get(app.getPublisher());
@@ -76,6 +76,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     private boolean isMatch(AppListing listing, ResultPage page) {
+        if (listing == null) return false;
         if (page.getHasFilter()) return listing.getApp().getAppName().contains(page.getFilter());
         return true;
     }
@@ -144,10 +145,10 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Override
     public CloudAppVersion updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
 
-        final String key = app + "/" + version;
-        final MockCloudApp cloudApp = apps.get(key);
-        if (cloudApp == null) die("Not found: "+key);
+        final MockCloudApp cloudApp = apps.get(app);
+        if (cloudApp == null) die("Not found: "+app);
 
+        final String key = app + "/" + version;
         final CloudAppVersion appVersion = appVersions.get(key);
         final CloudAppStatus cloudAppStatus = appVersion.getStatus();
         if (cloudAppStatus != CloudAppStatus.created) die("Expected status to be 'created'");
@@ -160,7 +161,8 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
                     .setPublisher(cloudApp.getPublisher())
                     .setAuthor(cloudApp.getAuthor())
                     .setBundleUrl(webServer.getBundleUrl(manifest))
-                    .setBundleUrlSha(webServer.getBundleSha(manifest));
+                    .setBundleUrlSha(webServer.getBundleSha(manifest))
+                    .setStatus(CloudAppStatus.published);
             publishedApps.put(app, publishedApp);
         }
         return appVersion;

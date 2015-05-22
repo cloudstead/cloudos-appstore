@@ -345,7 +345,7 @@ public class DefaultAppBundler implements AppBundler {
 
                         final File autogenPass = outputFile(outputBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
                         FileUtil.toFile(autogenPass,
-                                loadResourceAsString("bundler/" + CHEF_FILES + "/autogen_pass.sh"));
+                                loadResourceAsString("bundler/" + CHEF_FILES + "autogen_pass.sh"));
                         CommandShell.chmod(autogenPass, "u+rx");
                     }
                     if (metadata.hasLocaleFields()) {
@@ -354,7 +354,7 @@ public class DefaultAppBundler implements AppBundler {
 
                         final File defaultLocaleNames = outputFile(outputBase, CHEF_DATABAGS, manifest.getName(), "default-locale-names.json");
                         FileUtil.toFile(defaultLocaleNames,
-                                loadResourceAsString("bundler/" + CHEF_DATABAGS + "/default-locale-names.json"));
+                                loadResourceAsString("bundler/" + CHEF_DATABAGS + "default-locale-names.json"));
                     }
 
                 } catch (Exception e) {
