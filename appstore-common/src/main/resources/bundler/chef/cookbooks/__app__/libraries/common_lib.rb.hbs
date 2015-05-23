@@ -683,7 +683,9 @@ EOF
         end
 
         if env
-            env.each_key { |k| env[k] = subst_string(env[k], app) }
+            new_env = {}
+            env.each { |k, v| new_env[k] = subst_string(v, app) }
+            env = new_env
         end
 
         chef.bash "exec: #{exec.split(/\s/)[0]} in #{dir} at #{Time.now}" do
