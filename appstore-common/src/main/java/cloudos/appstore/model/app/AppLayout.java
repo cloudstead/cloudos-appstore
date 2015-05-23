@@ -1,5 +1,6 @@
 package cloudos.appstore.model.app;
 
+import cloudos.appstore.model.AppMutableData;
 import cloudos.databag.PortsDatabag;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
@@ -67,11 +68,15 @@ public class AppLayout {
      * @return a list of all versions, in descending order
      */
     public List<SemanticVersion> getVersions () {
+        if (appDir == null || !appDir.exists()) {
+            log.warn("getVersions: appDir does not exist: "+abs(appDir));
+            return Collections.emptyList();
+        }
         final File[] dirs;
         try {
             dirs = FileUtil.listDirs(appDir);
         } catch (Exception e) {
-            log.warn("Error listing appDir ("+abs(appDir)+"): "+e);
+            log.warn("getVersions: Error listing appDir ("+abs(appDir)+"): "+e);
             return Collections.emptyList();
         }
         // list most recent versions first
@@ -122,7 +127,6 @@ public class AppLayout {
     public File getDatabagDirForApp(String appName) { return new File(getDatabagsDir(), appName); }
 
     public File getDatabagFile(String databagName) {
-        final String appName = versionDir.getParentFile().getName();
         return new File(getDatabagDirForApp(appName), databagName+".json");
     }
 
@@ -166,7 +170,33 @@ public class AppLayout {
     }
 
     public void writeManifest(AppManifest manifest) {
-        toFileOrDie(getManifest(), toJsonOrDie(manifest));
-        toFileOrDie(new File(getDatabagsDir(), AppManifest.CLOUDOS_MANIFEST_JSON), toJsonOrDie(manifest));
+        final String manifestJson = toJsonOrDie(manifest);
+        toFileOrDie(getManifest(), manifestJson);
+        toFileOrDie(getDatabagFile(AppManifest.CLOUDOS_MANIFEST_JSON), manifestJson);
     }
+
+    public boolean copyAssets (AppLayout destLayout) {
+        try {
+            for (String asset : AppMutableData.APP_ASSETS) {
+                final File f = findDefaultAsset(asset);
+                if (f != null) {
+                    final File destDir = destLayout.getChefFilesDir();
+                    if (!destDir.exists() && !destDir.mkdirs()) {
+                        log.error("copyAssets: Error creating dir: " + abs(destDir));
+                        return false;
+                    }
+                    final File destFile = new File(destDir, f.getName());
+                    if (!f.renameTo(destFile)) {
+                        log.error("copyAssets: Error renaming file " + abs(f) + " -> " + abs(destFile));
+                        return false;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("copyAssets: "+e, e);
+            return false;
+        }
+        return true;
+    }
+
 }

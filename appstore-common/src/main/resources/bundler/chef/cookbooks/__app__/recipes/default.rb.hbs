@@ -216,3 +216,9 @@ app_lib.{{app.web.type}}_reload self
 app[:services].each do |service|
   app_lib.restart_if_not_running self, app, service
 end
+
+{{#if app.finalize}}
+    {{#each app.finalize}}
+        app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
+    {{/each}}
+{{/if}}

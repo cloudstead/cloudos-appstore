@@ -50,7 +50,7 @@ public class AppManifest {
     @JsonIgnore public String getScrubbedName () { return scrubDirname(getName()); }
     @JsonIgnore public String getScrubbedVersion () { return scrubDirname(getVersion()); }
     @JsonIgnore public SemanticVersion getSemanticVersion () { return new SemanticVersion(version); }
-    public void setVersion (SemanticVersion v) { this.version = v.toString(); }
+    public void setSemanticVersion (SemanticVersion v) { this.version = v.toString(); }
 
     @Getter @Setter private AppStyle style;
     @Getter @Setter private String parent;
@@ -85,6 +85,7 @@ public class AppManifest {
 
     @Getter @Setter private AppShellCommand[] prep_code;
     @Getter @Setter private AppShellCommand[] post_install;
+    @Getter @Setter private AppShellCommand[] finalize;
 
     @Getter @Setter private AppValidation validation = new AppValidation();
 
