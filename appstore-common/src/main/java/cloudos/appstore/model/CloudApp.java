@@ -3,7 +3,6 @@ package cloudos.appstore.model;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-import org.cobbzilla.wizard.model.SemanticVersion;
 import org.cobbzilla.wizard.model.UniquelyNamedEntity;
 import org.cobbzilla.wizard.validation.HasValue;
 import org.cobbzilla.wizard.validation.IsUnique;
@@ -30,5 +29,5 @@ public class CloudApp extends UniquelyNamedEntity {
     @Getter @Setter private String author;
 
     @Transient
-    @Getter @Setter private List<SemanticVersion> versions;
+    @Getter @Setter private List<CloudAppVersion> versions;
 }

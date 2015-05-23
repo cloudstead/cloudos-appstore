@@ -87,8 +87,6 @@ public class AppBundle {
         }
 
         final AppMutableData assets = manifest.getAssets();
-        if (!assets.hasSmallIconUrl()) violations.add(new ConstraintViolationBean("{appBundle.error.smallIconUrl.empty"));
-        if (!assets.hasLargeIconUrl()) violations.add(new ConstraintViolationBean("{appBundle.error.largeIconUrl.empty"));
         if (manifest.isInteractive() && !assets.hasTaskbarIconUrl()) violations.add(new ConstraintViolationBean("{appBundle.error.taskbarIconUrl.empty"));
 
         if (!empty(violations)) {
