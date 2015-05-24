@@ -10,6 +10,8 @@ import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.model.ResultPage;
 import org.cobbzilla.wizard.util.RestResponse;
 
+import java.io.File;
+
 import static cloudos.appstore.ApiConstants.*;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
@@ -115,5 +117,19 @@ public class AppStoreApiClient extends ApiClientBase {
     public CloudAppVersion findVersion(String app, String version) throws Exception {
         final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app + "/versions/" + version);
         return fromJson(restResponse.json, CloudAppVersion.class);
+    }
+
+    public File getLatestAppBundle(String app) throws Exception {
+        return getLatestAsset(app, "bundle");
+    }
+    public File getLatestAsset(String app, String asset) throws Exception {
+        return getFile(APPS_ENDPOINT+"/"+app+"/assets/"+asset);
+    }
+
+    public File getAppBundle(String app, String version) throws Exception {
+        return getAppAsset(app, version, "bundle");
+    }
+    public File getAppAsset(String app, String version, String asset) throws Exception {
+        return getFile(APPS_ENDPOINT+"/"+app+"/versions/"+version+"/assets/"+asset);
     }
 }
