@@ -1,3 +1,15 @@
 {{app.name}} Cookbook
 =================
-Installs and configures {{app.name}} on a cloudos instance. 
+Installs and configures {{app.name}} on a cloudos instance.
+
+{{#if app.database}}
+This app will create a database user and database in {{app.database.chefType}}
+{{/if}}
+
+{{#if app.web}}
+This app will create a web-accessible service in {{app.web.chefType}}
+{{/if}}
+
+{{#if app.hasServices}}
+This app will create some services: {{app.serviceNames}}
+{{/if}}

@@ -6,10 +6,13 @@ import lombok.Getter;
 
 @AllArgsConstructor
 public enum AppStyle {
-    rails (false), php (null), nodejs (null), java_webapp (true), system (null);
+
+    rails (false), php (null), nodejs (null), java_webapp (true), system (null), chef (false);
 
     @JsonCreator public static AppStyle create(String op) { return valueOf(op.toLowerCase()); }
 
     @Getter private final Boolean autoMigration;
+
+    public boolean isChef() { return this == chef; }
 
 }

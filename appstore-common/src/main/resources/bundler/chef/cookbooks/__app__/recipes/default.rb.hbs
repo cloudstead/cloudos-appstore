@@ -19,6 +19,12 @@ include_recipe '{{app.database.type}}::default'
 
 require 'securerandom'
 
+{{#if app.initialize}}
+    {{#each app.initialize}}
+app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe stdin}}', '{{safe unless}}', {{hash_or_nil env}}
+    {{/each}}
+{{/if}}
+
 base = Chef::Recipe::Base
 app_lib = Chef::Recipe::{{app.chefName}}
 

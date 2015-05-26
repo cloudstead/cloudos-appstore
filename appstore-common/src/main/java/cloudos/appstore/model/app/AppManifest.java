@@ -52,6 +52,8 @@ public class AppManifest {
     @JsonIgnore public SemanticVersion getSemanticVersion () { return new SemanticVersion(version); }
     public void setSemanticVersion (SemanticVersion v) { this.version = v.toString(); }
 
+    @Getter @Setter private AppLevel level = AppLevel.app;
+
     @Getter @Setter private AppStyle style;
     @Getter @Setter private String parent;
     @JsonIgnore public boolean hasParent () { return !empty(parent); }
@@ -83,6 +85,7 @@ public class AppManifest {
 
     @Getter @Setter private AppRepository[] supporting_repos;
 
+    @Getter @Setter private AppShellCommand[] initialize;
     @Getter @Setter private AppShellCommand[] prep_code;
     @Getter @Setter private AppShellCommand[] post_install;
     @Getter @Setter private AppShellCommand[] finalize;
@@ -126,27 +129,37 @@ public class AppManifest {
 
     @Getter @Setter private AppService[] services;
 
+    @JsonIgnore public boolean getHasServices () { return !empty(services) || !empty(sysinit); }
+
+    @JsonIgnore public String getServiceNames () {
+        StringBuilder b = new StringBuilder();
+        if (!empty(services)) {
+            for (AppService s : services) b.append(s.getName()).append(' ');
+        }
+        if (!empty(sysinit)) {
+            for (String s : sysinit) b.append(s).append(' ');
+        }
+        return b.toString();
+    }
+
     @Getter @Setter private String[] logrotate;
     public void addLogrotate (String path) { logrotate = ArrayUtil.append(logrotate, path); }
 
     @Getter @Setter private AppSysctl[] sysctl;
 
     // name of java class within plugin.jar that implements AppRuntime interface
-    @Getter @Setter private String plugin = ConfigurableAppRuntime.class.getName();
+    @Setter private String plugin = ConfigurableAppRuntime.class.getName();
+    public String getPlugin () { return style.isChef() ? null : plugin; }
 
     @Getter @Setter private AppAuthConfig auth;
     public boolean hasAuth () { return auth != null; }
     public boolean hasUserManagement () { return auth != null && auth.getUser_management() != null; }
-
-    // the chef cookbooks/recipes to install, backup and restore
-    @Getter @Setter private AppChefConfig chef = new AppChefConfig();
 
     @Getter @Setter private AppBackupConfig backup = new AppBackupConfig();
     @Getter @Setter private AppRestoreConfig restore = new AppRestoreConfig();
 
     @JsonIgnore
     public List<String> getChefInstallRunlist () {
-        if (!chef.getInstall().isEmpty()) return chef.getInstall();
         final List<String> defaultRunlist = new ArrayList<>();
         defaultRunlist.add("recipe["+name+"]");
         return defaultRunlist;

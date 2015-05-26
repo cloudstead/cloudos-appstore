@@ -5,10 +5,12 @@ import cloudos.appstore.model.*;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.appstore.model.support.*;
 import lombok.Getter;
+import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.model.ResultPage;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -169,6 +171,12 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
+    public CloudAppVersion findVersion(String app, String version) throws Exception {
+        final String key = app + "/" + version;
+        return appVersions.get(key);
+    }
+
+    @Override
     public void deleteAccount() throws Exception {
         final String uuid = sessions.get(token);
         if (uuid != null) {
@@ -235,5 +243,25 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         final ApiToken newToken = new ApiToken().init();
         sessions.put(newToken.getToken(), account.getUuid());
         return newToken;
+    }
+
+    @Override
+    public File getLatestAppBundle(String app) throws Exception {
+        return getAppBundle(app, null);
+    }
+
+    @Override
+    public File getLatestAsset(String app, String asset) throws Exception {
+        return getAppAsset(app, null, asset);
+    }
+
+    @Override
+    public File getAppBundle(String app, String version) throws Exception {
+        return StreamUtil.loadResourceAsFile("test-bundle.tar.gz");
+    }
+
+    @Override
+    public File getAppAsset(String app, String version, String asset) throws Exception {
+        return null;
     }
 }

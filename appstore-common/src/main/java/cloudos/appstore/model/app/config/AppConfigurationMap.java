@@ -50,7 +50,10 @@ public class AppConfigurationMap {
         final File appCookbook = new File(cookbookDir, app);
         final File appDatabags = new File(databagDir, app);
 
-        if (!appCookbook.exists()) throw new IllegalArgumentException("No cookbook found for app: "+app);
+        if (!appCookbook.exists()) {
+            log.warn("No cookbook for app (not adding config): "+app);
+            return;
+        }
         if (!appDatabags.exists()) {
             log.warn("No databags for app (not adding config): "+app);
             return;
