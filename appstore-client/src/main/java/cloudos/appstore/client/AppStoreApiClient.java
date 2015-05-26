@@ -13,6 +13,7 @@ import org.cobbzilla.wizard.util.RestResponse;
 import java.io.File;
 
 import static cloudos.appstore.ApiConstants.*;
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
 
@@ -37,15 +38,18 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public ApiToken refreshToken () throws Exception {
-        final RefreshTokenRequest request = new RefreshTokenRequest(new ApiToken(getToken()));
-        final RestResponse restResponse = post(AUTH_ENDPOINT, toJson(request));
-        return fromJson(restResponse.json, ApiToken.class);
+        return refreshToken(new RefreshTokenRequest(new ApiToken(getToken())));
     }
 
     public ApiToken refreshToken (String email, String password) throws Exception {
-        final RefreshTokenRequest request = new RefreshTokenRequest(email, password);
+        return refreshToken(new RefreshTokenRequest(email, password));
+    }
+
+    public ApiToken refreshToken(RefreshTokenRequest request) throws Exception {
         final RestResponse restResponse = post(AUTH_ENDPOINT, toJson(request));
-        return fromJson(restResponse.json, ApiToken.class);
+        final ApiToken apiToken = fromJson(restResponse.json, ApiToken.class);
+        setToken(apiToken.getToken());
+        return apiToken;
     }
 
     public boolean deleteToken (String token) throws Exception {
@@ -131,5 +135,11 @@ public class AppStoreApiClient extends ApiClientBase {
     }
     public File getAppAsset(String app, String version, String asset) throws Exception {
         return getFile(APPS_ENDPOINT+"/"+app+"/versions/"+version+"/assets/"+asset);
+    }
+
+    protected String getTempFileSuffix(String path, String contentType) {
+        if (empty(path)) return ".temp";
+        if (path.endsWith("/bundle")) return ".tar.gz";
+        return super.getTempFileSuffix(path, contentType);
     }
 }
