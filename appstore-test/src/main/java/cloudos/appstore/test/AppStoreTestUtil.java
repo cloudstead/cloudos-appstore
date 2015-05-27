@@ -6,7 +6,6 @@ import cloudos.appstore.model.support.ApiToken;
 import cloudos.appstore.model.support.AppStoreAccountRegistration;
 import cloudos.appstore.model.support.DefineCloudAppRequest;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.util.security.ShaUtil;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
@@ -37,9 +36,8 @@ public class AppStoreTestUtil {
     public static CloudAppVersion newCloudApp(AppStoreApiClient appStoreClient, String publisherName, String bundleUrl, String bundleUrlSha) throws Exception {
         final DefineCloudAppRequest request = new DefineCloudAppRequest()
                 .setBundleUrl(bundleUrl)
-                .setBundleUrlSha(empty(bundleUrlSha) ? ShaUtil.sha256_url(bundleUrl) : bundleUrlSha)
-                .setPublisher(publisherName);
-        return appStoreClient.defineApp(request);
+                .setBundleUrlSha(empty(bundleUrlSha) ? ShaUtil.sha256_url(bundleUrl) : bundleUrlSha);
+        return appStoreClient.defineApp(publisherName, request);
     }
 
 }

@@ -13,7 +13,6 @@ import java.util.Comparator;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.wizard.model.UniquelyNamedEntity.NAME_MAXLEN;
 
 @Entity
 @NoArgsConstructor @AllArgsConstructor
@@ -28,11 +27,12 @@ public class CloudAppVersion extends IdentifiableBase {
         }
     };
 
-    @Size(max=NAME_MAXLEN)
-    @Column(length=NAME_MAXLEN, nullable=false, updatable=false)
+    @HasValue(message="err.appVersion.app.empty")
+    @Size(max=UUID_MAXLEN)
+    @Column(length=UUID_MAXLEN, nullable=false, updatable=false)
     @Getter @Setter private String app;
 
-    @HasValue(message="err.app.version.empty")
+    @HasValue(message="err.appVersion.version.empty")
     @Size(max=100)
     @Column(length=100, nullable=false, updatable=false)
     @Getter @Setter private String version;

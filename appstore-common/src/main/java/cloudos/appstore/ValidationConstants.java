@@ -29,7 +29,6 @@ public class ValidationConstants {
 
     public static final String ERR_APP_PUBLISHER_UUID_EMPTY = "err.app.publisher.empty";
     public static final String ERR_APP_PUBLISHER_UUID_LENGTH = "err.app.publisher.length";
-    public static final String ERR_APP_PUBLISHER_INVALID = "err.app.publisher.invalid";
 
     public static final String ERR_APP_AUTHOR_EMPTY = "err.app.author.empty";
     public static final String ERR_APP_AUTHOR_INVALID = "err.app.author.invalid";

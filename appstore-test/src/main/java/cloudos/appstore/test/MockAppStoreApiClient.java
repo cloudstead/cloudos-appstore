@@ -5,6 +5,7 @@ import cloudos.appstore.model.*;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.appstore.model.support.*;
 import lombok.Getter;
+import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.model.ResultPage;
@@ -24,20 +25,22 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Getter private Map<String, PublishedApp> publishedApps = new HashMap<>();
     @Getter private Map<String, MockCloudApp> apps = new HashMap<>();
     @Getter private Map<String, CloudAppVersion> appVersions = new HashMap<>();
-    @Getter private Map<String, AppStorePublisher> publishers = new HashMap<>();
+    @Getter private Map<String, AppStorePublisher> publishersByUuid = new HashMap<>();
+    @Getter private Map<String, AppStorePublisher> publishersByName = new HashMap<>();
     @Getter private Map<String, String> accountPublisherMap = new HashMap<>();
     @Getter private Map<String, AppPrice> prices = new HashMap<>();
     @Getter private Map<String, AppFootprint> footprints = new HashMap<>();
     @Getter private Map<String, String> sessions = new HashMap<>();
 
     private AssetWebServer webServer;
-    public MockAppStoreApiClient(AssetWebServer webServer) {
-        super("");
+    public MockAppStoreApiClient(AssetWebServer webServer, ApiConnectionInfo appStore) {
+        super(appStore);
         this.webServer = webServer;
+        try { registerAccount(appStore.getUser()); } catch (Exception e) { die("error registering account: "+e); }
     }
 
     @Override
-    public AppListing findPublishedApp(String appName) throws Exception {
+    public AppListing findPublishedApp(String publisherName, String appName) throws Exception {
 
         PublishedApp publishedApp = null;
         for (PublishedApp app : publishedApps.values()) {
@@ -50,7 +53,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         final CloudApp app = apps.get(publishedApp.getAppName());
         if (app == null) return null;
 
-        final AppStorePublisher publisher = publishers.get(app.getPublisher());
+        final AppStorePublisher publisher = publishersByUuid.get(app.getPublisher());
         if (publisher == null) return null;
 
         return new AppListing()
@@ -65,7 +68,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         int totalCount = 0;
         int i = 0;
         for (PublishedApp app : publishedApps.values()) {
-            AppListing listing = findPublishedApp(app.getAppName());
+            AppListing listing = findPublishedApp(null, app.getAppName());
             if (isMatch(listing, page)) {
                 totalCount++;
                 if (page.containsResult(i)) {
@@ -84,14 +87,14 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public AppPrice setAppPrice(AppPrice price) throws Exception {
+    public AppPrice setAppPrice(String publisher, AppPrice price) throws Exception {
         price.initUuid();
         prices.put(price.getUuid(), price);
         return price;
     }
 
     @Override
-    public AppPrice[] getAppPrices(CloudApp app) throws Exception {
+    public AppPrice[] getAppPrices(String publisher, CloudApp app) throws Exception {
         List<AppPrice> found = new ArrayList<>();
         for (AppPrice price : prices.values()) {
             if (price.getCloudApp().equals(app.getUuid())) found.add(price);
@@ -100,14 +103,14 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public AppFootprint setAppFootprint(AppFootprint footprint) throws Exception {
+    public AppFootprint setAppFootprint(String publisher, AppFootprint footprint) throws Exception {
         footprint.initUuid();
         footprints.put(footprint.getUuid(), footprint);
         return footprint;
     }
 
     @Override
-    public AppFootprint getAppFootprint(CloudApp app) throws Exception {
+    public AppFootprint getAppFootprint(String publisher, CloudApp app) throws Exception {
         for (AppFootprint footprint : footprints.values()) {
             if (footprint.getCloudApp().equals(app.getUuid())) return footprint;
         }
@@ -115,21 +118,22 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public CloudApp findApp(String name) throws Exception { return apps.get(name); }
+    public CloudApp findApp(String publisherName, String name) throws Exception { return apps.get(name); }
 
     @Override
-    public CloudAppVersion defineApp(DefineCloudAppRequest request) throws Exception {
+    public CloudAppVersion defineApp(String publisherName, DefineCloudAppRequest request) throws Exception {
 
         final List<ConstraintViolationBean> violations = new ArrayList<>();
         final AppBundle bundle = new AppBundle(request.getBundleUrl(), request.getBundleUrlSha(), webServer.getBaseUrl(), violations);
 
         final AppManifest manifest = bundle.getManifest();
         final AppStoreAccount account = findAccount();
-        final AppStorePublisher publisher = findPublisher(account.getUuid());
+        final AppStorePublisher publisher = publishersByName.get(publisherName);
 
         final MockCloudApp app = (MockCloudApp) new MockCloudApp()
                 .setVersion(manifest.getVersion())
                 .setBundle(bundle)
+                .setVisibility(request.getVisibility())
                 .setPublisher(publisher.getUuid())
                 .setAuthor(account.getUuid())
                 .setName(manifest.getName());
@@ -145,7 +149,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
 
     @Override
-    public CloudAppVersion updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
+    public CloudAppVersion updateAppStatus(String publisher, String app, String version, CloudAppStatus status) throws Exception {
 
         final MockCloudApp cloudApp = apps.get(app);
         if (cloudApp == null) die("Not found: "+app);
@@ -162,6 +166,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
             publishedApp
                     .setPublisher(cloudApp.getPublisher())
                     .setAuthor(cloudApp.getAuthor())
+                    .setVisibility(cloudApp.getVisibility())
                     .setBundleUrl(webServer.getBundleUrl(manifest))
                     .setBundleUrlSha(webServer.getBundleSha(manifest))
                     .setStatus(CloudAppStatus.published);
@@ -171,7 +176,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public CloudAppVersion findVersion(String app, String version) throws Exception {
+    public CloudAppVersion findVersion(String publisher, String app, String version) throws Exception {
         final String key = app + "/" + version;
         return appVersions.get(key);
     }
@@ -182,15 +187,16 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         if (uuid != null) {
             accounts.remove(uuid);
             accountPublisherMap.remove(uuid);
-            publishers.remove(uuid);
+            final AppStorePublisher removed = publishersByUuid.remove(uuid);
+            if (removed != null) publishersByName.remove(removed.getName());
 
-            // todo: remove other publishers and their apps/members/etc where (publisher.owner == account.uuid)
+            // todo: remove other publishersByUuid and their apps/members/etc where (publisher.owner == account.uuid)
         }
     }
 
     @Override
     public AppStorePublisher findPublisher(String uuid) throws Exception {
-        return publishers.get(uuid);
+        return publishersByUuid.get(uuid);
     }
 
     @Override
@@ -210,7 +216,15 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
     @Override
     public ApiToken refreshToken(String email, String password) throws Exception {
-        return super.refreshToken(email, password);
+        ApiToken newToken = new ApiToken().init();
+        token = newToken.getToken();
+        for (AppStoreAccount a : accounts.values()) {
+            if (a.getName().equals(email) || a.getEmail().equals(email)) {
+                sessions.put(token, a.getUuid());
+                return newToken;
+            }
+        }
+        return die("refreshToken: account not found: "+email);
     }
 
     @Override
@@ -219,6 +233,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         final AppStoreAccount account = accounts.get(sessions.get(token));
         sessions.remove(token);
         sessions.put(newToken.getToken(), account.getUuid());
+        token = newToken.getToken();
         return newToken;
     }
 
@@ -233,7 +248,8 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         publisher.setUuid(account.getUuid());
         publisher.setOwner(account.getUuid());
         publisher.setName(registration.getName());
-        publishers.put(account.getUuid(), publisher);
+        publishersByUuid.put(publisher.getUuid(), publisher);
+        publishersByName.put(publisher.getName(), publisher);
 
         final AppStorePublisherMember member = new AppStorePublisherMember();
         member.setAccount(account.getUuid());
@@ -241,27 +257,37 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         accountPublisherMap.put(account.getUuid(), publisher.getUuid());
 
         final ApiToken newToken = new ApiToken().init();
-        sessions.put(newToken.getToken(), account.getUuid());
+        token = newToken.getToken();
+        sessions.put(token, account.getUuid());
         return newToken;
     }
 
-    @Override
-    public File getLatestAppBundle(String app) throws Exception {
-        return getAppBundle(app, null);
+    // for tests
+    public void registerAccount(String user) throws Exception {
+        final AppStoreAccountRegistration reg = (AppStoreAccountRegistration) new AppStoreAccountRegistration()
+                .setTos(true)
+                .setEmail(user + "@example.com")
+                .setName(user);
+        registerAccount(reg);
     }
 
     @Override
-    public File getLatestAsset(String app, String asset) throws Exception {
-        return getAppAsset(app, null, asset);
+    public File getLatestAppBundle(String publisher, String app) throws Exception {
+        return getAppBundle(publisher, app, null);
     }
 
     @Override
-    public File getAppBundle(String app, String version) throws Exception {
+    public File getLatestAsset(String publisher, String app, String asset) throws Exception {
+        return getAppAsset(publisher, app, null, asset);
+    }
+
+    @Override
+    public File getAppBundle(String publisher, String app, String version) throws Exception {
         return StreamUtil.loadResourceAsFile("test-bundle.tar.gz");
     }
 
     @Override
-    public File getAppAsset(String app, String version, String asset) throws Exception {
+    public File getAppAsset(String publisher, String app, String version, String asset) throws Exception {
         return null;
     }
 }

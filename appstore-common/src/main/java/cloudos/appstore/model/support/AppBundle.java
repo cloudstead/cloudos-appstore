@@ -86,8 +86,11 @@ public class AppBundle {
             cleanup(); die(msg, e); return;
         }
 
-        final AppMutableData assets = manifest.getAssets();
-        if (manifest.isInteractive() && !assets.hasTaskbarIconUrl()) violations.add(new ConstraintViolationBean("{appBundle.error.taskbarIconUrl.empty"));
+        // disable requiring an icon or other various asset combos.
+        // we can always display the app name. it's lame but it means less is mandated of apps.
+        // if we do begin enforcing, it should be in common code that the app bundler can also use, to be consistent
+//        final AppMutableData assets = manifest.getAssets();
+//        if (manifest.isInteractive() && !assets.hasTaskbarIconUrl()) violations.add(new ConstraintViolationBean("{appBundle.error.taskbarIconUrl.empty"));
 
         if (!empty(violations)) {
             cleanup(); die("{appBundle.error.validation}"); return;

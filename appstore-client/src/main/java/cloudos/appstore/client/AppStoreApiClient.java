@@ -66,40 +66,40 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppStoreAccount.class);
     }
 
-    public AppStorePublisher findPublisher(String uuid) throws Exception {
-        final RestResponse restResponse = get(PUBLISHERS_ENDPOINT + "/" + uuid);
+    public AppStorePublisher findPublisher(String name) throws Exception {
+        final RestResponse restResponse = get(PUBLISHERS_ENDPOINT + "/" + name);
         return fromJson(restResponse.json, AppStorePublisher.class);
     }
 
     public void deleteAccount() throws Exception { delete(ACCOUNTS_ENDPOINT); }
 
-    public CloudAppVersion defineApp(DefineCloudAppRequest request) throws Exception {
-        final RestResponse restResponse = post(APPS_ENDPOINT, toJson(request));
+    public CloudAppVersion defineApp(String publisherName, DefineCloudAppRequest request) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT+"/"+publisherName, toJson(request));
         return fromJson(restResponse.json, CloudAppVersion.class);
     }
 
-    public CloudApp findApp(String name) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + name);
+    public CloudApp findApp(String publisherName, String name) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisherName + "/" + name);
         return fromJson(restResponse.json, CloudApp.class);
     }
 
-    public AppFootprint getAppFootprint(CloudApp app) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app.getUuid() + EP_FOOTPRINT);
+    public AppFootprint getAppFootprint(String publisher, CloudApp app) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app.getUuid() + EP_FOOTPRINT);
         return fromJson(restResponse.json, AppFootprint.class);
     }
 
-    public AppFootprint setAppFootprint(AppFootprint footprint) throws Exception {
-        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + footprint.getCloudApp() + EP_FOOTPRINT, toJson(footprint));
+    public AppFootprint setAppFootprint(String publisher, AppFootprint footprint) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + publisher + "/" + footprint.getCloudApp() + EP_FOOTPRINT, toJson(footprint));
         return fromJson(restResponse.json, AppFootprint.class);
     }
 
-    public AppPrice[] getAppPrices(CloudApp app) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app.getUuid() + EP_PRICES);
+    public AppPrice[] getAppPrices(String publisher, CloudApp app) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app.getName() + EP_PRICES);
         return fromJson(restResponse.json, AppPrice[].class);
     }
 
-    public AppPrice setAppPrice(AppPrice price) throws Exception {
-        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + price.getCloudApp() + EP_PRICES, toJson(price));
+    public AppPrice setAppPrice(String publisher, AppPrice price) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + publisher + "/" + price.getCloudApp() + EP_PRICES, toJson(price));
         return fromJson(restResponse.json, AppPrice.class);
     }
 
@@ -108,33 +108,33 @@ public class AppStoreApiClient extends ApiClientBase {
         return JsonUtil.PUBLIC_MAPPER.readValue(restResponse.json, AppListing.searchResultType);
     }
 
-    public AppListing findPublishedApp(String uuid) throws Exception {
-        final RestResponse restResponse = get(APPSTORE_ENDPOINT + "/" + uuid);
+    public AppListing findPublishedApp(String publisher, String name) throws Exception {
+        final RestResponse restResponse = get(APPSTORE_ENDPOINT + "/" + publisher + "/" + name);
         return fromJson(restResponse.json, AppListing.class);
     }
 
-    public CloudAppVersion updateAppStatus(String app, String version, CloudAppStatus status) throws Exception {
-        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + app + "/versions/" + version + "/status", toJson(status));
+    public CloudAppVersion updateAppStatus(String publisher, String app, String version, CloudAppStatus status) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version + "/status", toJson(status));
         return fromJson(restResponse.json, CloudAppVersion.class);
     }
 
-    public CloudAppVersion findVersion(String app, String version) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + app + "/versions/" + version);
+    public CloudAppVersion findVersion(String publisher, String app, String version) throws Exception {
+        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version);
         return fromJson(restResponse.json, CloudAppVersion.class);
     }
 
-    public File getLatestAppBundle(String app) throws Exception {
-        return getLatestAsset(app, "bundle");
+    public File getLatestAppBundle(String publisher, String app) throws Exception {
+        return getLatestAsset(publisher, app, "bundle");
     }
-    public File getLatestAsset(String app, String asset) throws Exception {
-        return getFile(APPS_ENDPOINT+"/"+app+"/assets/"+asset);
+    public File getLatestAsset(String publisher, String app, String asset) throws Exception {
+        return getFile(APPS_ENDPOINT+"/"+publisher+"/"+app+"/assets/"+asset);
     }
 
-    public File getAppBundle(String app, String version) throws Exception {
-        return getAppAsset(app, version, "bundle");
+    public File getAppBundle(String publisher, String app, String version) throws Exception {
+        return getAppAsset(publisher, app, version, "bundle");
     }
-    public File getAppAsset(String app, String version, String asset) throws Exception {
-        return getFile(APPS_ENDPOINT+"/"+app+"/versions/"+version+"/assets/"+asset);
+    public File getAppAsset(String publisher, String app, String version, String asset) throws Exception {
+        return getFile(APPS_ENDPOINT+"/"+publisher+"/"+app+"/versions/"+version+"/assets/"+asset);
     }
 
     protected String getTempFileSuffix(String path, String contentType) {

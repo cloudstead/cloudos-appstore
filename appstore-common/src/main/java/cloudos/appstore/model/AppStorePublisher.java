@@ -24,7 +24,12 @@ public class AppStorePublisher extends UniquelyNamedEntity {
     @Column(unique=true, nullable=false)
     @Getter @Setter private String owner;
 
+    public boolean isOwner(AppStoreAccount account) {
+        return owner != null && owner.equals(account.getUuid());
+    }
+
     public void beforeCreate() {
         if (getUuid() == null) die("uuid not initialized");
     }
+
 }

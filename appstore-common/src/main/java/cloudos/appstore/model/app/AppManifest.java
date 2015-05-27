@@ -3,6 +3,7 @@ package cloudos.appstore.model.app;
 import cloudos.appstore.model.AppMutableData;
 import cloudos.appstore.model.AppRuntimeDetails;
 import cloudos.appstore.model.ConfigurableAppRuntime;
+import cloudos.appstore.model.SystemAppRuntime;
 import cloudos.appstore.model.app.filter.AppFilterConfig;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
@@ -149,7 +150,7 @@ public class AppManifest {
 
     // name of java class within plugin.jar that implements AppRuntime interface
     @Setter private String plugin = ConfigurableAppRuntime.class.getName();
-    public String getPlugin () { return style.isChef() ? null : plugin; }
+    public String getPlugin () { return style.isChef() ? SystemAppRuntime.class.getName() : plugin; }
 
     @Getter @Setter private AppAuthConfig auth;
     public boolean hasAuth () { return auth != null; }

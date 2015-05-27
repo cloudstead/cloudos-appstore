@@ -34,6 +34,7 @@ public class AppStorePublisherMember extends IdentifiableBase {
     @Getter @Setter private String account;
 
     @Getter @Setter private boolean active = false;
+    public boolean inactive() { return !isActive(); }
 
     @Size(max=UUID_MAXLEN, message=ERR_MEMBER_ACCOUNT_ACTIVATION_LENGTH)
     @Column(unique=true, length=UUID_MAXLEN)
@@ -51,4 +52,5 @@ public class AppStorePublisherMember extends IdentifiableBase {
         activation = RandomStringUtils.randomAlphanumeric(20);
         activationExpiration = System.currentTimeMillis() + INVITATION_VALID_DURATION;
     }
+
 }

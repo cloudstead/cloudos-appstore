@@ -13,7 +13,7 @@ import javax.persistence.Transient;
 import java.util.Comparator;
 
 @NoArgsConstructor @Accessors(chain=true)
-@EqualsAndHashCode(of={"appName", "version"})
+@EqualsAndHashCode(of={"publisher", "appName", "version"})
 public class PublishedApp {
 
     public static final Comparator<PublishedApp> COMPARATOR_NAME = new Comparator<PublishedApp>() {
@@ -25,12 +25,14 @@ public class PublishedApp {
     @Getter @Setter private String author;
     @Getter @Setter private String publisher;
 
+    @Getter @Setter private String appUuid;
     @Getter @Setter private String appName;
     @Getter @Setter private String version;
 
     @JsonIgnore
     public SemanticVersion getSemanticVersion() { return new SemanticVersion(version); }
 
+    @Getter @Setter private AppVisibility visibility;
     @Getter @Setter private CloudAppStatus status;
 
     @Getter @Setter private boolean interactive;
