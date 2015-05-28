@@ -149,8 +149,13 @@ public class AppManifest {
     @Getter @Setter private AppSysctl[] sysctl;
 
     // name of java class within plugin.jar that implements AppRuntime interface
-    @Setter private String plugin = ConfigurableAppRuntime.class.getName();
-    public String getPlugin () { return style.isChef() ? SystemAppRuntime.class.getName() : plugin; }
+    @Setter private String plugin = null;
+    public String getPlugin () {
+        if (!empty(plugin)) return plugin;
+        return style.isChef() || level.isSystemOrLower()
+                ? SystemAppRuntime.class.getName()
+                : ConfigurableAppRuntime.class.getName();
+    }
 
     @Getter @Setter private AppAuthConfig auth;
     public boolean hasAuth () { return auth != null; }

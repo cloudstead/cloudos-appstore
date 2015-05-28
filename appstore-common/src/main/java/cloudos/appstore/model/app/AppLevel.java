@@ -15,4 +15,6 @@ public enum AppLevel {
 
     @JsonCreator public static AppLevel create (String v) { return empty(v) ? null : valueOf(v.toLowerCase()); }
 
+    public boolean isSystemOrLower() { return this == init || this == system; }
+
 }
