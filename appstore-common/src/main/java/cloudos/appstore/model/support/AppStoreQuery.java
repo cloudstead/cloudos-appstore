@@ -1,18 +1,33 @@
 package cloudos.appstore.model.support;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.cobbzilla.wizard.model.ResultPage;
 
-@NoArgsConstructor
+import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
+
 public class AppStoreQuery extends ResultPage {
 
-    public AppStoreQuery (AppStoreObjectType type, ResultPage other) {
-        super(other);
+    public AppStoreQuery() {
+        setSortField("name");
+        setSortOrder(SortOrder.ASC);
+    }
+
+    public AppStoreQuery (String filter) {
+        this();
+        setFilter(filter);
+    }
+
+    public AppStoreQuery(ResultPage page) { copy(this, page); }
+
+    public AppStoreQuery(AppStoreObjectType type, ResultPage page) {
+        this(page);
         setType(type);
     }
 
     @Getter @Setter AppStoreObjectType type;
+    @JsonIgnore public boolean hasType () { return !empty(type); }
 
 }

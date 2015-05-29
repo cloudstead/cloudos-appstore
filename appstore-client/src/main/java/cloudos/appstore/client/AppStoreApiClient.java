@@ -108,7 +108,7 @@ public class AppStoreApiClient extends ApiClientBase {
         return JsonUtil.PUBLIC_MAPPER.readValue(restResponse.json, AppListing.searchResultType);
     }
 
-    public AppListing findPublishedApp(String publisher, String name) throws Exception {
+    public AppListing findAppListing(String publisher, String name) throws Exception {
         final RestResponse restResponse = get(APPSTORE_ENDPOINT + "/" + publisher + "/" + name);
         return fromJson(restResponse.json, AppListing.class);
     }

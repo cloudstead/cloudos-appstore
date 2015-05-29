@@ -40,6 +40,11 @@ public class CloudAppVersion extends IdentifiableBase {
     @Transient @JsonIgnore
     public SemanticVersion getSemanticVersion () { return new SemanticVersion(version); }
 
+    @HasValue(message="err.appVersion.author.empty")
+    @Size(max=UUID_MAXLEN)
+    @Column(length=UUID_MAXLEN, nullable=false, updatable=false)
+    @Getter @Setter private String author;
+
     @Size(max=80)
     @Column(length=80, nullable=false, updatable=false)
     @Getter @Setter private String bundleSha;

@@ -41,4 +41,5 @@ public class CloudApp extends IdentifiableBase {
 
     @Transient
     @Getter @Setter private List<CloudAppVersion> versions;
+
 }

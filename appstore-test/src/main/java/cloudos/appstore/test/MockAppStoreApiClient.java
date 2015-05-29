@@ -22,7 +22,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 public class MockAppStoreApiClient extends AppStoreApiClient {
 
     @Getter private Map<String, AppStoreAccount> accounts = new HashMap<>();
-    @Getter private Map<String, PublishedApp> publishedApps = new HashMap<>();
+    @Getter private Map<String, AppListing> appListings = new HashMap<>();
     @Getter private Map<String, MockCloudApp> apps = new HashMap<>();
     @Getter private Map<String, CloudAppVersion> appVersions = new HashMap<>();
     @Getter private Map<String, AppStorePublisher> publishersByUuid = new HashMap<>();
@@ -40,25 +40,26 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public AppListing findPublishedApp(String publisherName, String appName) throws Exception {
+    public AppListing findAppListing(String publisherName, String appName) throws Exception {
 
-        PublishedApp publishedApp = null;
-        for (PublishedApp app : publishedApps.values()) {
-            if (app.getAppName().equals(appName)) {
-                publishedApp = app; break;
+        AppListing listing = null;
+        for (AppListing app : appListings.values()) {
+            if (app.getName().equals(appName)) {
+                listing = app; break;
             }
         }
-        if (publishedApp == null) return null;
+        if (listing == null) return null;
 
-        final CloudApp app = apps.get(publishedApp.getAppName());
+        final CloudApp app = apps.get(listing.getName());
         if (app == null) return null;
 
         final AppStorePublisher publisher = publishersByUuid.get(app.getPublisher());
         if (publisher == null) return null;
 
-        return new AppListing()
-                .setApp(publishedApp)
-                .setPublisher(publisher);
+        listing = new AppListing();
+        listing.getPrivateData()
+                .setPublisher((AppStorePublisher) new AppStorePublisher().setName(publisherName));
+        return listing;
     }
 
     @Override
@@ -67,8 +68,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
         final List<AppListing> matches = new ArrayList<>();
         int totalCount = 0;
         int i = 0;
-        for (PublishedApp app : publishedApps.values()) {
-            AppListing listing = findPublishedApp(null, app.getAppName());
+        for (AppListing listing : appListings.values()) {
             if (isMatch(listing, page)) {
                 totalCount++;
                 if (page.containsResult(i)) {
@@ -82,7 +82,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
     private boolean isMatch(AppListing listing, ResultPage page) {
         if (listing == null) return false;
-        if (page.getHasFilter()) return listing.getApp().getAppName().contains(page.getFilter());
+        if (page.getHasFilter()) return listing.getName().contains(page.getFilter());
         return true;
     }
 
@@ -162,15 +162,15 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
         if (status.isPublished()) {
             final AppManifest manifest = cloudApp.getBundle().getManifest();
-            PublishedApp publishedApp = new PublishedApp(manifest);
-            publishedApp
-                    .setPublisher(cloudApp.getPublisher())
-                    .setAuthor(cloudApp.getAuthor())
-                    .setVisibility(cloudApp.getVisibility())
-                    .setBundleUrl(webServer.getBundleUrl(manifest))
-                    .setBundleUrlSha(webServer.getBundleSha(manifest))
-                    .setStatus(CloudAppStatus.published);
-            publishedApps.put(app, publishedApp);
+            final AppListing listing = new AppListing()
+                    .setBundleUrl(webServer.getBundleUrl(manifest));
+
+            listing.getPrivateData()
+                    .setPublisher((AppStorePublisher) new AppStorePublisher().setName(publisher))
+                    .setAuthor((AppStoreAccount) new AppStoreAccount().setName(cloudApp.getAuthor()))
+                    .setApp(cloudApp)
+                    .setVersion(appVersion);
+            appListings.put(app, listing);
         }
         return appVersion;
     }
