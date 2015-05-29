@@ -23,6 +23,15 @@ import java.util.Map;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
+/**
+ * The AppManifest defines everything about a CloudOs app. Things like:
+ * - How to install and uninstall it
+ * - How to backup and restore it
+ * - How it manages users and hooks into CloudOs single signon
+ * - How its database and web services should behave
+ * and so much more.
+ *
+ */
 @ToString(of={"name", "version", "level", "style", "parent"})
 public class AppManifest {
 
