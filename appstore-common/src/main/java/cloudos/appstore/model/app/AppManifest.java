@@ -23,7 +23,7 @@ import java.util.Map;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 
-@ToString(exclude="plugin")
+@ToString(of={"name", "version", "level", "style", "parent"})
 public class AppManifest {
 
     public static final String CLOUDOS_MANIFEST = "cloudos-manifest";
