@@ -50,15 +50,41 @@ rm -rf ${BUNDLE_DIR}
 rm -rf ${TARBALL}
 mkdir -p ${BUNDLE_DIR}
 
-# Run bundler
-cd ${SCRIPT_BASE}/../appstore-common && \
-MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
-  -Dexec.mainClass=cloudos.appstore.bundler.BundlerMain \
-  -Dexec.args="-m ${APP_BASE}/cloudos-manifest.json -o ${BUNDLE_DIR}" \
-  1>&2
-if [ $? -ne 0 ] ; then
-die "Error running bundler on ${APP_BASE}"
+# Find bundler jar.
+BUNDLER_JAR="not-found"
+if [ -f ${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar ] ; then
+  BUNDLER_JAR="${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar"
+
+elif [ -f ${SCRIPT_BASE}/../appstore-common/pom.xml ] ; then
+  # Run from cloudos-appstore/bin, use maven directly
+  BUNDLER_JAR="use-maven"
 fi
+
+# Run bundler
+BUNDLER_OPTS="-m ${APP_BASE}/cloudos-manifest.json -o ${BUNDLE_DIR}"
+case "${BUNDLER_JAR}" in
+  not-found)
+    die "Bundler jar could not be located"
+  ;;
+
+  use-maven)
+    echo 1>&2 "Running maven bundler with options: ${BUNDLER_OPTS}"
+    cd ${SCRIPT_BASE}/../appstore-common && \
+    MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
+      -Dexec.mainClass=cloudos.appstore.bundler.BundlerMain \
+      -Dexec.args="${BUNDLER_OPTS}" \
+      1>&2
+    if [ $? -ne 0 ] ; then
+      die "Error running bundler on ${APP_BASE}"
+    fi
+  ;;
+
+  *)
+    # we have a jar file, use it
+    echo 1>&2 "Running jar bundler with options: ${BUNDLER_OPTS}"
+    java ${debug} -jar ${BUNDLER_JAR} ${BUNDLER_OPTS}
+  ;;
+esac
 
 # make the tarball
 cd ${BUNDLE_DIR} && tar czf ${TARBALL} . || die "Error building tarball"
