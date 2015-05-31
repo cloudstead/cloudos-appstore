@@ -172,7 +172,7 @@ public class AppLayout {
     public void writeManifest(AppManifest manifest) {
         final String manifestJson = toJsonOrDie(manifest);
         toFileOrDie(getManifest(), manifestJson);
-        toFileOrDie(getDatabagFile(AppManifest.CLOUDOS_MANIFEST_JSON), manifestJson);
+        toFileOrDie(getDatabagFile(AppManifest.CLOUDOS_MANIFEST), manifestJson);
     }
 
     public boolean copyAssets (AppLayout destLayout) {
