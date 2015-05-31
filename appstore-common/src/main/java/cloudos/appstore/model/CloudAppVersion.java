@@ -23,7 +23,7 @@ public class CloudAppVersion extends IdentifiableBase {
 
     public static Comparator<CloudAppVersion> LATEST_VERSION_FIRST = new Comparator<CloudAppVersion>() {
         @Override public int compare(CloudAppVersion v1, CloudAppVersion v2) {
-            return v1.getSemanticVersion().compareTo(v2.getSemanticVersion());
+            return v2.getSemanticVersion().compareTo(v1.getSemanticVersion());
         }
     };
 
