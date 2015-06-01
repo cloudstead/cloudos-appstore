@@ -721,7 +721,7 @@ fi
 
     def self.logrotate (chef, app, path)
         base = Chef::Recipe::Base
-        base.logrotate chef, subst(path, app)
+        base.logrotate chef, app[:name], subst(path, app)
     end
 
     def self.parse_jrun (app, command)
