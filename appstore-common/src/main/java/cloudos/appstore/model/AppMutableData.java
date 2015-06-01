@@ -140,6 +140,7 @@ public class AppMutableData {
         final String fileSha = ShaUtil.sha256_file(assetFile);
         if (!empty(sha) && !fileSha.equals(sha)) die("Asset (" + abs(assetFile) + " had an invalid SHA sum");
 
+        if (!urlBase.endsWith("/")) urlBase += "/";
         ReflectionUtil.set(assets, asset + "Url", urlBase + manifest.getScrubbedName() + "/" + assetFile.getName());
         ReflectionUtil.set(assets, asset + "UrlSha", fileSha);
         return true;
