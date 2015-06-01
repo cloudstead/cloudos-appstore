@@ -64,6 +64,13 @@ class Chef::Recipe::{{app.chefName}}
     {{/if}}
 {{/if}}
 
+        # add LdapHelper lib if present, allows apps to reference LDAP configs for single-signon
+        begin
+            app[:auth] = { :ldap => Chef::Recipe::LdapHelper.new(chef, app) }
+        rescue => e
+            puts "Error loading auth lib: #{e}"
+        end
+
         app[:databag] = {}
         app[:databag_replacements] = {}
 
@@ -185,8 +192,6 @@ class Chef::Recipe::{{app.chefName}}
         app[:mount] = app[:local_mount] = ''
         {{/if}}
 
-        app[:ldap_domain] = "dc=#{app[:domain].gsub(/\./, ',dc=')}"
-
         # note: init is defined in libraries/{{app.style}}_lib.rb
         init chef, app
         init_user chef, app
@@ -247,6 +252,7 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.subst (value, app, is_path = true)
         return nil if value.to_s.empty?
+return value unless value.class == String
 
         base = Chef::Recipe::Base
 
@@ -345,13 +351,22 @@ class Chef::Recipe::{{app.chefName}}
         end
 
         # Look for function prefixes and process their innards
-        { '@lower'  => lambda { |val| val.downcase },
-          '@length' => lambda { |val| val.length },
-          '@now'    => lambda { |val| val == 'mysql' ? Time.now.strftime('%Y-%m-%d %H:%M:%S') : Time.now.strftime(val) },
-          '@sha1'   => lambda { |val| Digest::SHA1.hexdigest(val) },
-          '@sha256' => lambda { |val| Digest::SHA256.hexdigest(val) },
-          '@md5'    => lambda { |val| Digest::MD5.hexdigest(val) },
-          '@bcrypt' => lambda { |val|
+        { '@lower'   => lambda { |val| val.downcase },
+          '@length'  => lambda { |val| val.length },
+          '@now'     => lambda { |val| val == 'mysql' ? Time.now.strftime('%Y-%m-%d %H:%M:%S') : Time.now.strftime(val) },
+          '@sha1'    => lambda { |val| Digest::SHA1.hexdigest(val) },
+          '@sha256'  => lambda { |val| Digest::SHA256.hexdigest(val) },
+          '@md5'     => lambda { |val| Digest::MD5.hexdigest(val) },
+          '@databag' => lambda { |val| "#{Chef::Recipe::Base.chef_databags(app[:name])}/#{val}.json" },
+          '@ldapify' => lambda { |val|
+                raise "No auth library loaded" unless defined? app[:auth][:ldap]
+                app[:auth][:ldap].domainify val
+          },
+          '@ldap'    => lambda { |val|
+                raise "No auth library loaded" unless defined? app[:auth][:ldap]
+                app[:auth][:ldap].send val
+          },
+          '@bcrypt'  => lambda { |val|
                 if val =~ /,[\s]*[\d]+$/
                     matches = /^(.+),[\s]*([\d]+)$/.match(val)
                     password = matches[1]
@@ -361,7 +376,7 @@ class Chef::Recipe::{{app.chefName}}
                     Chef::Recipe::Base.bcrypt(val)
                 end
           },
-          '@exec'   => lambda { |val| %x(#{val}).strip } }.each do |fname, func|
+          '@exec'    => lambda { |val| %x(#{val}).strip } }.each do |fname, func|
             prefix = "#{fname}("
             found = value.index prefix
             while found

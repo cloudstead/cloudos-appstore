@@ -37,7 +37,7 @@ class Chef::Recipe::{{app.chefName}}
 export PORT=#{app[:port]}
 export RAILS_ENV=production
 export HOME=#{app[:run_as_home]}
-foreman export --app={{app.name}} --user=#{app[:run_as]} --log=$(pwd)/log/ upstart /etc/init
+foreman export --app {{app.name}} --user #{app[:run_as]} --log $(pwd)/log/ upstart /etc/init
 EOF
         end
 

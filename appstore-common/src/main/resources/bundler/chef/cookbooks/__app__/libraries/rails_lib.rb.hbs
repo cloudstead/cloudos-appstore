@@ -19,12 +19,12 @@ class Chef::Recipe::{{app.chefName}}
 
 {{#unless app.sysinit}}
 {{#unless app.services}}
-        svc = #{app[:default_service_name]}
+        svc = app[:default_service_name]
         app[:services] << {
             :service_name => svc,
             :proc_pattern => "./script/rails s -p #{app[:port]}"
         }
-        app[:service_names]['{{app.name}}'] = svc
+        app[:service_name] = app[:service_names]['{{app.name}}'] = svc
 {{/unless}}
 {{/unless}}
 
@@ -57,6 +57,7 @@ fi
 
     def self.init_rails (chef, app)
         rails_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
+        base = Chef::Recipe::Base
 
         chef.bash "install gems required by {{app.name}} in #{rails_dir}" do
           user app[:run_as]
@@ -76,7 +77,11 @@ if [ ${success} -ne 1 ] ; then
 fi
 
 # Add env file for foreman, turn on production mode
-echo "RAILS_ENV=production" > #{rails_dir}/.env
+touch #{rails_dir}/.env && chmod 600 #{rails_dir}/.env && \
+echo "
+RAILS_ENV=production
+LDAP_PASSWORD=#{base.password 'ldap'}
+" > #{rails_dir}/.env
           EOF
         end
 
