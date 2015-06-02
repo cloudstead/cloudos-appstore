@@ -28,7 +28,7 @@ public class AppBundle {
 
     public AppBundle (String url,
                       String urlSha,
-                      String assetUrlBase,
+                      AppAssetUrlGenerator assetUrlGenerator,
                       List<ConstraintViolationBean> violations) {
 
         // Download the tarball
@@ -78,6 +78,7 @@ public class AppBundle {
         final AppLayout layout = new AppLayout(manifest.getScrubbedName(), bundleDir);
 
         // validate assets (download remote assets so they can be hosted locally, rewrite manifest as needed)
+        final String assetUrlBase = assetUrlGenerator.generateBaseUrl(manifest.getScrubbedName(), manifest.getScrubbedVersion());
         try {
             AppMutableData.downloadAssetsAndUpdateManifest(manifest, layout, assetUrlBase);
         } catch (Exception e) {

@@ -157,7 +157,7 @@ public class AppLayout {
         return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(databagFile), PortsDatabag.class);
     }
 
-    public File findDefaultAsset(String asset) {
+    public File findLocalAsset(String asset) {
         // strip file extension if given
         int lastDot = asset.lastIndexOf('.');
         if (lastDot != -1) asset = asset.substring(0, lastDot);
@@ -178,7 +178,7 @@ public class AppLayout {
     public boolean copyAssets (AppLayout destLayout) {
         try {
             for (String asset : AppMutableData.APP_ASSETS) {
-                final File f = findDefaultAsset(asset);
+                final File f = findLocalAsset(asset);
                 if (f != null) {
                     final File destDir = destLayout.getChefFilesDir();
                     if (!destDir.exists() && !destDir.mkdirs()) {

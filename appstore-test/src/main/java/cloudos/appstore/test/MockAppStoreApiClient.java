@@ -124,7 +124,14 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     public CloudAppVersion defineApp(String publisherName, DefineCloudAppRequest request) throws Exception {
 
         final List<ConstraintViolationBean> violations = new ArrayList<>();
-        final AppBundle bundle = new AppBundle(request.getBundleUrl(), request.getBundleUrlSha(), webServer.getBaseUrl(), violations);
+
+        final AppAssetUrlGenerator assetUrlGenerator = new AppAssetUrlGenerator() {
+            @Override public String generateBaseUrl(String app, String version) {
+                return webServer.getBaseUrl();
+            }
+        };
+
+        final AppBundle bundle = new AppBundle(request.getBundleUrl(), request.getBundleUrlSha(), assetUrlGenerator, violations);
 
         final AppManifest manifest = bundle.getManifest();
         final AppStoreAccount account = findAccount();

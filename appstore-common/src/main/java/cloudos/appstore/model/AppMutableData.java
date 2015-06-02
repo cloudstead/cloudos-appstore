@@ -5,6 +5,8 @@ import cloudos.appstore.model.app.AppManifest;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.http.HttpUtil;
 import org.cobbzilla.util.http.URIUtil;
 import org.cobbzilla.util.reflect.ReflectionUtil;
@@ -19,10 +21,11 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import static cloudos.appstore.ValidationConstants.*;
+import static org.apache.commons.io.FileUtils.deleteQuietly;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
+import static org.cobbzilla.util.io.FileUtil.isReadableNonEmptyFile;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
 
@@ -30,7 +33,7 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
  * Data that can change within a CloudAppVersion that is marked LIVE
  * Changes are limited because PublishedApps may refer to these versions
  */
-@Embeddable @Accessors(chain=true)
+@Embeddable @Accessors(chain=true) @Slf4j
 public class AppMutableData {
 
     public static final String[] APP_ASSETS = {"taskbarIcon", "smallIcon", "largeIcon"};
@@ -101,49 +104,99 @@ public class AppMutableData {
         }
     }
 
+    // does the manifest define this asset?
     public static boolean downloadAssetAndUpdateManifest(AppManifest manifest, String asset, AppLayout layout, String urlBase) {
-        // does the manifest define this asset?
-        File assetFile = null;
-        String sha = null;
 
+        // ensure assets exists in the manifest, even as an empty object
         AppMutableData assets = manifest.getAssets();
         if (assets == null) {
             assets = new AppMutableData();
             manifest.setAssets(assets);
         }
 
-        final Object value = ReflectionUtil.get(assets, asset + "Url");
-        final Object shaValue = ReflectionUtil.get(assets, asset + "UrlSha");
-        if (value != null) {
-            final String assetUrl = value.toString();
-            final String ext = URIUtil.getFileExt(assetUrl);
-            if (!isValidImageExtention(ext)) {
-                die("Invalid file extension for asset (must be one of: " + Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) + "): " + assetUrl);
-            }
-            assetFile = new File(layout.getChefFilesDir(), asset + "." + ext);
-            mkdirOrDie(assetFile.getParentFile());
+        // ensure urlBase ends with a slash
+        if (!urlBase.endsWith("/")) urlBase += "/";
 
-            try {
-                HttpUtil.url2file(assetUrl, assetFile);
-            } catch (IOException e) {
-                die("Asset (" + asset + ") could not be loaded from: " + assetUrl, e);
+        // what's in the manifest?
+        Object urlValue = ReflectionUtil.get(assets, asset + "Url");
+        Object shaValue = ReflectionUtil.get(assets, asset + "UrlSha");
+
+        // check local stuff first to see what we have...
+        String localUrl = urlBase + asset;
+        File localFile = layout.findLocalAsset(asset);
+
+        // if the local file is valid, simply ensure that the url and sha in the manifest match this
+        if (localFile != null && isReadableNonEmptyFile(localFile)) {
+
+            // check the SHA
+            if (shaValue != null && !shaValue.equals(ShaUtil.sha256_file(localFile))) {
+                // bad SHA. remove asset and clear manifest.
+                ReflectionUtil.setNull(assets, asset + "Url", String.class);
+                ReflectionUtil.setNull(assets, asset + "UrlSha", String.class);
+                deleteQuietly(localFile);
+                return true;
             }
-            if (!empty(shaValue)) sha = shaValue.toString();
+
+            if (urlValue != null && (urlValue.equals(localUrl) || urlValue.toString().startsWith(localUrl+"."))) {
+                // URL is local, sha matches, nothing changes
+                return false;
+
+            } else {
+                // we have a local file, sha is OK, but URL is different. update URL.
+                localUrl = urlBase + localFile.getName();
+                ReflectionUtil.set(assets, asset+"Url", localUrl);
+                return true;
+            }
         }
 
-        // no asset URL defined, check the app cookbook's "files/default" directory for a default asset
-        if (assetFile == null) assetFile = layout.findDefaultAsset(asset);
+        // Nothing local, try to grab the remote, validate sha, copy to local and update manifest
+        if (urlValue != null) {
+            final String assetUrl = urlValue.toString();
+            final String ext = URIUtil.getFileExt(assetUrl);
+            if (!isValidImageExtention(ext)) die("Invalid file extension for asset (must be one of: " + Arrays.toString(AppLayout.ASSET_IMAGE_EXTS) + "): " + assetUrl);
 
-        if (assetFile == null) return false;
+            File tempAssetFile = null;
+            try {
+                try {
+                    tempAssetFile = HttpUtil.url2file(assetUrl);
+                } catch (Exception e) {
+                    // error loading URL. leave it be for now, may be a temporary issue with the URL
+                    log.warn("Asset (" + asset + ") could not be loaded from: " + assetUrl + ": " + e);
+                    return false;
+                }
 
-        // calculate sha, validate if manifest specified one
-        final String fileSha = ShaUtil.sha256_file(assetFile);
-        if (!empty(sha) && !fileSha.equals(sha)) die("Asset (" + abs(assetFile) + " had an invalid SHA sum");
+                final String tempAssetSha = ShaUtil.sha256_file(tempAssetFile);
+                if (!empty(shaValue) && !tempAssetSha.equals(shaValue)) {
+                    log.warn("Asset " + asset + " (" + abs(tempAssetFile) + ") failed SHA validation, not using it");
+                    ReflectionUtil.setNull(assets, asset + "Url", String.class);
+                    ReflectionUtil.setNull(assets, asset + "UrlSha", String.class);
+                    return true;
 
-        if (!urlBase.endsWith("/")) urlBase += "/";
-        ReflectionUtil.set(assets, asset + "Url", urlBase + manifest.getScrubbedName() + "/" + assetFile.getName());
-        ReflectionUtil.set(assets, asset + "UrlSha", fileSha);
-        return true;
+                } else if (empty(shaValue)) {
+                    // sha wasn't set, so set it now
+                    shaValue = tempAssetSha;
+                }
+
+                localFile = new File(layout.getChefFilesDir(), asset + "." + ext);
+                try {
+                    FileUtils.copyFile(tempAssetFile, localFile);
+                } catch (IOException e) {
+                    die("Error copying " + abs(tempAssetFile) + " -> " + abs(localFile) + ": " + e);
+                }
+            } finally {
+                deleteQuietly(tempAssetFile);
+            }
+
+            localUrl = urlBase + manifest.getScrubbedName() + "/" + localFile.getName();
+
+            ReflectionUtil.set(assets, asset + "Url", localUrl);
+            ReflectionUtil.set(assets, asset + "UrlSha", shaValue);
+            return true;
+
+        } else {
+            // no local file and no URL in the manifest, nothing to do, nothing changes
+            return false;
+        }
     }
 
 }
