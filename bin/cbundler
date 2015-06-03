@@ -1,4 +1,18 @@
 #!/bin/bash
+#
+# The multi-bundler. Creates CloudOs app bundles for every app found within a directory hierarchy.
+#
+# Usage:
+#   cbundler [debug [<port>]] path/to/apps/dir
+#
+# The path supplied will be scanned for subdirectories that contain cloudos-manifest.json file.
+# The CloudOs Bundler will be run on each app.
+#
+# To attach a debugger to the bundler, supply 'debug' as the first argument, optionally followed by a port number.
+# The default debug port is 5005
+#
+# To override the location of the bundler jar file, set the CLOUDOS_BUNDLER_JAR environment variable.
+#
 
 function die () {
   echo 1>&2 "${1}"
@@ -32,7 +46,14 @@ APP_BASE=$(cd ${APP_BASE} && pwd)
 
 # Find bundler jar.
 BUNDLER_JAR="not-found"
-if [ -f ${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar ] ; then
+if [ ! -z "${CLOUDOS_BUNDLER_JAR}" ] ; then
+  if [ -r "${CLOUDOS_BUNDLER_JAR}" ] ; then
+    BUNDLER_JAR="${CLOUDOS_BUNDLER_JAR}"
+  else
+    die "CLOUDOS_BUNDLER_JAR env var was set, but doesn't seem to be valid: ${CLOUDOS_BUNDLER_JAR}"
+  fi
+
+elif [ -f ${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar ] ; then
   BUNDLER_JAR="${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar"
 
 elif [ -f ${SCRIPT_BASE}/../appstore-common/pom.xml ] ; then
@@ -66,4 +87,4 @@ case "${BUNDLER_JAR}" in
 esac
 
 # Print names of app bundle tarballs
-find $(find ${APP_BASE} -type d -name target) -type f -name "*-bundle.tar.gz"
+find $(find ${APP_BASE} -type d -name target) -type f -name "*-bundle.tar.gz" -exec echo "ARTIFACT: {}" \;

@@ -1,4 +1,19 @@
 #!/bin/bash
+#
+# The Bundler. Creates a CloudOs app bundle from a manifest file.
+#
+# The directory provided must contain a cloudos-manifest.json file that defines the app.
+# The resulting bundle will be written to target/appname-bundle.tar.gz within the directory.
+#
+# Usage:
+#
+#   cbundle_app [debug [<port>]] path/to/app/dir
+#
+# To attach a debugger to the bundler, supply 'debug' as the first argument, optionally followed by a port number.
+# The default debug port is 5005
+#
+# To override the location of the bundler jar file, set the CLOUDOS_BUNDLER_JAR environment variable.
+#
 
 function die () {
   echo 1>&2 "${1}"
@@ -52,7 +67,14 @@ mkdir -p ${BUNDLE_DIR}
 
 # Find bundler jar.
 BUNDLER_JAR="not-found"
-if [ -f ${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar ] ; then
+if [ ! -z "${CLOUDOS_BUNDLER_JAR}" ] ; then
+  if [ -r "${CLOUDOS_BUNDLER_JAR}" ] ; then
+    BUNDLER_JAR="${CLOUDOS_BUNDLER_JAR}"
+  else
+    die "CLOUDOS_BUNDLER_JAR env var was set, but doesn't seem to be valid: ${CLOUDOS_BUNDLER_JAR}"
+  fi
+
+elif [ -f ${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar ] ; then
   BUNDLER_JAR="${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar"
 
 elif [ -f ${SCRIPT_BASE}/../appstore-common/pom.xml ] ; then
