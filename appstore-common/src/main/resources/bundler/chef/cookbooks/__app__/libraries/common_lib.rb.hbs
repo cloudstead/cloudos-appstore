@@ -523,6 +523,20 @@ EOH
         end
     end
 
+    def self.touch_file(chef, path, user = 'root')
+        chef.bash "touch #{path} and make owner #{user}" do
+            user 'root'
+            code <<-EOH
+parent="$(dirname #{path})"
+if [ ! -e ${parent} ] ; then
+  mkdir -p ${parent} || exit 1
+fi
+touch "#{path}" || exit 1
+chown #{user} "#{path}" || exit 1
+EOH
+        end
+    end
+
     def self.symlink(chef, symlink_target, symlink_link, app, force = false)
 
         symlink_link = subst(symlink_link, app)
@@ -722,6 +736,7 @@ fi
     def self.logrotate (chef, app, path)
         base = Chef::Recipe::Base
         base.logrotate chef, app[:name], subst(path, app)
+        touch_file path, app[:run_as]
     end
 
     def self.parse_jrun (app, command)
