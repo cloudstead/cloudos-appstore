@@ -1,6 +1,7 @@
 package cloudos.appstore.model.support;
 
 import cloudos.appstore.model.*;
+import cloudos.appstore.model.app.AppLevel;
 import cloudos.appstore.model.app.AppManifest;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JavaType;
@@ -57,6 +58,9 @@ public class AppListing {
 
     public AppVisibility getVisibility () { return ensureApp().getVisibility(); }
     public void setVisibility (AppVisibility visibility) { ensureApp().setVisibility(visibility); }
+
+    public AppLevel getLevel () { return ensureApp().getLevel(); }
+    public void setLevel (AppLevel level) { ensureApp().setLevel(level); }
 
     public CloudAppStatus getStatus() { return ensureVersion().getStatus(); }
     public void setStatus (CloudAppStatus status) { ensureVersion().setStatus(status); }

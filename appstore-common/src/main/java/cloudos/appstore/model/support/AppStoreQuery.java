@@ -1,5 +1,6 @@
 package cloudos.appstore.model.support;
 
+import cloudos.appstore.model.app.AppLevel;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,4 +31,6 @@ public class AppStoreQuery extends ResultPage {
     @Getter @Setter AppStoreObjectType type;
     @JsonIgnore public boolean hasType () { return !empty(type); }
 
+    @Getter @Setter private AppLevel level = AppLevel.app;
+    @JsonIgnore public boolean hasLevel () { return !empty(level); }
 }

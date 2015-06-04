@@ -7,7 +7,6 @@ import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.dao.SearchResults;
-import org.cobbzilla.wizard.model.ResultPage;
 import org.cobbzilla.wizard.util.RestResponse;
 
 import java.io.File;
@@ -103,8 +102,8 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppPrice.class);
     }
 
-    public SearchResults<AppListing> searchAppStore(ResultPage page) throws Exception {
-        final RestResponse restResponse = post(APPSTORE_ENDPOINT, toJson(page));
+    public SearchResults<AppListing> searchAppStore(AppStoreQuery query) throws Exception {
+        final RestResponse restResponse = post(APPSTORE_ENDPOINT, toJson(query));
         return JsonUtil.PUBLIC_MAPPER.readValue(restResponse.json, AppListing.searchResultType);
     }
 

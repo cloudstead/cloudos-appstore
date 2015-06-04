@@ -1,5 +1,6 @@
 package cloudos.appstore.model;
 
+import cloudos.appstore.model.app.AppLevel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -38,6 +39,11 @@ public class CloudApp extends IdentifiableBase {
     @Column(length=20, nullable=false)
     @Enumerated(EnumType.STRING)
     @Getter @Setter private AppVisibility visibility = AppVisibility.publisher;
+
+    @HasValue(message="err.app.level.empty")
+    @Column(length=20, nullable=false)
+    @Enumerated(EnumType.STRING)
+    @Getter @Setter private AppLevel level;
 
     @Transient
     @Getter @Setter private List<CloudAppVersion> versions;

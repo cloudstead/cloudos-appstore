@@ -63,15 +63,15 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public SearchResults<AppListing> searchAppStore(ResultPage page) throws Exception {
+    public SearchResults<AppListing> searchAppStore(AppStoreQuery query) throws Exception {
 
         final List<AppListing> matches = new ArrayList<>();
         int totalCount = 0;
         int i = 0;
         for (AppListing listing : appListings.values()) {
-            if (isMatch(listing, page)) {
+            if (isMatch(listing, query)) {
                 totalCount++;
-                if (page.containsResult(i)) {
+                if (query.containsResult(i)) {
                     matches.add(listing);
                 }
             }
