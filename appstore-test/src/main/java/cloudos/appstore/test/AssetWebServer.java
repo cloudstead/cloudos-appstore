@@ -3,12 +3,15 @@ package cloudos.appstore.test;
 import cloudos.appstore.bundler.BundlerMain;
 import cloudos.appstore.bundler.BundlerOptions;
 import cloudos.appstore.model.AppMutableData;
+import cloudos.appstore.model.app.AppLevel;
 import cloudos.appstore.model.app.AppManifest;
+import cloudos.appstore.model.app.AppStyle;
 import cloudos.appstore.model.app.config.AppConfigMetadata;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.util.io.Tarball;
+import org.cobbzilla.util.io.TempDir;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.security.ShaUtil;
 import org.cobbzilla.util.system.PortPicker;
@@ -19,6 +22,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
@@ -50,6 +54,34 @@ public class AssetWebServer {
         FileUtils.deleteDirectory(rootDir);
     }
 
+    public TestApp buildSimpleApp(String name, String version, AppLevel level) {
+
+        final AppManifest manifest = new AppManifest();
+        manifest.setName(name);
+        manifest.setVersion(version);
+        manifest.setLevel(level);
+        manifest.setStyle(AppStyle.chef);
+
+        TempDir tempDir = null;
+        try {
+            tempDir = new TempDir();
+            final File manifestFile = new File(tempDir, AppManifest.CLOUDOS_MANIFEST_JSON);
+            FileUtil.toFile(manifestFile, JsonUtil.toJson(manifest));
+
+            return buildAppTarball(manifestFile);
+
+        } catch (Exception e) {
+            return die("Error building app: "+e, e);
+
+        } finally {
+            FileUtils.deleteQuietly(tempDir);
+        }
+    }
+
+    public TestApp buildAppTarball(File manifestFile) throws Exception {
+        return buildAppTarball(manifestFile, null, null);
+    }
+
     public TestApp buildAppTarball(String manifestResourcePath,
                                    String appConfigMetadataPath,
                                    String iconResourcePath) throws Exception {
@@ -59,8 +91,16 @@ public class AssetWebServer {
         final File manifestFile = new File(appTemp, AppManifest.CLOUDOS_MANIFEST_JSON);
         final String manifestData = loadResourceAsString(manifestResourcePath).replace("@@PORT@@", String.valueOf(port));
         FileUtil.toFile(manifestFile, manifestData);
-        AppManifest appManifest = AppManifest.load(manifestFile);
 
+        return buildAppTarball(manifestFile, appConfigMetadataPath, iconResourcePath);
+    }
+
+    public TestApp buildAppTarball(File manifestFile,
+                                   String appConfigMetadataPath,
+                                   String iconResourcePath) throws Exception {
+
+        final File appTemp = manifestFile.getParentFile();
+        final AppManifest appManifest = AppManifest.load(manifestFile);
         if (!empty(appConfigMetadataPath)) {
             final String configMetadata = loadResourceAsString(appConfigMetadataPath);
             final File configDir = new File(appTemp, "config");

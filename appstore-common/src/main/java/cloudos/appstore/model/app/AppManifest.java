@@ -158,7 +158,7 @@ public class AppManifest {
     @Setter private String plugin = null;
     public String getPlugin () {
         if (!empty(plugin)) return plugin;
-        return style.isChef() || level.isSystemOrLower()
+        return empty(style) || empty(level) || style.isChef() || level.isSystemOrLower()
                 ? SystemAppRuntime.class.getName()
                 : ConfigurableAppRuntime.class.getName();
     }

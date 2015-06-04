@@ -17,6 +17,9 @@ public class TestApp {
     @Getter @Setter private File tarball;
     @Getter @Setter private File iconFile;
 
+    @JsonIgnore public String getName () { return manifest.getName(); }
+    @JsonIgnore public String getVersion () { return manifest.getVersion(); }
+
     @JsonIgnore public String getNameAndVersion() {
         return manifest.getName()+"/"+manifest.getVersion();
     }

@@ -133,4 +133,74 @@ public class AppListing {
         if (empty(privateData.manifest)) privateData.manifest = new AppManifest();
         return privateData.manifest;
     }
+
+    public boolean matches(AppStoreQuery query) { return matches(query, this); }
+
+    public static boolean matches(AppStoreQuery query, AppListing listing) {
+
+        if (query.hasLevel() && listing.getLevel() != query.getLevel()) return false;
+
+        final String filter = query.getFilter();
+        if (empty(filter)) return true;
+
+        final AppStoreObjectType type = query.hasType() ? query.getType() : AppStoreObjectType.app;
+
+        if (query.hasType()) {
+            switch (type) {
+                case account:
+                    return matchesAccount(filter, listing);
+
+                case publisher:
+                    return matchesPublisher(filter, listing);
+
+                case app:
+                default:
+                    return matchesApp(filter, listing);
+            }
+
+        } else {
+            return matchesAccount(filter, listing)
+                    || matchesPublisher(filter, listing)
+                    || matchesApp(filter, listing);
+        }
+    }
+
+    public static boolean matchesAccount(String filter, AppListing listing) {
+        filter = filter.toLowerCase();
+        try {
+            final AppStoreAccount author = listing.getPrivateData().getAuthor();
+            return author.getFirstName().toLowerCase().contains(filter)
+                    || author.getLastName().toLowerCase().contains(filter)
+                    || author.getFullName().toLowerCase().contains(filter)
+                    || author.getName().toLowerCase().contains(filter);
+        } catch (Exception e) {
+            log.warn("matchesAccount error: "+e);
+            return false;
+        }
+    }
+
+    public static boolean matchesPublisher(String filter, AppListing listing) {
+        filter = filter.toLowerCase();
+        try {
+            final AppStorePublisher publisher = listing.getPrivateData().getPublisher();
+            return publisher.getName().toLowerCase().contains(filter);
+        } catch (Exception e) {
+            log.warn("matchesAccount error: "+e);
+            return false;
+        }
+    }
+
+    public static boolean matchesApp(String filter, AppListing listing) {
+        filter = filter.toLowerCase();
+        try {
+            final CloudApp app = listing.getPrivateData().getApp();
+            final AppMutableData assets = listing.getData();
+            return app.getName().toLowerCase().contains(filter)
+                    || (assets != null && (assets.getBlurb().toLowerCase().contains(filter) || assets.getDescription().toLowerCase().contains(filter)));
+        } catch (Exception e) {
+            log.warn("matchesAccount error: "+e);
+            return false;
+        }
+    }
+
 }

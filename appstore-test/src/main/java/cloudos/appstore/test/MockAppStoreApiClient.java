@@ -8,14 +8,10 @@ import lombok.Getter;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.wizard.dao.SearchResults;
-import org.cobbzilla.wizard.model.ResultPage;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 
@@ -67,23 +63,23 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
         final List<AppListing> matches = new ArrayList<>();
         int totalCount = 0;
-        int i = 0;
         for (AppListing listing : appListings.values()) {
-            if (isMatch(listing, query)) {
+            if (listing.matches(query)) {
                 totalCount++;
-                if (query.containsResult(i)) {
-                    matches.add(listing);
-                }
+                matches.add(listing);
             }
-            i++;
         }
-        return new SearchResults<>(matches, totalCount);
-    }
 
-    private boolean isMatch(AppListing listing, ResultPage page) {
-        if (listing == null) return false;
-        if (page.getHasFilter()) return listing.getName().contains(page.getFilter());
-        return true;
+        if (matches.isEmpty()) return new SearchResults<>(Collections.EMPTY_LIST, 0);
+
+        // find the correct page of results
+        final int start = query.getPageOffset();
+        final int end = query.getPageEndOffset();
+
+        if (start >= matches.size()) return new SearchResults<>(Collections.EMPTY_LIST, totalCount);
+        if (end >= matches.size()) return new SearchResults<>(matches.subList(start, matches.size()), totalCount);
+
+        return new SearchResults<>(matches.subList(start, end), totalCount);
     }
 
     @Override
@@ -141,6 +137,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
                 .setVersion(manifest.getVersion())
                 .setBundle(bundle)
                 .setVisibility(request.getVisibility())
+                .setLevel(manifest.getLevel())
                 .setPublisher(publisher.getUuid())
                 .setAuthor(account.getUuid())
                 .setName(manifest.getName());
@@ -158,6 +155,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Override
     public CloudAppVersion updateAppStatus(String publisher, String app, String version, CloudAppStatus status) throws Exception {
 
+        app = app.toLowerCase(); // ensure app is lowercase
         final MockCloudApp cloudApp = apps.get(app);
         if (cloudApp == null) die("Not found: "+app);
 
