@@ -9,7 +9,7 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.install_git (chef, app)
         git = Chef::Recipe::Git
-        git.clone(chef, '{{app.repo.url}}', '{{app.repo.branch}}', app[:run_as], app[:run_as_home], app[:repo_dir])
+        git.synchronize(chef, '{{app.repo.url}}', '{{app.repo.branch}}', app[:run_as], app[:run_as_home], app[:repo_dir])
 
         {{#if app.supporting_repos}}
             {{#each app.supporting_repos}}
@@ -18,7 +18,7 @@ class Chef::Recipe::{{app.chefName}}
                 {{else}}
         dir = nil
                 {{/if}}
-        git.clone(chef, '{{url}}', '{{branch}}', app[:run_as], app[:run_as_home], dir)
+        git.synchronize(chef, '{{url}}', '{{branch}}', app[:run_as], app[:run_as_home], dir)
             {{/each}}
         {{/if}}
     end
