@@ -62,6 +62,17 @@ public class AssetWebServer {
         manifest.setLevel(level);
         manifest.setStyle(AppStyle.chef);
 
+        final AppMutableData assets = new AppMutableData();
+        assets.setLargeIconUrl("http://example.com/path/to/largeIcon.png");
+        assets.setLargeIconUrlSha(ShaUtil.sha256_hex(assets.getLargeIconUrl()));
+        assets.setSmallIconUrl("http://example.com/path/to/smallIcon.png");
+        assets.setSmallIconUrlSha(ShaUtil.sha256_hex(assets.getSmallIconUrl()));
+        assets.setTaskbarIconUrl("http://example.com/path/to/taskbarIcon.png");
+        assets.setTaskbarIconUrlSha(ShaUtil.sha256_hex(assets.getTaskbarIconUrl()));
+        assets.setBlurb("Some blurb about this cool new "+name+" app");
+        assets.setDescription("A much more lengthy and in-depth description of this cool new " + name + " app. This could be very long... ");
+        manifest.setAssets(assets);
+
         TempDir tempDir = null;
         try {
             tempDir = new TempDir();

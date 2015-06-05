@@ -19,6 +19,8 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 @IsUnique(unique="name", daoBean="appStorePublisherDAO", message="{err.name.notUnique}")
 public class AppStorePublisher extends UniquelyNamedEntity {
 
+    public static final String[] PUBLIC_FIELDS = {"name"};
+
     @HasValue(message=ERR_OWNER_UUID_EMPTY)
     @Size(max=BasicConstraintConstants.UUID_MAXLEN, message=ERR_OWNER_UUID_LENGTH)
     @Column(unique=true, nullable=false)

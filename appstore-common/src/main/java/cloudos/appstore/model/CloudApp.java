@@ -14,6 +14,7 @@ import java.util.List;
 import static cloudos.appstore.ValidationConstants.ERR_APP_PUBLISHER_UUID_EMPTY;
 import static cloudos.appstore.ValidationConstants.ERR_APP_PUBLISHER_UUID_LENGTH;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
 @Entity @Accessors(chain=true)
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"publisher", "name"}))
@@ -48,4 +49,17 @@ public class CloudApp extends IdentifiableBase {
     @Transient
     @Getter @Setter private List<CloudAppVersion> versions;
 
+    @Transient
+    @Getter private AppStorePublisher publishedBy;
+    public void setPublishedBy(AppStorePublisher pub) {
+        publishedBy = new AppStorePublisher();
+        copy(publishedBy, pub, AppStorePublisher.PUBLIC_FIELDS);
+    }
+
+    @Transient
+    @Getter private AppStoreAccount authoredBy;
+    public void setAuthoredBy(AppStoreAccount author) {
+        authoredBy = new AppStoreAccount(null);
+        copy(authoredBy, author, AppStoreAccount.AUTHOR_PUBLIC_FIELDS);
+    }
 }

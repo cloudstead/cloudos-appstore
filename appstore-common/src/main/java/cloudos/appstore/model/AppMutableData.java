@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.cobbzilla.util.collection.FailedOperationCounter;
 import org.cobbzilla.util.http.HttpUtil;
 import org.cobbzilla.util.http.URIUtil;
 import org.cobbzilla.util.reflect.ReflectionUtil;
@@ -47,9 +48,6 @@ public class AppMutableData {
     @Size(max=APP_DESCRIPTION_MAXLEN, message=ERR_APP_DESCRIPTION_LENGTH)
     @Column(nullable=false)
     @Getter @Setter private String description;
-
-    @Size(max=APP_METADATA_MAXLEN, message=ERR_APP_METADATA_LENGTH)
-    @Getter @Setter private String metadata;
 
     @Size(max=APP_TB_ICON_ALT_TEXT_LENGTH, message=ERR_APP_TB_ICON_ALT_TEXT_LENGTH)
     @Column(length=APP_TB_ICON_ALT_TEXT_LENGTH)
@@ -104,6 +102,8 @@ public class AppMutableData {
         }
     }
 
+    private static FailedOperationCounter<String> assetLoadFailures = new FailedOperationCounter<>();
+
     // does the manifest define this asset?
     public static boolean downloadAssetAndUpdateManifest(AppManifest manifest, String asset, AppLayout layout, String urlBase) {
 
@@ -157,12 +157,19 @@ public class AppMutableData {
 
             File tempAssetFile = null;
             try {
-                try {
-                    tempAssetFile = HttpUtil.url2file(assetUrl);
-                } catch (Exception e) {
-                    // error loading URL. leave it be for now, may be a temporary issue with the URL
-                    log.warn("Asset (" + asset + ") could not be loaded from: " + assetUrl + ": " + e);
+                if (assetLoadFailures.tooManyFailures(assetUrl)) {
+                    log.warn("Asset (" + asset + ") with URL=" + assetUrl + " has failed too many times (>="+assetLoadFailures.getMaxFailures()+"), retry interval "+assetLoadFailures.getExpiration()+"ms)");
                     return false;
+
+                } else {
+                    try {
+                        tempAssetFile = HttpUtil.url2file(assetUrl);
+                    } catch (Exception e) {
+                        // error loading URL. leave it be for now, may be a temporary issue with the URL
+                        log.warn("Asset (" + asset + ") could not be loaded from: " + assetUrl + ": " + e);
+                        assetLoadFailures.fail(assetUrl);
+                        return false;
+                    }
                 }
 
                 final String tempAssetSha = ShaUtil.sha256_file(tempAssetFile);

@@ -51,9 +51,6 @@ public class ValidationConstants {
     public static final String ERR_APP_BLURB_LENGTH = "err.app.blurb.length";
     public static final int APP_BLURB_MAXLEN = 200;
 
-    public static final String ERR_APP_METADATA_LENGTH = "err.app.metadata.length";
-    public static final int APP_METADATA_MAXLEN = 65536;
-
     public static final String ERR_APP_VERSION_EMPTY = "err.app.version.empty";
     public static final String ERR_APP_VERSION_INVALID = "err.app.version.invalid";
     public static final String ERR_APP_VERSION_LENGTH = "err.app.version.length";

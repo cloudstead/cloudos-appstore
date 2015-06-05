@@ -5,15 +5,18 @@ import cloudos.appstore.model.*;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.appstore.model.support.*;
 import lombok.Getter;
+import org.apache.http.client.HttpClient;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.validation.ConstraintViolationBean;
+import org.cobbzilla.wizardtest.TestNames;
 
 import java.io.File;
 import java.util.*;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.wizardtest.TestNames.animal;
 
 public class MockAppStoreApiClient extends AppStoreApiClient {
 
@@ -29,11 +32,22 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     @Getter private Map<String, String> sessions = new HashMap<>();
 
     private AssetWebServer webServer;
-    public MockAppStoreApiClient(AssetWebServer webServer, ApiConnectionInfo appStore) {
-        super(appStore);
+    private HttpClient mockHttpClient;
+
+    public MockAppStoreApiClient(AssetWebServer webServer, ApiConnectionInfo info) {
+        super(info);
+        if (info.getUser() == null) info.setUser(TestNames.safeAnimal());
+
         this.webServer = webServer;
-        try { registerAccount(appStore.getUser()); } catch (Exception e) { die("error registering account: "+e); }
+        this.mockHttpClient = new MockAppStoreHttpClient(this);
+        registerAccount(info.getUser());
     }
+
+    @Override public HttpClient getHttpClient() { return mockHttpClient; }
+
+//    @Override public ApiConnectionInfo getConnectionInfo() {
+//        return mockConnectionInfo;
+//    }
 
     @Override
     public AppListing findAppListing(String publisherName, String appName) throws Exception {
@@ -114,7 +128,24 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     @Override
-    public CloudApp findApp(String publisherName, String name) throws Exception { return apps.get(name); }
+    public CloudApp findApp(String publisherName, String name) throws Exception {
+        final MockCloudApp cloudApp = apps.get(name);
+        if (cloudApp == null) return null;
+        cloudApp.setPublishedBy(publishersByUuid.get(cloudApp.getPublisher()));
+        cloudApp.setAuthoredBy(buildAccount(cloudApp));
+        cloudApp.setVersions(findVersions(name));
+        return cloudApp;
+    }
+
+    private List<CloudAppVersion> findVersions(String name) {
+        final List<CloudAppVersion> found = new ArrayList<>();
+        for (Map.Entry<String, CloudAppVersion> v : appVersions.entrySet()) {
+            if (v.getKey().startsWith(name + "/")) {
+                found.add(v.getValue());
+            }
+        }
+        return found;
+    }
 
     @Override
     public CloudAppVersion defineApp(String publisherName, DefineCloudAppRequest request) throws Exception {
@@ -131,7 +162,7 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
         final AppManifest manifest = bundle.getManifest();
         final AppStoreAccount account = findAccount();
-        final AppStorePublisher publisher = publishersByName.get(publisherName);
+        final AppStorePublisher publisher = publishersByName.get(publisherName.toLowerCase());
 
         final MockCloudApp app = (MockCloudApp) new MockCloudApp()
                 .setVersion(manifest.getVersion())
@@ -172,12 +203,19 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
             listing.getPrivateData()
                     .setPublisher((AppStorePublisher) new AppStorePublisher().setName(publisher))
-                    .setAuthor((AppStoreAccount) new AppStoreAccount().setName(cloudApp.getAuthor()))
+                    .setAuthor(buildAccount(cloudApp))
                     .setApp(cloudApp)
                     .setVersion(appVersion);
             appListings.put(app, listing);
         }
         return appVersion;
+    }
+
+    protected AppStoreAccount buildAccount(MockCloudApp cloudApp) {
+        return (AppStoreAccount) new AppStoreAccount()
+                .setFirstName(animal())
+                .setLastName(animal())
+                .setName(cloudApp.getAuthor());
     }
 
     @Override
@@ -268,12 +306,14 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     // for tests
-    public void registerAccount(String user) throws Exception {
+    public ApiToken registerAccount(String user) {
         final AppStoreAccountRegistration reg = (AppStoreAccountRegistration) new AppStoreAccountRegistration()
                 .setTos(true)
                 .setEmail(user + "@example.com")
                 .setName(user);
-        registerAccount(reg);
+        try {
+            return registerAccount(reg);
+        } catch (Exception e) { return die("registerAccount: "+e, e); }
     }
 
     @Override

@@ -82,6 +82,14 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, CloudApp.class);
     }
 
+    public void deleteVersion(String pubName, String appName, String version) throws Exception {
+        delete(APPS_ENDPOINT + "/" + pubName + "/" + appName + "/versions/" + version);
+    }
+
+    public void deleteApp(String pubName, String appName) throws Exception {
+        delete(APPS_ENDPOINT + "/" + pubName + "/" + appName);
+    }
+
     public AppFootprint getAppFootprint(String publisher, CloudApp app) throws Exception {
         final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app.getUuid() + EP_FOOTPRINT);
         return fromJson(restResponse.json, AppFootprint.class);
@@ -141,4 +149,5 @@ public class AppStoreApiClient extends ApiClientBase {
         if (path.endsWith("/bundle")) return ".tar.gz";
         return super.getTempFileSuffix(path, contentType);
     }
+
 }
