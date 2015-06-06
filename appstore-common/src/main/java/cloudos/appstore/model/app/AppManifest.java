@@ -11,14 +11,17 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 import org.cobbzilla.util.collection.ArrayUtil;
-import org.cobbzilla.util.io.FileUtil;
-import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
+import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 
 /**
  * The AppManifest defines everything about a CloudOs app. Things like:
@@ -36,10 +39,11 @@ public class AppManifest {
     public static final String CLOUDOS_MANIFEST_JSON = CLOUDOS_MANIFEST + ".json";
     public static final String PLUGIN_JAR = "plugin.jar";
     public static final String ROOT_HOSTNAME = "_root_";
+    public static final String DEFAULT_LOCALE = "_default_locale_";
 
     public static AppManifest load(File file) {
         final File manifestFile = file.isDirectory() ? new File(file, AppManifest.CLOUDOS_MANIFEST_JSON) : file;
-        return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(manifestFile), AppManifest.class);
+        return fromJsonOrDie(toStringOrDie(manifestFile), AppManifest.class);
     }
 
     @Getter @Setter private String name;

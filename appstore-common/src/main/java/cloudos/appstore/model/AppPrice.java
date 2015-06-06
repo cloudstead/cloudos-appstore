@@ -16,6 +16,7 @@ import java.util.Currency;
 import java.util.Locale;
 
 import static cloudos.appstore.ValidationConstants.*;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.UUID_MAXLEN;
 
 @Entity
@@ -24,7 +25,7 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.UUID_MAXLEN;
 @Accessors(chain=true)
 public class AppPrice extends IdentifiableBase {
 
-    public AppPrice(AppPrice other) { ReflectionUtil.copy(this, other); }
+    public AppPrice(AppPrice other) { copy(this, other); }
 
     @HasValue(message=ERR_APP_PRICE_APP_UUID_EMPTY)
     @Size(max=UUID_MAXLEN, message=ERR_FOOTPRINT_APP_UUID_LENGTH)

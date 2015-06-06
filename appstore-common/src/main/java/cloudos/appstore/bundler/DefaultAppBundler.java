@@ -1,5 +1,6 @@
 package cloudos.appstore.bundler;
 
+import cloudos.appstore.model.AppMutableData;
 import cloudos.appstore.model.app.*;
 import cloudos.appstore.model.app.config.AppConfigMetadata;
 import cloudos.appstore.model.app.config.AppConfigTranslationsDatabag;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
 
@@ -376,10 +378,36 @@ public class DefaultAppBundler implements AppBundler {
                 }
             }
 
-            // If translations are defined, ensure they are parseable
+            // If this is the default translations, fill in any empty values in the manifest
+            final File defaultTranslations = new File(configDir, AppConfigTranslationsDatabag.TRANSLATIONS_JSON);
+            if (defaultTranslations.exists()) {
+                AppConfigTranslationsDatabag translations = AppConfigTranslationsDatabag.loadOrDie(defaultTranslations);
+                if (manifest.hasAssets()) {
+                    ReflectionUtil.copy(manifest.getAssets(), translations.getAssets());
+                } else {
+                    manifest.setAssets(translations.getAssets());
+                }
+            }
+
+            // If translations are defined, ensure they are parseable and copy default assets if any
             for (File f : FileUtil.list(configDir)) {
-                if (f.getName().startsWith("translations") && f.getName().endsWith(".json")) {
-                    try { AppConfigTranslationsDatabag.loadOrDie(f); } catch (Exception e) {
+                if (AppConfigTranslationsDatabag.isDefaultTranslationFile(f)) {
+                    // already handled this special case above
+                    continue;
+                }
+                if (AppConfigTranslationsDatabag.isTranslationFile(f)) {
+                    try {
+                        final AppConfigTranslationsDatabag translations = AppConfigTranslationsDatabag.loadOrDie(f);
+                        // If the app includes default assets, copy to any fields missing from the translations
+                        if (manifest.hasAssets()) {
+                            final AppMutableData merged = new AppMutableData(manifest.getAssets());
+                            if (ReflectionUtil.copy(merged, translations.getAssets()) > 0) {
+                                translations.setAssets(merged);
+                                translations.save(f);
+                            }
+                        }
+
+                    } catch (Exception e) {
                         die("Invalid translations file " + abs(f) + ": " + e, e);
                     }
                 }

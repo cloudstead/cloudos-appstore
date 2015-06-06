@@ -30,9 +30,16 @@ public class AppStoreQuery extends ResultPage {
         setType(type);
     }
 
+    @Getter @Setter String appName;
+    @JsonIgnore public boolean hasAppName () { return !empty(appName); }
+
     @Getter @Setter AppStoreObjectType type;
     @JsonIgnore public boolean hasType () { return !empty(type); }
 
     @Getter @Setter private AppLevel level = AppLevel.app;
     @JsonIgnore public boolean hasLevel () { return !empty(level); }
+
+    // for anonymous queries where we can't get the locale from the account
+    @Getter @Setter private String locale = null;
+    @JsonIgnore public boolean hasLocale () { return !empty(locale); }
 }

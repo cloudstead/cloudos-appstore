@@ -1,12 +1,14 @@
 package cloudos.appstore.model.app;
 
 import cloudos.appstore.model.AppMutableData;
+import cloudos.appstore.model.app.config.AppConfigTranslationsDatabag;
 import cloudos.databag.PortsDatabag;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
@@ -16,9 +18,9 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.*;
 
-import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.io.FileUtil.toFileOrDie;
+import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
 @ToString @Slf4j
 public class AppLayout {
@@ -125,9 +127,10 @@ public class AppLayout {
     public File getDatabagsDir() { return new File(getChefDir(), ChefSolo.DATABAGS_DIR); }
 
     public File getDatabagDirForApp(String appName) { return new File(getDatabagsDir(), appName); }
+    public File getDatabagDirForApp() { return getDatabagDirForApp(appName); }
 
     public File getDatabagFile(String databagName) {
-        return new File(getDatabagDirForApp(appName), databagName+".json");
+        return new File(getDatabagDirForApp(), databagName+".json");
     }
 
     // versionDir/chef/cookbooks
@@ -199,4 +202,32 @@ public class AppLayout {
         return true;
     }
 
+    public boolean copyTranslations (AppLayout destLayout) {
+        final File destDatabagsDir = mkdirOrDie(destLayout.getDatabagDirForApp());
+        for (File f : listFiles(getDatabagDirForApp())) {
+            if (AppConfigTranslationsDatabag.isTranslationFile(f)) {
+                final File dest = new File(destDatabagsDir, f.getName());
+                try {
+                    FileUtils.copyFile(f, dest);
+                } catch (Exception e) {
+                    log.error("copyTranslations: "+e, e);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public void localizeAssets(AppManifest manifest, String locale) {
+        if (AppManifest.DEFAULT_LOCALE.equals(locale)) locale = null;
+        final AppConfigTranslationsDatabag translations = AppConfigTranslationsDatabag.load(getDatabagDirForApp(), locale);
+        if (translations == null) return;
+
+        // Start with defaults, or blank
+        final AppMutableData assets = manifest.hasAssets() ? new AppMutableData(manifest.getAssets()) : new AppMutableData();
+
+        // Overwrite with locale-specific translations
+        copy(assets, translations.getAssets());
+        manifest.setAssets(assets);
+    }
 }

@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
@@ -18,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
 @NoArgsConstructor @Accessors(chain=true) @Slf4j
 public class AppListing {
@@ -34,10 +34,10 @@ public class AppListing {
         @Override public String getName() { return "unpublished"; }
     };
 
-    public AppListing(AppListing other) { ReflectionUtil.copy(this, other); }
+    public AppListing(AppListing other) { copy(this, other); }
 
     public AppListing(AppListing other, CloudAppVersion appVersion, AppManifest manifest) {
-        ReflectionUtil.copy(this, other);
+        copy(this, other);
         getPrivateData().setVersion(appVersion);
         getPrivateData().setManifest(manifest);
     }
@@ -59,6 +59,9 @@ public class AppListing {
     public AppVisibility getVisibility () { return ensureApp().getVisibility(); }
     public void setVisibility (AppVisibility visibility) { ensureApp().setVisibility(visibility); }
 
+    public AppMutableData getAssets() { return ensureManifest().getAssets(); }
+    public void setAssets (AppMutableData assets) { ensureManifest().setAssets(assets); }
+
     public AppLevel getLevel () { return ensureApp().getLevel(); }
     public void setLevel (AppLevel level) { ensureApp().setLevel(level); }
 
@@ -67,9 +70,6 @@ public class AppListing {
 
     public boolean isInteractive () { return ensureManifest().isInteractive(); }
     public void setInteractive (boolean i) { ensureManifest().setInteractive(i); }
-
-    public AppMutableData getData () { return ensureManifest().getAssets(); }
-    public void setData (AppMutableData data) { ensureManifest().setAssets(data); }
 
     public String getBundleUrlSha() { return ensureVersion().getBundleSha(); }
     public void setBundleUrlSha (String sha) { ensureVersion().setBundleSha(sha); }
@@ -138,8 +138,13 @@ public class AppListing {
 
     public static boolean matches(AppStoreQuery query, AppListing listing) {
 
+        // must be at the right level
         if (query.hasLevel() && listing.getLevel() != query.getLevel()) return false;
 
+        // is the query for an exact match on app name?
+        if (query.hasAppName() && !listing.getName().equals(query.getAppName())) return false;
+
+        // check for strings that match the filter query
         final String filter = query.getFilter();
         if (empty(filter)) return true;
 
@@ -194,7 +199,7 @@ public class AppListing {
         filter = filter.toLowerCase();
         try {
             final CloudApp app = listing.getPrivateData().getApp();
-            final AppMutableData assets = listing.getData();
+            final AppMutableData assets = listing.getAssets();
             return app.getName().toLowerCase().contains(filter)
                     || (assets != null && (assets.getBlurb().toLowerCase().contains(filter) || assets.getDescription().toLowerCase().contains(filter)));
         } catch (Exception e) {

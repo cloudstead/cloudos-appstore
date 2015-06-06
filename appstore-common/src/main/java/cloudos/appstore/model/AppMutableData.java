@@ -3,6 +3,7 @@ package cloudos.appstore.model;
 import cloudos.appstore.model.app.AppLayout;
 import cloudos.appstore.model.app.AppManifest;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.isReadableNonEmptyFile;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.HASHEDPASSWORD_MAXLEN;
 import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
 
@@ -34,10 +36,12 @@ import static org.cobbzilla.wizard.model.BasicConstraintConstants.URL_MAXLEN;
  * Data that can change within a CloudAppVersion that is marked LIVE
  * Changes are limited because PublishedApps may refer to these versions
  */
-@Embeddable @Accessors(chain=true) @Slf4j
+@Embeddable @NoArgsConstructor @Accessors(chain=true) @Slf4j
 public class AppMutableData {
 
     public static final String[] APP_ASSETS = {"taskbarIcon", "smallIcon", "largeIcon"};
+
+    public AppMutableData (AppMutableData other) { copy(this, other); }
 
     @HasValue(message=ERR_APP_BLURB_EMPTY)
     @Size(max=APP_BLURB_MAXLEN, message=ERR_APP_BLURB_LENGTH)

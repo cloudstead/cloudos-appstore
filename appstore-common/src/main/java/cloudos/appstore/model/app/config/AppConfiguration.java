@@ -132,7 +132,7 @@ public class AppConfiguration {
 
         // attach translations if found
         final AppConfigMetadata metadata = config.getMetadata();
-        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale, metadata));
+        config.setTranslations(AppConfigTranslationsDatabag.load(databagsDir, locale));
 
         // if the metadata has locale fields, populate choices if we can
         final Map<String, Map<String, AppConfigMetadataDatabagField>> localeFields
