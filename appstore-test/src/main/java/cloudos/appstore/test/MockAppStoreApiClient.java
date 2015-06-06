@@ -68,8 +68,14 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
 
         listing = new AppListing();
         listing.getPrivateData()
-                .setPublisher((AppStorePublisher) new AppStorePublisher().setName(publisherName));
+                .setPublisher(quickPublisherView(publisherName));
         return listing;
+    }
+
+    protected AppStorePublisher.PublicView quickPublisherView(String publisherName) {
+        final AppStorePublisher publisher = new AppStorePublisher();
+        publisher.setName(publisherName);
+        return publisher.publicView();
     }
 
     @Override
@@ -202,8 +208,8 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
                     .setBundleUrl(webServer.getBundleUrl(manifest));
 
             listing.getPrivateData()
-                    .setPublisher((AppStorePublisher) new AppStorePublisher().setName(publisher))
-                    .setAuthor(buildAccount(cloudApp))
+                    .setPublisher(quickPublisherView(publisher))
+                    .setAuthor(buildAccount(cloudApp).publicView())
                     .setApp(cloudApp)
                     .setVersion(appVersion);
             appListings.put(app, listing);
@@ -212,10 +218,11 @@ public class MockAppStoreApiClient extends AppStoreApiClient {
     }
 
     protected AppStoreAccount buildAccount(MockCloudApp cloudApp) {
-        return (AppStoreAccount) new AppStoreAccount()
+        final AppStoreAccount account = (AppStoreAccount) new AppStoreAccount()
                 .setFirstName(animal())
                 .setLastName(animal())
                 .setName(cloudApp.getAuthor());
+        return account;
     }
 
     @Override

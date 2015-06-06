@@ -10,10 +10,11 @@ require 'digest/sha1'
 
 class Chef::Recipe::{{app.chefName}}
 
-    def self.define_app (chef)
+    def self.define_app (chef, mode = :install)
         base = Chef::Recipe::Base
         app = {
             :lib => self,
+            :mode => mode,
             :name => '{{app.name}}',
             :path => '{{app.path}}',
             :hostname => %x(hostname).strip,

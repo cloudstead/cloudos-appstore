@@ -30,8 +30,14 @@ public class AppStoreQuery extends ResultPage {
         setType(type);
     }
 
-    @Getter @Setter String appName;
-    @JsonIgnore public boolean hasAppName () { return !empty(appName); }
+    @Getter @Setter String publisher;
+    @JsonIgnore public boolean hasPublisher () { return !empty(publisher); }
+
+    @Getter @Setter String app;
+    @JsonIgnore public boolean hasApp () { return !empty(app); }
+
+    @Getter @Setter String version;
+    @JsonIgnore public boolean hasVersion () { return !empty(version); }
 
     @Getter @Setter AppStoreObjectType type;
     @JsonIgnore public boolean hasType () { return !empty(type); }

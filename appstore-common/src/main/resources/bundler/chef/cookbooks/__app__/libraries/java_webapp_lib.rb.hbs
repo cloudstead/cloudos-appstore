@@ -8,8 +8,10 @@
 class Chef::Recipe::{{app.chefName}}
 
     def self.init (chef, app)
-        chef.package 'openjdk-7-jre-headless' do
-            action :install
+        unless app[:mode] == :uninstall
+            chef.package 'openjdk-7-jre-headless' do
+                action :install
+            end
         end
     end
 

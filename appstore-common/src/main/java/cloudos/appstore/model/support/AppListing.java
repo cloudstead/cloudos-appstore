@@ -96,16 +96,16 @@ public class AppListing {
 
     @Accessors(chain=true)
     public class ListingPrivateData {
-        @Getter @Setter private AppStorePublisher publisher;
+        @Getter @Setter private AppStorePublisher.PublicView publisher;
         @Getter @Setter private CloudApp app;
         @Getter @Setter private CloudAppVersion version;
-        @Getter @Setter private AppStoreAccount author;
-        @Getter @Setter private AppStoreAccount approvedBy;
+        @Getter @Setter private AppStoreAccount.PublicView author;
+        @Getter @Setter private AppStoreAccount.PublicView approvedBy;
         @Getter @Setter private AppManifest manifest;
     }
 
-    protected AppStorePublisher ensurePublisher() {
-        if (empty(privateData.publisher)) privateData.publisher = new AppStorePublisher();
+    protected AppStorePublisher.PublicView ensurePublisher() {
+        if (empty(privateData.publisher)) privateData.publisher = new AppStorePublisher.PublicView();
         return privateData.publisher;
     }
 
@@ -119,13 +119,13 @@ public class AppListing {
         return privateData.version;
     }
 
-    protected AppStoreAccount ensureAuthor() {
-        if (empty(privateData.author)) privateData.author = new AppStoreAccount();
+    protected AppStoreAccount.PublicView ensureAuthor() {
+        if (empty(privateData.author)) privateData.author = new AppStoreAccount.PublicView();
         return privateData.author;
     }
 
-    protected AppStoreAccount ensureApprovedBy() {
-        if (empty(privateData.approvedBy)) privateData.approvedBy = new AppStoreAccount();
+    protected AppStoreAccount.PublicView ensureApprovedBy() {
+        if (empty(privateData.approvedBy)) privateData.approvedBy = new AppStoreAccount.PublicView();
         return privateData.approvedBy;
     }
 
@@ -141,8 +141,11 @@ public class AppListing {
         // must be at the right level
         if (query.hasLevel() && listing.getLevel() != query.getLevel()) return false;
 
+        // is the query for an exact match on publisher?
+        if (query.hasPublisher() && !listing.getPublisher().equals(query.getPublisher())) return false;
+
         // is the query for an exact match on app name?
-        if (query.hasAppName() && !listing.getName().equals(query.getAppName())) return false;
+        if (query.hasApp() && !listing.getName().equals(query.getApp())) return false;
 
         // check for strings that match the filter query
         final String filter = query.getFilter();
@@ -173,7 +176,7 @@ public class AppListing {
     public static boolean matchesAccount(String filter, AppListing listing) {
         filter = filter.toLowerCase();
         try {
-            final AppStoreAccount author = listing.getPrivateData().getAuthor();
+            final AppStoreAccount.PublicView author = listing.getPrivateData().getAuthor();
             return author.getFirstName().toLowerCase().contains(filter)
                     || author.getLastName().toLowerCase().contains(filter)
                     || author.getFullName().toLowerCase().contains(filter)
@@ -187,7 +190,7 @@ public class AppListing {
     public static boolean matchesPublisher(String filter, AppListing listing) {
         filter = filter.toLowerCase();
         try {
-            final AppStorePublisher publisher = listing.getPrivateData().getPublisher();
+            final AppStorePublisher.PublicView publisher = listing.getPrivateData().getPublisher();
             return publisher.getName().toLowerCase().contains(filter);
         } catch (Exception e) {
             log.warn("matchesAccount error: "+e);

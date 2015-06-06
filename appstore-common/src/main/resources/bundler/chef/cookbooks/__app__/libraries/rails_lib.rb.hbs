@@ -28,10 +28,11 @@ class Chef::Recipe::{{app.chefName}}
 {{/unless}}
 {{/unless}}
 
-        %w( bundler rake foreman ).each do |gem|
-            chef.bash "install ruby gem for {{app.name}}: #{gem}" do
-                user 'root'
-                code <<-EOF
+        unless app[:mode] == :uninstall
+            %w( bundler rake foreman ).each do |gem|
+                chef.bash "install ruby gem for {{app.name}}: #{gem}" do
+                    user 'root'
+                    code <<-EOF
 success=0
 for i in 1 2 3 ; do
     gem install #{gem} --no-ri --no-rdoc
@@ -44,7 +45,9 @@ if [ ${success} -ne 1 ] ; then
     echo "gem install #{gem} failed for {{app.name}}"
     exit 1
 fi
-                EOF
+
+EOF
+                end
             end
         end
     end
@@ -59,10 +62,11 @@ fi
         rails_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
         base = Chef::Recipe::Base
 
-        chef.bash "install gems required by {{app.name}} in #{rails_dir}" do
-          user app[:run_as]
-          cwd rails_dir
-          code <<-EOF
+        unless app[:mode] == :uninstall
+            chef.bash "install gems required by {{app.name}} in #{rails_dir}" do
+              user app[:run_as]
+              cwd rails_dir
+              code <<-EOF
 success=0
 for i in 1 2 3 ; do
   bundle install --path vendor/bundle
@@ -82,12 +86,13 @@ echo "
 RAILS_ENV=production
 LDAP_PASSWORD=#{base.password 'ldap'}
 " > #{rails_dir}/.env
-          EOF
-        end
 
-        chef.bash 'ensure gems for {{app.name}} are readable' do
-          user 'root'
-          code <<-EOF
+EOF
+            end
+
+            chef.bash 'ensure gems for {{app.name}} are readable' do
+              user 'root'
+              code <<-EOF
 
 for dir in $(find /var/lib/gems -type d) ; do
   chmod a+rx "${dir}"
@@ -96,9 +101,10 @@ done
 for file in $(find /var/lib/gems -type f) ; do
   chmod a+r "${file}"
 done
-          EOF
-        end
 
+EOF
+            end
+        end
     end
 
 end

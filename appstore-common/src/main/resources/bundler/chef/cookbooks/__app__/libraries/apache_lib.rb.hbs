@@ -121,7 +121,7 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.apache_uninstall (chef, app)
         apache_lib = Chef::Recipe::Apache
-        apache_lib.uninstall_app chef, app, get_config(app)
+        apache_lib.uninstall_app chef, app[:name], get_config(app)
         apache_reload chef, "uninstalled #{app[:name]}"
     end
 

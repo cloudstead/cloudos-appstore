@@ -15,7 +15,7 @@ include_recipe '{{app.web.type}}::default'
 {{/if}}
 
 app_lib = Chef::Recipe::{{app.chefName}}
-app = app_lib.define_app self
+app = app_lib.define_app self, :uninstall
 
 # todo: remove packages
 # requires that we scan all other active manifests (and possibly recipes)
@@ -36,7 +36,7 @@ to_delete = []
 app[:services].each do |service|
     app_lib.stop_service self, app, service
     to_delete << "/etc/init.d/#{service[:service_name]}"
-done
+end
 
 {{#if app.parent}}
 # Do not remove home and doc_root for child apps if they are the parent dir (which is default behavior)
@@ -145,7 +145,6 @@ unless to_delete.empty?
     bash "deleting {{app.name}} files: #{to_delete}" do
         user 'root'
         code <<-EOF
-
 # Could be a lot of files, use xargs + heredoc to avoid any limits on command line length
 xargs rm -rf <<-DEL
 #{to_delete}

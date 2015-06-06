@@ -120,6 +120,11 @@ public class AppStoreApiClient extends ApiClientBase {
         return fromJson(restResponse.json, AppListing.class);
     }
 
+    public AppListing findAppListing(String publisher, String name, String version) throws Exception {
+        final RestResponse restResponse = get(APPSTORE_ENDPOINT + "/" + publisher + "/" + name + "/" + version);
+        return fromJson(restResponse.json, AppListing.class);
+    }
+
     public CloudAppVersion updateAppStatus(String publisher, String app, String version, CloudAppStatus status) throws Exception {
         final RestResponse restResponse = post(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version + "/status", toJson(status));
         return fromJson(restResponse.json, CloudAppVersion.class);

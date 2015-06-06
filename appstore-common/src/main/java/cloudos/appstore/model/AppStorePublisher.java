@@ -1,6 +1,7 @@
 package cloudos.appstore.model;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.cobbzilla.wizard.model.BasicConstraintConstants;
@@ -14,12 +15,11 @@ import javax.validation.constraints.Size;
 
 import static cloudos.appstore.ValidationConstants.*;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
 @Entity @Accessors(chain=true)
 @IsUnique(unique="name", daoBean="appStorePublisherDAO", message="{err.name.notUnique}")
 public class AppStorePublisher extends UniquelyNamedEntity {
-
-    public static final String[] PUBLIC_FIELDS = {"name"};
 
     @HasValue(message=ERR_OWNER_UUID_EMPTY)
     @Size(max=BasicConstraintConstants.UUID_MAXLEN, message=ERR_OWNER_UUID_LENGTH)
@@ -34,4 +34,11 @@ public class AppStorePublisher extends UniquelyNamedEntity {
         if (getUuid() == null) die("uuid not initialized");
     }
 
+    public PublicView publicView() { return new PublicView(this); }
+
+    @NoArgsConstructor
+    public static class PublicView {
+        @Getter @Setter public String name;
+        public PublicView(AppStorePublisher other) { copy(this, other); }
+    }
 }
