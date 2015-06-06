@@ -161,6 +161,10 @@ public class AppLayout {
     }
 
     public File findLocalAsset(String asset) {
+
+        // if they're looking for the bundle...
+        if (asset.startsWith("bundle")) return getBundleFile();
+
         // strip file extension if given
         int lastDot = asset.lastIndexOf('.');
         if (lastDot != -1) asset = asset.substring(0, lastDot);
