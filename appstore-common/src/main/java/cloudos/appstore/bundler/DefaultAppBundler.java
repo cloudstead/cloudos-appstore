@@ -1,6 +1,5 @@
 package cloudos.appstore.bundler;
 
-import cloudos.appstore.model.AppMutableData;
 import cloudos.appstore.model.app.*;
 import cloudos.appstore.model.app.config.AppConfigMetadata;
 import cloudos.appstore.model.app.config.AppConfigTranslationsDatabag;
@@ -389,24 +388,11 @@ public class DefaultAppBundler implements AppBundler {
                 }
             }
 
-            // If translations are defined, ensure they are parseable and copy default assets if any
+            // If translations are defined, ensure they are parseable
             for (File f : FileUtil.list(configDir)) {
-                if (AppConfigTranslationsDatabag.isDefaultTranslationFile(f)) {
-                    // already handled this special case above
-                    continue;
-                }
                 if (AppConfigTranslationsDatabag.isTranslationFile(f)) {
                     try {
-                        final AppConfigTranslationsDatabag translations = AppConfigTranslationsDatabag.loadOrDie(f);
-                        // If the app includes default assets, copy to any fields missing from the translations
-                        if (manifest.hasAssets()) {
-                            final AppMutableData merged = new AppMutableData(manifest.getAssets());
-                            if (ReflectionUtil.copy(merged, translations.getAssets()) > 0) {
-                                translations.setAssets(merged);
-                                translations.save(f);
-                            }
-                        }
-
+                        AppConfigTranslationsDatabag.loadOrDie(f);
                     } catch (Exception e) {
                         die("Invalid translations file " + abs(f) + ": " + e, e);
                     }
