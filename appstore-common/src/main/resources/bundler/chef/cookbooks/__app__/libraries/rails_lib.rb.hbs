@@ -45,7 +45,9 @@ if [ ${success} -ne 1 ] ; then
     echo "gem install #{gem} failed for {{app.name}}"
     exit 1
 fi
-
+# Ensure binaries are reachable by all users
+find /var/lib/gems -type d | xargs chmod a+rx
+find $(find /var/lib/gems -type d -name bin) -type f | xargs chmod a+rx
 EOF
                 end
             end

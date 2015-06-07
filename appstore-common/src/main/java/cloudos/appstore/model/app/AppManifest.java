@@ -14,9 +14,7 @@ import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
@@ -173,13 +171,6 @@ public class AppManifest {
 
     @Getter @Setter private AppBackupConfig backup = new AppBackupConfig();
     @Getter @Setter private AppRestoreConfig restore = new AppRestoreConfig();
-
-    @JsonIgnore
-    public List<String> getChefInstallRunlist () {
-        final List<String> defaultRunlist = new ArrayList<>();
-        defaultRunlist.add("recipe["+name+"]");
-        return defaultRunlist;
-    }
 
     @Setter private String path;
 
