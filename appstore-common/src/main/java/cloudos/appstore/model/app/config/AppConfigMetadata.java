@@ -3,7 +3,6 @@ package cloudos.appstore.model.app.config;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 
 import java.io.File;
@@ -41,7 +40,7 @@ public class AppConfigMetadata {
     }
 
     public static AppConfigMetadata loadOrDie(File metadataFile) throws Exception {
-        return JsonUtil.fromJson(FileUtil.toString(metadataFile), AppConfigMetadata.class);
+        return JsonUtil.fromJson(metadataFile, AppConfigMetadata.class);
     }
 
     public boolean hasPasswords() {

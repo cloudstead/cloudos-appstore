@@ -4,7 +4,6 @@ import cloudos.appstore.model.AppMutableData;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.string.LocaleUtil;
 
@@ -45,7 +44,7 @@ public class AppConfigTranslationsDatabag {
         final File translationsFile = LocaleUtil.findLocaleFile(new File(databagsDir, TRANSLATIONS_JSON), locale);
         try {
             return (translationsFile != null && translationsFile.exists())
-                    ? JsonUtil.fromJson(FileUtil.toString(translationsFile), AppConfigTranslationsDatabag.class)
+                    ? JsonUtil.fromJson(translationsFile, AppConfigTranslationsDatabag.class)
                     : null;
         } catch (Exception e) {
             log.error("Error reading "+abs(translationsFile)+" (returning null): "+e, e);

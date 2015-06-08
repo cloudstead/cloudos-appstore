@@ -75,4 +75,6 @@ public class CloudAppVersion extends IdentifiableBase {
         this(name, version.toString());
     }
 
+    @Override public String toString() { return app + "/" + version; }
+
 }

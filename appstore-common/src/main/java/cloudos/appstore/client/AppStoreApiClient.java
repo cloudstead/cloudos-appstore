@@ -4,6 +4,7 @@ import cloudos.appstore.model.*;
 import cloudos.appstore.model.support.*;
 import org.apache.http.client.HttpClient;
 import org.cobbzilla.util.http.ApiConnectionInfo;
+import org.cobbzilla.util.http.HttpStatusCodes;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.dao.SearchResults;
@@ -12,6 +13,7 @@ import org.cobbzilla.wizard.util.RestResponse;
 import java.io.File;
 
 import static cloudos.appstore.ApiConstants.*;
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
@@ -34,6 +36,10 @@ public class AppStoreApiClient extends ApiClientBase {
         final ApiToken token = fromJson(restResponse.json, ApiToken.class);
         setToken(token.getToken());
         return token;
+    }
+
+    public ApiToken login () throws Exception {
+        return refreshToken(connectionInfo.getUser(), connectionInfo.getPassword());
     }
 
     public ApiToken refreshToken () throws Exception {
@@ -78,8 +84,13 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public CloudApp findApp(String publisherName, String name) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisherName + "/" + name);
-        return fromJson(restResponse.json, CloudApp.class);
+        final RestResponse restResponse = doGet(APPS_ENDPOINT + "/" + publisherName + "/" + name);
+        if (restResponse.status == HttpStatusCodes.NOT_FOUND) return null;
+        if (restResponse.isSuccess()) {
+            return fromJson(restResponse.json, CloudApp.class);
+        } else {
+            return die("findApp: "+restResponse);
+        }
     }
 
     public void deleteVersion(String pubName, String appName, String version) throws Exception {
@@ -127,6 +138,11 @@ public class AppStoreApiClient extends ApiClientBase {
 
     public CloudAppVersion updateAppStatus(String publisher, String app, String version, CloudAppStatus status) throws Exception {
         final RestResponse restResponse = post(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version + "/status", toJson(status));
+        return fromJson(restResponse.json, CloudAppVersion.class);
+    }
+
+    public CloudAppVersion updateAppAttribute(String publisher, String app, String attribute, String value) throws Exception {
+        final RestResponse restResponse = post(APPS_ENDPOINT + "/" + publisher + "/" + app + "/attributes/" + attribute, toJson(value));
         return fromJson(restResponse.json, CloudAppVersion.class);
     }
 

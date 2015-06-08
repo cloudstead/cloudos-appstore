@@ -1,8 +1,13 @@
 package cloudos.appstore.bundler;
 
+import cloudos.appstore.client.AppStoreApiClient;
+import cloudos.appstore.model.CloudApp;
+import cloudos.appstore.model.CloudAppStatus;
+import cloudos.appstore.model.CloudAppVersion;
 import cloudos.appstore.model.app.*;
 import cloudos.appstore.model.app.config.AppConfigMetadata;
 import cloudos.appstore.model.app.config.AppConfigTranslationsDatabag;
+import cloudos.appstore.model.support.DefineCloudAppRequest;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
@@ -12,8 +17,10 @@ import com.github.jknack.handlebars.io.TemplateLoader;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
-import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.util.io.Tarball;
 import org.cobbzilla.util.reflect.ReflectionUtil;
+import org.cobbzilla.util.security.ShaUtil;
+import org.cobbzilla.util.string.Base64;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
 
@@ -27,8 +34,10 @@ import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.abs;
+import static org.cobbzilla.util.io.FileUtil.list;
 import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
+import static org.cobbzilla.util.json.JsonUtil.toJson;
 import static org.cobbzilla.util.string.StringUtil.replaceLast;
 import static org.cobbzilla.util.system.CommandShell.execScript;
 
@@ -51,8 +60,9 @@ public class DefaultAppBundler implements AppBundler {
 
         validate(options, manifest);
 
-        final File outputDir = mkdirOrDie(options.getOutputDir());
-        final String outputBase = abs(outputDir) + "/";
+        final File buildDir = options.getBuildDir();
+        final String buildBase = options.getBuildBase();
+
         final String name = manifest.getName();
         final AppStyle style = manifest.getStyle();
         final String styleName = style.name().toLowerCase();
@@ -63,9 +73,9 @@ public class DefaultAppBundler implements AppBundler {
         final File pluginJar = buildPlugin(options, manifest);
         if (pluginJar != null) {
             final String filesPath = "/chef/cookbooks/" + name + "/files/default";
-            final File filesDir = new File(abs(outputDir) + filesPath);
+            final File filesDir = new File(abs(buildDir) + filesPath);
             mkdirOrDie(filesDir);
-            FileUtils.copyFile(pluginJar, new File(abs(outputDir) + filesPath + "/" + AppManifest.PLUGIN_JAR));
+            FileUtils.copyFile(pluginJar, new File(abs(buildDir) + filesPath + "/" + AppManifest.PLUGIN_JAR));
         }
 
         final Map<String, Object> scope = new HashMap<>();
@@ -125,10 +135,10 @@ public class DefaultAppBundler implements AppBundler {
             if (manifest.hasUserManagement()) {
                 final AppUserManagement userMgmt = manifest.getAuth().getUser_management();
                 templates.add(CHEF_TEMPLATES + "rooty_handler.yml.erb");
-                copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getExists()));
-                copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getCreate()));
-                copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getDelete()));
-                copyToTemplates(outputBase, name, baseDir, basename(userMgmt.getChange_password()));
+                copyToTemplates(buildBase, name, baseDir, basename(userMgmt.getExists()));
+                copyToTemplates(buildBase, name, baseDir, basename(userMgmt.getCreate()));
+                copyToTemplates(buildBase, name, baseDir, basename(userMgmt.getDelete()));
+                copyToTemplates(buildBase, name, baseDir, basename(userMgmt.getChange_password()));
             }
 
             if (manifest.hasWeb()) {
@@ -142,7 +152,7 @@ public class DefaultAppBundler implements AppBundler {
 
                     final File vhostFile = new File(baseDir + "templates/apache_vhost.conf.erb");
                     if (vhostFile.exists()) {
-                        copyToTemplates(outputBase, name, baseDir, vhostFile.getName());
+                        copyToTemplates(buildBase, name, baseDir, vhostFile.getName());
                     }
 
                     final AppWebApache apache = manifest.getWeb().getApache();
@@ -150,7 +160,7 @@ public class DefaultAppBundler implements AppBundler {
                         if (apache.hasDir()) {
                             for (String dir : apache.getDir()) {
                                 final String dirFile = "apache_dir_" + dir.replace("@doc_root", "doc_root").replace("/", "_") + ".conf.erb";
-                                copyToTemplates(outputBase, name, baseDir, dirFile);
+                                copyToTemplates(buildBase, name, baseDir, dirFile);
                             }
                         }
                         if (apache.hasLocation()) {
@@ -158,18 +168,18 @@ public class DefaultAppBundler implements AppBundler {
                                 if (loc.isEmpty() || loc.equals("/")) loc = "root";
                                 else if (loc.startsWith("/")) loc = "root_" + loc.substring(1);
                                 final String locFile = "apache_location_" + loc.replace("/", "_") + ".conf.erb";
-                                copyToTemplates(outputBase, name, baseDir, locFile);
+                                copyToTemplates(buildBase, name, baseDir, locFile);
                             }
                         }
                         if (apache.hasHtaccess()) {
                             for (String htaccess : apache.getHtaccess()) {
                                 final String htaccessFile = "apache_htaccess_" + htaccess.replace("@doc_root", "doc_root").replace("/", "_") + ".conf.erb";
-                                copyToTemplates(outputBase, name, baseDir, htaccessFile);
+                                copyToTemplates(buildBase, name, baseDir, htaccessFile);
                             }
                         }
                         if (apache.hasMixins()) {
                             for (String mixin : apache.getMixins()) {
-                                copyToTemplates(outputBase, name, baseDir, mixin + ".erb");
+                                copyToTemplates(buildBase, name, baseDir, mixin + ".erb");
                             }
                         }
                     }
@@ -192,14 +202,14 @@ public class DefaultAppBundler implements AppBundler {
         final String libName = name + "_lib.rb";
         final File libraryFile = new File(baseDir + "libraries/" + libName);
         if (libraryFile.exists()) {
-            FileUtils.copyFile(libraryFile, outputFile(outputBase, CHEF_LIBRARIES, name, libName));
+            FileUtils.copyFile(libraryFile, outputFile(buildBase, CHEF_LIBRARIES, name, libName));
         }
 
         final Handlebars handlebars = getHandlebars();
         for (String template : templates) {
             final Template hbs = handlebars.compile(template);
             final String path = template.replace(APP, name).replace("/", File.separator);
-            final File file = new File(outputBase + File.separator + path);
+            final File file = new File(buildBase + File.separator + path);
             mkdirOrDie(file.getParentFile());
 
             try (Writer w = new FileWriter(file)) {
@@ -211,13 +221,16 @@ public class DefaultAppBundler implements AppBundler {
             manifest.addLogrotate("@repo/log/*.log");
         }
 
-        final File manifestFile = new File(outputDir, CLOUDOS_MANIFEST_JSON);
-        FileUtil.toFile(manifestFile, JsonUtil.toJson(manifest));
+        final File manifestFile = new File(buildDir, CLOUDOS_MANIFEST_JSON);
+        FileUtil.toFile(manifestFile, toJson(manifest));
 
         // Put a copy of the manifest under data_bags
-        final File manifestCopy = outputFile(outputBase, CHEF_DATABAGS, name, CLOUDOS_MANIFEST_JSON);
+        final File manifestCopy = outputFile(buildBase, CHEF_DATABAGS, name, CLOUDOS_MANIFEST_JSON);
         mkdirOrDie(manifestCopy.getParentFile());
         FileUtils.copyFile(manifestFile, manifestCopy);
+
+        // Now ready to roll the bundle
+        finalizeBundle(manifest, options);
     }
 
     private File buildPlugin(BundlerOptions options, AppManifest manifest) {
@@ -355,19 +368,17 @@ public class DefaultAppBundler implements AppBundler {
                     final AppConfigMetadata metadata = AppConfigMetadata.loadOrDie(configMetaFile);
                     if (metadata.hasPasswords()) {
 
-                        final File outputDir = mkdirOrDie(options.getOutputDir());
-                        final String outputBase = abs(outputDir) + "/";
+                        final String buildBase = options.getBuildBase();
 
-                        final File autogenPass = outputFile(outputBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
+                        final File autogenPass = outputFile(buildBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
                         FileUtil.toFile(autogenPass,
                                 loadResourceAsString("bundler/" + CHEF_FILES + "autogen_pass.sh"));
                         CommandShell.chmod(autogenPass, "u+rx");
                     }
                     if (metadata.hasLocaleFields()) {
-                        final File outputDir = mkdirOrDie(options.getOutputDir());
-                        final String outputBase = abs(outputDir) + "/";
+                        final String buildBase = options.getBuildBase();
 
-                        final File defaultLocaleNames = outputFile(outputBase, CHEF_DATABAGS, manifest.getName(), "default-locale-names.json");
+                        final File defaultLocaleNames = outputFile(buildBase, CHEF_DATABAGS, manifest.getName(), "default-locale-names.json");
                         FileUtil.toFile(defaultLocaleNames,
                                 loadResourceAsString("bundler/" + CHEF_DATABAGS + "default-locale-names.json"));
                     }
@@ -388,8 +399,8 @@ public class DefaultAppBundler implements AppBundler {
                 }
             }
 
-            // If translations are defined, ensure they are parseable
-            for (File f : FileUtil.list(configDir)) {
+            // If translations are defined, ensure they are parseable and copy default assets if any
+            for (File f : list(configDir)) {
                 if (AppConfigTranslationsDatabag.isTranslationFile(f)) {
                     try {
                         AppConfigTranslationsDatabag.loadOrDie(f);
@@ -405,14 +416,13 @@ public class DefaultAppBundler implements AppBundler {
 
         final String name = manifest.getName();
         final String baseDir = abs(options.getManifest().getParentFile()) + "/";
-        final File outputDir = options.getOutputDir();
-        final String outputBase = abs(outputDir) + "/";
+        final String buildBase = options.getBuildBase();
 
         final File localDir = new File(baseDir, assetType);
-        final File chefDir = FileUtil.mkdirOrDie(outputFile(outputBase, getChefDirName(assetType), name));
+        final File chefDir = FileUtil.mkdirOrDie(outputFile(buildBase, getChefDirName(assetType), name));
 
         if (localDir.exists()) {
-            final File[] files = FileUtil.list(localDir);
+            final File[] files = list(localDir);
             for (File f : files) {
                 final CommandResult rsync = CommandShell.exec("rsync -avc " + abs(f) + " " + abs(chefDir) + "/");
 
@@ -448,6 +458,62 @@ public class DefaultAppBundler implements AppBundler {
 
     protected File outputFile(String base, String path, String appName, String file) {
         return new File(base + path.replace(APP, appName) + file);
+    }
+
+    protected void finalizeBundle(AppManifest manifest, BundlerOptions options) {
+
+        // roll the tarball
+        final String appName = manifest.getName();
+        final File tarball = new File(options.getOutputDir(), appName +"-bundle.tar.gz");
+        try {
+            Tarball.roll(tarball, options.getBuildDir());
+            System.out.println("ARTIFACT: "+abs(tarball));
+        } catch (IOException e) {
+            die("Error creating bundle: "+e, e);
+        }
+
+        // should we talk to the app store?
+        if (options.shouldUpload()) {
+
+            final String publisher = options.getPublisherName();
+            final AppStoreApiClient apiClient = options.getAppStoreClient();
+            try {
+                apiClient.login();
+            } catch (Exception e) {
+                die("Cannot upload bundle to app store: error authenticating: "+e);
+            }
+
+            // Does this app already exist?
+            try {
+                final CloudApp existingApp = apiClient.findApp(publisher, appName);
+                if (existingApp != null) {
+                    // are we changing visibility levels?
+                    if (options.hasVisibility() && options.getVisibility() != existingApp.getVisibility()) {
+                        apiClient.updateAppAttribute(publisher, appName, "visibility", options.getVisibility().name());
+                    }
+                }
+                final DefineCloudAppRequest appRequest = new DefineCloudAppRequest()
+                        .setBundleUrl("base64://" + Base64.encodeFromFile(abs(tarball)))
+                        .setBundleUrlSha(ShaUtil.sha256_file(tarball))
+                        .setVisibility(options.getVisibility());
+
+                final CloudAppVersion appVersion = apiClient.defineApp(publisher, appRequest);
+                System.out.println("---> Successfully uploaded " + appName + " bundle: " + appVersion);
+
+                // should we publish in appstore?
+                if (options.isPublish()) {
+                    final CloudAppVersion updated = apiClient.updateAppStatus(publisher, appName, appVersion.getVersion(), CloudAppStatus.published);
+                    if (updated.getStatus() == CloudAppStatus.published) {
+                        System.out.println("---> Successfully published  " + manifest.getName() + "/" + updated.getVersion());
+                    } else {
+                        System.out.println("---> Error publishing  " + manifest.getName() + "/" + updated.getVersion()+", returned: "+toJson(updated));
+                    }
+                }
+
+            } catch (Exception e) {
+                die("Error communicating with app store: "+e, e);
+            }
+        }
     }
 
 }

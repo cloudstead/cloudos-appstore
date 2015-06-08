@@ -21,7 +21,6 @@ For commercial use, please contact cloudstead.io
 
     <modules>
         <module>appstore-common</module>
-        <module>appstore-client</module>
         <module>appstore-test</module>
     </modules>
 

@@ -2,12 +2,27 @@
 #
 # The Bundler. Creates a CloudOs app bundle from a manifest file.
 #
-# The directory provided must contain a cloudos-manifest.json file that defines the app.
-# The resulting bundle will be written to target/appname-bundle.tar.gz within the directory.
-#
 # Usage:
 #
-#   cbundle_app [debug [<port>]] path/to/app/dir
+#   cbundle_app [debug [<port>]] path/to/app/dir [-u] [-p] [-P publisher-name]
+#
+# The app directory must contain a cloudos-manifest.json or a pre_bundle.sh script.
+# If a pre_bundle.sh script exists, it will be run first. After it runs, the
+# cloudos-manifest.json file must exist.
+#
+# The bundle will be written to dist/appname-bundle.tar.gz within the app directory.
+#
+# Other options:
+# -u  / --upload      upload the bundle to the appstore.
+# -p  / --publish     option to upload and publish the bundle in the appstore. Implies -u
+# -P  / --publisher   use this publisher name when uploading and publishing in the app store
+#
+# If using either the -u or -p option, you will need to define credentials in ~/.cbundler, or define
+# the CBUNDLER_APPSTORE_CREDENTIALS environment variable to be the path to the credentials file.
+#
+# Here's an example ~/.cbundler.json file:
+#
+#    { "user": "yourusername", "password": "yourpassword", "base_uri": "https://appstore-server/appstore" }
 #
 # To attach a debugger to the bundler, supply 'debug' as the first argument, optionally followed by a port number.
 # The default debug port is 5005
@@ -44,26 +59,16 @@ if [ -z "${APP_BASE}" ] ; then
   die "No app dir specified"
 fi
 
-# If a pre_bundle.sh script is present, run it first
-if [ -x ${APP_BASE}/pre_bundle.sh ] ; then
-  ${APP_BASE}/pre_bundle.sh || die "Error running ${APP_BASE}/pre_bundle.sh"
-fi
+# Remaining arguments go straight to the bundler
+shift
+BUNDLER_OPTS="$@"
 
-if [ ! -f ${APP_BASE}/cloudos-manifest.json ] ; then
-  die "No cloudos-manifest.json found in ${APP_BASE}, skipping"
+if [[ ! -f ${APP_BASE}/cloudos-manifest.json && ! -f ${APP_BASE}/pre_bundle.sh ]] ; then
+  die "No cloudos-manifest.json or pre_bundle.sh found in ${APP_BASE}, skipping"
 fi
 
 APP_BASE=$(cd ${APP_BASE} && pwd)
-
 APP=$(basename ${APP_BASE})
-TARGET=${APP_BASE}/target
-BUNDLE_DIR=${TARGET}/${APP}-bundle
-TARBALL=${TARGET}/${APP}-bundle.tar.gz
-
-# cleanup any previous bundling and start fresh
-rm -rf ${BUNDLE_DIR}
-rm -rf ${TARBALL}
-mkdir -p ${BUNDLE_DIR}
 
 # Find bundler jar.
 BUNDLER_JAR="not-found"
@@ -83,7 +88,7 @@ elif [ -f ${SCRIPT_BASE}/../appstore-common/pom.xml ] ; then
 fi
 
 # Run bundler
-BUNDLER_OPTS="-m ${APP_BASE}/cloudos-manifest.json -o ${BUNDLE_DIR}"
+BUNDLER_OPTS="${BUNDLER_OPTS} -m ${APP_BASE}/cloudos-manifest.json"
 case "${BUNDLER_JAR}" in
   not-found)
     die "Bundler jar could not be located"
@@ -94,22 +99,14 @@ case "${BUNDLER_JAR}" in
     cd ${SCRIPT_BASE}/../appstore-common && \
     MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
       -Dexec.mainClass=cloudos.appstore.bundler.BundlerMain \
-      -Dexec.args="${BUNDLER_OPTS}" \
-      1>&2
-    if [ $? -ne 0 ] ; then
-      die "Error running bundler on ${APP_BASE}"
-    fi
+      -Dexec.args="${BUNDLER_OPTS}"
+    exit $?
   ;;
 
   *)
     # we have a jar file, use it
     echo 1>&2 "Running jar bundler with options: ${BUNDLER_OPTS}"
     java ${debug} -jar ${BUNDLER_JAR} ${BUNDLER_OPTS}
+    exit $?
   ;;
 esac
-
-# make the tarball
-cd ${BUNDLE_DIR} && tar czf ${TARBALL} . || die "Error building tarball"
-
-echo 1>&2 "Successfully built tarball for ${APP} from ${BUNDLE_DIR}: ${TARBALL}"
-echo ${TARBALL}

@@ -10,7 +10,6 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
-import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 import rooty.toots.chef.ChefSolo;
 
@@ -19,6 +18,7 @@ import java.io.FilenameFilter;
 import java.util.*;
 
 import static org.cobbzilla.util.io.FileUtil.*;
+import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.json.JsonUtil.toJsonOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
@@ -151,13 +151,13 @@ public class AppLayout {
     }
 
     public static JsonNode getDatabagNode(File databagFile) {
-        return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(databagFile), JsonNode.class);
+        return fromJsonOrDie(databagFile, JsonNode.class);
     }
 
     public PortsDatabag getPortsDatabag() {
         final File databagFile = getDatabagFile(PortsDatabag.ID);
         if (!databagFile.exists()) return null;
-        return JsonUtil.fromJsonOrDie(FileUtil.toStringOrDie(databagFile), PortsDatabag.class);
+        return fromJsonOrDie(databagFile, PortsDatabag.class);
     }
 
     public File findLocalAsset(String asset) {

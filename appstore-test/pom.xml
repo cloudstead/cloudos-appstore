@@ -16,7 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>cloudstead</groupId>
-            <artifactId>appstore-client</artifactId>
+            <artifactId>appstore-common</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>

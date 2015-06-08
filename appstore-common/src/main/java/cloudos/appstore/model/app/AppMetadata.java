@@ -44,7 +44,7 @@ public class AppMetadata {
         if (!metaFile.exists()) return errorMetadata(name, NOT_FOUND);
 
         try {
-            return JsonUtil.fromJson(FileUtil.toString(metaFile), AppMetadata.class);
+            return JsonUtil.fromJson(metaFile, AppMetadata.class);
         } catch (Exception e) {
             return errorMetadata(name, INVALID_JSON);
         }

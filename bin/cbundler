@@ -44,6 +44,10 @@ if [ -z "${APP_BASE}" ] ; then
 fi
 APP_BASE=$(cd ${APP_BASE} && pwd)
 
+# Remaining arguments go straight to the bundler
+shift
+BUNDLER_OPTS="$@"
+
 # Find bundler jar.
 BUNDLER_JAR="not-found"
 if [ ! -z "${CLOUDOS_BUNDLER_JAR}" ] ; then
@@ -72,19 +76,14 @@ case "${BUNDLER_JAR}" in
     cd ${SCRIPT_BASE}/../appstore-common && \
     MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
       -Dexec.mainClass=cloudos.appstore.bundler.MultiBundlerMain \
-      -Dexec.args="${APP_BASE}" \
-      1>&2
-    if [ $? -ne 0 ] ; then
-      die "Error running multi-bundler on ${APP_BASE}"
-    fi
+      -Dexec.args="${APP_BASE} ${BUNDLER_OPTS}"
+    exit $?
   ;;
 
   *)
     # we have a jar file, use it
     echo 1>&2 "Running jar multi-bundler with options: ${APP_BASE}"
-    java ${debug} -cp ${BUNDLER_JAR} cloudos.appstore.bundler.MultiBundlerMain ${APP_BASE}
+    java ${debug} -cp ${BUNDLER_JAR} cloudos.appstore.bundler.MultiBundlerMain ${APP_BASE} ${BUNDLER_OPTS}
+    exit $?
   ;;
 esac
-
-# Print names of app bundle tarballs
-find $(find ${APP_BASE} -type d -name target) -type f -name "*-bundle.tar.gz" -exec echo "ARTIFACT: {}" \;
