@@ -71,7 +71,7 @@ EOF
               code <<-EOF
 success=0
 for i in 1 2 3 ; do
-  bundle install --path vendor/bundle
+  bundle install --path vendor/bundle --without development test
   if [ $? -eq 0 ] ; then
     success=1
     break
