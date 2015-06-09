@@ -22,7 +22,7 @@ class Chef::Recipe::{{app.chefName}}
     def self.drop_database(chef, app)
         database = Chef::Recipe::{{app.database.chefType}}
         set_database_config app
-        database.drop_db app[:dbname]
+        database.drop_db chef, app[:dbname]
     end
 
     def self.set_database_config (app)

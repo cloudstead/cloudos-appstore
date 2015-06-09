@@ -82,6 +82,9 @@ public class AppManifest {
     @Getter @Setter private String[] packages;
     @Getter @Setter private AppShellCommand[] post_package;
 
+    @Getter @Setter private AppShellCommand[] pre_uninstall;
+    @Getter @Setter private AppShellCommand[] post_uninstall;
+
     @Getter @Setter private String[] passwords;
     @Getter @Setter private AppGroup[] groups;
     @Getter @Setter private AppUser[] users;

@@ -253,7 +253,7 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.subst (value, app, is_path = true)
         return nil if value.to_s.empty?
-return value unless value.class == String
+        return value unless value.class == String
 
         base = Chef::Recipe::Base
 
@@ -358,6 +358,9 @@ return value unless value.class == String
           '@sha1'    => lambda { |val| Digest::SHA1.hexdigest(val) },
           '@sha256'  => lambda { |val| Digest::SHA256.hexdigest(val) },
           '@md5'     => lambda { |val| Digest::MD5.hexdigest(val) },
+          '@bash'    => lambda { |val| "bash <<AT_BASH
+#{val}
+AT_BASH"  },
           '@databag' => lambda { |val| "#{Chef::Recipe::Base.chef_databags(app[:name])}/#{val}.json" },
           '@ldapify' => lambda { |val|
                 raise "No auth library loaded" unless defined? app[:auth][:ldap]
@@ -708,9 +711,6 @@ EOF
         unless_file = subst(unless_file, app)
 
         cmd = (stdin.to_s == '') ? exec : "echo '#{self.subst_string(stdin, app)}' | #{exec}"
-        if cmd.start_with? '@bash'
-          cmd = "#{cmd.sub('@bash', 'bash -c "')} #{cmd.gsub('"', '\"')} \""
-        end
 
         if env
             new_env = {}

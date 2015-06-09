@@ -347,4 +347,22 @@ public class AppConfiguration {
         if (databagMetadata == null) return null;
         return databagMetadata.get(item);
     }
+
+    public void merge(AppConfiguration other) {
+        for (AppConfigurationCategory cat : other.getCategories()) {
+            final AppConfigurationCategory localCategory = getCategory(cat.getName());
+            if (localCategory == null) {
+                add(cat);
+            } else {
+                for (String item : cat.getItems()) {
+                    if (localCategory.hasValue(item)) {
+                        log.info("merge: skipping item (already has value): "+item);
+                    } else {
+                        localCategory.add(item);
+                        localCategory.set(item, cat.get(item));
+                    }
+                }
+            }
+        }
+    }
 }
