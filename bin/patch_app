@@ -2,21 +2,19 @@
 #
 # Update an app on a live cloudstead
 #
-# Usage: patch_app <app> <cs-name | user@host>
+# Usage: patch_app <app> <cs-name | user@host> [--data]
 #
 # app     : a path to a directory containing a cloudos-manifest.json file
 # cs-name : name of the cloudstead: the first portion of the hostname of the instance.
 #
 # The domain name is read from the CS_DOMAIN env var, and defaults to cloudstead.io
 #
+# With the --data option, data bags will also be sync'd. *The existing databag directories will be overwitten*
+#
 
-app="${1}"
-name="${2}"
-
-if [[ -z "${app}" || -z "${name}" ]] ; then
-  echo "Usage: $0 <app> <name | user@host>"
-  exit 1
-fi
+app="${1:?No app provided}"
+name="${2:?No name provided}"
+xfer_databags="${3}"
 
 if [ ! -d ${app} ] ; then
   echo "Not a directory: ${app}"
@@ -46,4 +44,8 @@ rm -rf ./dist/ && \
 ${script_dir}/cbundle $(pwd) && \
 rsync -avzc ./dist/build/chef/cookbooks/* \
              ${remote_dest}:chef/cookbooks/ | grep -v -- '/$' && \
-scp ./dist/build/cloudos-manifest.json ${remote_dest}:chef/data_bags/${app_name}/
+scp ./dist/build/cloudos-manifest.json ${remote_dest}:chef/data_bags/${app_name}/cloudos-manifest.json
+
+if [ "${xfer_databags}" = "--data" ] ; then
+  rsync -avzc ./dist/build/chef/data_bags/* ${remote_dest}:chef/data_bags/
+fi

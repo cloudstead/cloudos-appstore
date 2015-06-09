@@ -359,6 +359,9 @@ class Chef::Recipe::{{app.chefName}}
           '@sha256'  => lambda { |val| Digest::SHA256.hexdigest(val) },
           '@md5'     => lambda { |val| Digest::MD5.hexdigest(val) },
           '@bash'    => lambda { |val| "bash <<AT_BASH
+if [ -f #{bash_rc(app)} ] ; then
+  . #{bash_rc(app)}
+fi
 #{val}
 AT_BASH"  },
           '@databag' => lambda { |val| "#{Chef::Recipe::Base.chef_databags(app[:name])}/#{val}.json" },
@@ -688,7 +691,7 @@ EOH
             user 'root'
             code <<-EOH
 cat >> #{target} <<EOF
-    #{data.gsub('$', '\\\\$')}
+#{data.gsub('$', '\\\\$')}
 EOF
             EOH
             not_if { File.readlines("#{target}").grep(/Regexp.escape(data)/).size > 0 }
@@ -1119,5 +1122,9 @@ EOH
 cos cos-dns --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
 EOH
         end
+    end
+
+    def self.bash_rc (app)
+        "#{app[:run_as_home]}/.bashrc"
     end
 end

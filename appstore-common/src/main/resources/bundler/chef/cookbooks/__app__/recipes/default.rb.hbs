@@ -90,6 +90,8 @@ app_lib.install_tarball self, app
 app_lib.install_git self, app
 {{/if}}
 
+app_lib.{{app.style}}_options self, app if defined? app_lib.{{app.style}}_options
+
 {{#if app.database}}
 # database-related configuration is in libraries/database_lib.rb and libraries/database_{{app.style}}_lib.rb
 app_lib.database_{{app.style}}_packages self, app if defined? app_lib.database_{{app.style}}_packages

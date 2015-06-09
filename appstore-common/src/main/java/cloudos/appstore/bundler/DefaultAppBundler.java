@@ -504,7 +504,7 @@ public class DefaultAppBundler implements AppBundler {
                 if (options.isPublish()) {
                     final CloudAppVersion updated = apiClient.updateAppStatus(publisher, appName, appVersion.getVersion(), CloudAppStatus.published);
                     if (updated.getStatus() == CloudAppStatus.published) {
-                        System.out.println("---> Successfully published  " + manifest.getName() + "/" + updated.getVersion());
+                        System.out.println("---> Successfully published: " + manifest.getName() + "/" + updated.getVersion());
                     } else {
                         System.out.println("---> Error publishing  " + manifest.getName() + "/" + updated.getVersion()+", returned: "+toJson(updated));
                     }

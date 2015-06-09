@@ -14,6 +14,7 @@ import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -65,6 +66,8 @@ public class AppManifest {
     @Getter @Setter private AppLevel level = AppLevel.app;
 
     @Getter @Setter private AppStyle style;
+    @Getter @Setter private Map<String, String> style_options = new HashMap<>();
+
     @Getter @Setter private String parent;
     @JsonIgnore public boolean hasParent () { return !empty(parent); }
 

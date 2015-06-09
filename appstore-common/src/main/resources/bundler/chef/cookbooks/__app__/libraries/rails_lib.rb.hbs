@@ -5,9 +5,67 @@
 
 class Chef::Recipe::{{app.chefName}}
 
+    def self.{{app.style}}_options (chef, app)
+{{#if app.style_options}}
+    {{#each app.style_options}}
+        option_{{@key}}(chef, app, '{{this}}') if defined? option_{{@key}}
+    {{/each}}
+{{/if}}
+    end
+
+    def self.option_rbenv (chef, app, version)
+        %w( rbenv ruby-build ).each do |pkg|
+            chef.package pkg do
+                action :install
+            end
+        end
+
+        append chef, %q(export PATH="#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/bin:${PATH}"), bash_rc(app), app
+        append chef, %q(eval "$(rbenv init -)"), bash_rc(app), app
+
+        etc_default = "/etc/default/#{app[:name]}"
+        append chef, %q(export PATH="#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/bin:${PATH}"), etc_default, app
+        append chef, 'rbenv init - > /dev/null 2>&1', etc_default, app
+
+        app_lib = Chef::Recipe::{{app.chefName}}
+        rdir = rails_dir(app)
+        renv = rails_env(chef, app)
+
+        chef.bash "install rbenv version #{version} in #{rdir}" do
+            user app[:run_as]
+            cwd rdir
+            environment renv
+            code <<-EOF
+. #{app_lib.bash_rc(app)}
+if [ ! -x #{app[:run_as_home]}/.rbenv/versions/#{version}/bin/ruby ] ; then
+  rbenv install #{version}
+fi
+rbenv global #{version}
+rbenv local #{version}
+EOF
+        end
+    end
+
+    def self.rails_env (chef, app)
+        env = { 'HOME' => app[:run_as_home] }
+{{#if app.style_options}}
+    {{#each app.style_options}}
+        option_{{@key}}_env(chef, app, '{{this}}', env) if defined? option_{{@key}}_env
+    {{/each}}
+        env
+{{/if}}
+    end
+
     def self.init (chef, app)
 
-        %w( ruby1.9.1 ruby1.9.1-dev libxml2 libxml2-dev libxslt1.1 libxslt1-dev ).each do |pkg|
+{{#unless app.style_options.rbenv}}
+        %w( ruby1.9.1 ruby1.9.1-dev ).each do |pkg|
+            chef.package pkg do
+                action :install
+            end
+        end
+{{/unless}}
+        %w( libxml2 libxml2-dev libxslt1.1 libxslt1-dev cmake bison ).each do |pkg|
             chef.package pkg do
                 action :install
             end
@@ -27,12 +85,36 @@ class Chef::Recipe::{{app.chefName}}
         app[:service_name] = app[:service_names]['{{app.name}}'] = svc
 {{/unless}}
 {{/unless}}
+    end
+
+    def self.rails_dir (app)
+        dir = app[:run_as]
+        dir = app[:repo_dir] if app[:repo_dir].to_s != ''
+        "#{app[:run_as_home]}/#{dir}"
+    end
+
+    def self.init_rails (chef, app)
+        app_lib = Chef::Recipe::{{app.chefName}}
+        rdir = rails_dir(app)
+        renv = rails_env(chef, app)
+        base = Chef::Recipe::Base
 
         unless app[:mode] == :uninstall
-            %w( bundler rake foreman ).each do |gem|
-                chef.bash "install ruby gem for {{app.name}}: #{gem}" do
-                    user 'root'
-                    code <<-EOF
+            unless app[:mode] == :uninstall
+                %w( bundler rake foreman ).each do |gem|
+{{#if app.style_options.rbenv}}
+                    ruser = app[:run_as]
+                    dir = rails_dir(app)
+{{else}}
+                    ruser = 'root'
+                    dir = '/tmp'
+{{/if}}
+                    chef.bash "install ruby gem for {{app.name}}: #{gem}" do
+                        user ruser
+                        cwd dir
+                        environment renv
+                        code <<-EOF
+. #{app_lib.bash_rc(app)}
 success=0
 for i in 1 2 3 ; do
     gem install #{gem} --no-ri --no-rdoc
@@ -45,33 +127,26 @@ if [ ${success} -ne 1 ] ; then
     echo "gem install #{gem} failed for {{app.name}}"
     exit 1
 fi
+{{#unless app.style_options.rbenv}}
 # Ensure binaries are reachable by all users
 find /var/lib/gems -type d | xargs chmod a+rx
 find $(find /var/lib/gems -type d -name bin) -type f | xargs chmod a+rx
+{{/unless}}
 EOF
+                    end
                 end
             end
-        end
-    end
 
-    def self.rails_dir (app)
-        dir = app[:run_as]
-        dir = app[:repo_dir] if app[:repo_dir].to_s != ''
-        "#{app[:run_as_home]}/#{dir}"
-    end
-
-    def self.init_rails (chef, app)
-        rails_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
-        base = Chef::Recipe::Base
-
-        unless app[:mode] == :uninstall
-            chef.bash "install gems required by {{app.name}} in #{rails_dir}" do
+            %x(chmod a+rx $(which bundle))  # for sanity
+            chef.bash "install gems required by {{app.name}} in #{rdir}" do
               user app[:run_as]
-              cwd rails_dir
+              cwd rdir
+              environment renv
               code <<-EOF
+. #{app_lib.bash_rc(app)}
 success=0
 for i in 1 2 3 ; do
-  bundle install --path vendor/bundle --without development test
+  bundle install --path vendor/bundle --without development test --binstubs --shebang ruby-local-exec
   if [ $? -eq 0 ] ; then
     success=1
     break
@@ -83,11 +158,11 @@ if [ ${success} -ne 1 ] ; then
 fi
 
 # Add env file for foreman, turn on production mode
-touch #{rails_dir}/.env && chmod 600 #{rails_dir}/.env && \
+touch #{rdir}/.env && chmod 600 #{rdir}/.env && \
 echo "
 RAILS_ENV=production
 LDAP_PASSWORD=#{base.password 'ldap'}
-" > #{rails_dir}/.env
+" > #{rdir}/.env
 
 EOF
             end
@@ -95,7 +170,6 @@ EOF
             chef.bash 'ensure gems for {{app.name}} are readable' do
               user 'root'
               code <<-EOF
-
 for dir in $(find /var/lib/gems -type d) ; do
   chmod a+rx "${dir}"
 done

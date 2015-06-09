@@ -9,6 +9,7 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.apache_rails (chef, app, config)
 
+        app_lib = Chef::Recipe::{{app.chefName}}
         base = Chef::Recipe::Base
         apache = Chef::Recipe::Apache
         apache.enable_module(chef, 'proxy')
@@ -17,7 +18,8 @@ class Chef::Recipe::{{app.chefName}}
         config[:mode] = :proxy
         config[:port] = app[:port]
 
-        rails_app_dir = Chef::Recipe::{{app.chefName}}.rails_dir(app)
+        rails_app_dir = rails_dir(app)
+        renv = rails_env(chef, app)
 
 {{#unless app.sysinit}}
 {{#unless app.services}}
@@ -33,10 +35,12 @@ class Chef::Recipe::{{app.chefName}}
         chef.bash 'setup foreman/upstart for {{app.name}}' do
           user 'root'
           cwd rails_app_dir
+          environment renv
           code <<-EOF
 export PORT=#{app[:port]}
 export RAILS_ENV=production
 export HOME=#{app[:run_as_home]}
+. #{app_lib.bash_rc(app)}
 foreman export --app {{app.name}} --user #{app[:run_as]} --log $(pwd)/log/ upstart /etc/init
 EOF
         end
@@ -55,7 +59,9 @@ EOF
     chef.bash 'configure {{app.name}} to serve static assets' do
         user app[:run_as]
         cwd rails_app_dir
-    code <<-EOF
+        environment renv
+        code <<-EOF
+. #{app_lib.bash_rc(app)}
 PROD_ENV_FILE="#{rails_app_dir}/config/environments/production.rb"
 if [ ! -f ${PROD_ENV_FILE} ] ; then
     echo "No ${PROD_ENV_FILE} found" && exit 1

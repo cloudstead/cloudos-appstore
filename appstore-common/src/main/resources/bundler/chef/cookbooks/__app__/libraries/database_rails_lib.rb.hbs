@@ -42,10 +42,13 @@ class Chef::Recipe::{{app.chefName}}
 {{/if}}
         end
 
+        app_lib = Chef::Recipe::{{app.chefName}}
         chef.bash "initialize {{app.name}} database via rake tasks: #{rake_tasks}" do
           user app[:run_as]
-          cwd Chef::Recipe::{{app.chefName}}.rails_dir(app)
+          environment app_lib.rails_env(chef, app)
+          cwd app_lib.rails_dir(app)
           code <<-EOF
+. #{app_lib.bash_rc(app)}
 for task in "#{rake_tasks.join(' ')}" ; do
   echo "yes" | bundle exec rake ${task} RAILS_ENV=production
 done
