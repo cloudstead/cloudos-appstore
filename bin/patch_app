@@ -42,8 +42,8 @@ script_dir=$(cd $(dirname ${0}) && pwd)
 app_name=$(basename ${app})
 
 cd ${app} && \
-rm -rf ./target/ && \
-${script_dir}/cbundle_app $(pwd) && \
-rsync -avzc ./target/${app_name}-bundle/chef/cookbooks/* \
+rm -rf ./dist/ && \
+${script_dir}/cbundle $(pwd) && \
+rsync -avzc ./dist/build/chef/cookbooks/* \
              ${remote_dest}:chef/cookbooks/ | grep -v -- '/$' && \
-scp ./target/${app_name}-bundle/cloudos-manifest.json ${remote_dest}:chef/data_bags/${app_name}/
+scp ./dist/build/cloudos-manifest.json ${remote_dest}:chef/data_bags/${app_name}/

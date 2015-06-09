@@ -51,23 +51,23 @@ to_delete << app[:doc_root] unless app[:doc_root].nil?
 {{#if app.dirs}}
 # Remove dirs
     {{#each app.dirs}}
-to_delete << subst('{{this}}', app)
+to_delete << app_lib.subst('{{this}}', app)
     {{/each}}
 {{/if}}
 {{#if app.templates}}
 # Remove templates
     {{#each app.templates}}
-to_delete << subst('{{@key}}', app)
+to_delete << app_lib.subst('{{@key}}', app)
     {{/each}}
 {{/if}}
 
 {{#if app.copy}}
 # Remove 'copy' targets
     {{#each app.copy}}
-path = subst('{{this}}', app)
+path = app_lib.subst('{{this}}', app)
 if File.directory?(path)
     path << '/' unless path.end_with? '/'
-    path << File.basename '{{@key}}'
+    path << File.basename(app_lib.subst('{{@key}}', app))
 end
 to_delete << path
     {{/each}}
@@ -76,7 +76,7 @@ to_delete << path
 {{#if app.symlinks}}
 # Remove symlinks
     {{#each app.symlinks}}
-to_delete << subst('{{this}}', app)
+to_delete << app_lib.subst('{{this}}', app)
     {{/each}}
 {{/if}}
 
@@ -106,7 +106,7 @@ email_lib.delete_mailbox self, '{{address}}', app[:hostname], {{quoted_or_nil al
 {{#if app.logrotate}}
 # Remove logrotate scripts
     {{#each app.logrotate}}
-to_delete << subst('{{this}}', app)
+to_delete << app_lib.subst('{{this}}', app)
     {{/each}}
 {{/if}}
 

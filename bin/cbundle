@@ -1,12 +1,28 @@
 #!/bin/bash
 #
-# The multi-bundler. Creates CloudOs app bundles for every app found within a directory hierarchy.
+# The Bundler. Creates a CloudOs app bundle from a manifest file.
 #
 # Usage:
-#   cbundler [debug [<port>]] path/to/apps/dir
 #
-# The path supplied will be scanned for subdirectories that contain cloudos-manifest.json file.
-# The CloudOs Bundler will be run on each app.
+#   cbundle [debug [<port>]] path/to/app/dir [-u] [-p] [-P publisher-name]
+#
+# The app directory must contain a cloudos-manifest.json or a pre_bundle.sh script.
+# If a pre_bundle.sh script exists, it will be run first. After it runs, the
+# cloudos-manifest.json file must exist.
+#
+# The bundle will be written to dist/appname-bundle.tar.gz within the app directory.
+#
+# Other options:
+# -u  / --upload      upload the bundle to the appstore.
+# -p  / --publish     option to upload and publish the bundle in the appstore. Implies -u
+# -P  / --publisher   use this publisher name when uploading and publishing in the app store
+#
+# If using either the -u or -p option, you will need to define credentials in ~/.cbundler, or define
+# the CBUNDLER_APPSTORE_CREDENTIALS environment variable to be the path to the credentials file.
+#
+# Here's an example ~/.cbundler.json file:
+#
+#    { "user": "yourusername", "password": "yourpassword", "base_uri": "https://appstore-server/appstore" }
 #
 # To attach a debugger to the bundler, supply 'debug' as the first argument, optionally followed by a port number.
 # The default debug port is 5005
@@ -42,11 +58,17 @@ APP_BASE=${1}
 if [ -z "${APP_BASE}" ] ; then
   die "No app dir specified"
 fi
-APP_BASE=$(cd ${APP_BASE} && pwd)
 
 # Remaining arguments go straight to the bundler
 shift
 BUNDLER_OPTS="$@"
+
+if [[ ! -f ${APP_BASE}/cloudos-manifest.json && ! -f ${APP_BASE}/pre_bundle.sh ]] ; then
+  die "No cloudos-manifest.json or pre_bundle.sh found in ${APP_BASE}, skipping"
+fi
+
+APP_BASE=$(cd ${APP_BASE} && pwd)
+APP=$(basename ${APP_BASE})
 
 # Find bundler jar.
 BUNDLER_JAR="not-found"
@@ -65,25 +87,26 @@ elif [ -f ${SCRIPT_BASE}/../appstore-common/pom.xml ] ; then
   BUNDLER_JAR="use-maven"
 fi
 
-
+# Run bundler
+BUNDLER_OPTS="${BUNDLER_OPTS} -m ${APP_BASE}/cloudos-manifest.json"
 case "${BUNDLER_JAR}" in
   not-found)
-    die "Multi-bundler jar could not be located"
+    die "Bundler jar could not be located"
   ;;
 
   use-maven)
-    echo 1>&2 "Running maven multi-bundler with options: ${APP_BASE}"
+    echo 1>&2 "Running maven bundler with options: ${BUNDLER_OPTS}"
     cd ${SCRIPT_BASE}/../appstore-common && \
     MAVEN_OPTS="${debug} ${MAVEN_OPTS}" mvn exec:java \
-      -Dexec.mainClass=cloudos.appstore.bundler.MultiBundlerMain \
-      -Dexec.args="${APP_BASE} ${BUNDLER_OPTS}"
+      -Dexec.mainClass=cloudos.appstore.bundler.BundlerMain \
+      -Dexec.args="${BUNDLER_OPTS}"
     exit $?
   ;;
 
   *)
     # we have a jar file, use it
-    echo 1>&2 "Running jar multi-bundler with options: ${APP_BASE}"
-    java ${debug} -cp ${BUNDLER_JAR} cloudos.appstore.bundler.MultiBundlerMain ${APP_BASE} ${BUNDLER_OPTS}
+    echo 1>&2 "Running jar bundler with options: ${BUNDLER_OPTS}"
+    java ${debug} -jar ${BUNDLER_JAR} ${BUNDLER_OPTS}
     exit $?
   ;;
 esac

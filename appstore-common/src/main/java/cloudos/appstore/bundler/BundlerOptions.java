@@ -73,7 +73,9 @@ public class BundlerOptions {
     @Getter @Setter private AppVisibility visibility = null;
     public boolean hasVisibility () { return !empty(visibility); }
 
-    public String getAppSourceDir() { return abs(getManifest().getParentFile()) + "/"; }
+    public String getAppSourceDir() {
+        return (getManifest().isDirectory() ? abs(getManifest()) : abs(getManifest().getParentFile())) + "/";
+    }
 
     public static final String BUILD_DIR = "build";
     public File getBuildDir() { return mkdirOrDie(new File(getOutputDir(), BUILD_DIR)); }

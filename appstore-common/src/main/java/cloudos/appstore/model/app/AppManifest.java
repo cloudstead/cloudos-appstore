@@ -38,6 +38,7 @@ public class AppManifest {
     public static final String PLUGIN_JAR = "plugin.jar";
     public static final String ROOT_HOSTNAME = "_root_";
     public static final String DEFAULT_LOCALE = "_default_locale_";
+    public static final String LATEST_VERSION = "latest";
 
     public static AppManifest load(File file) {
         final File manifestFile = file.isDirectory() ? new File(file, AppManifest.CLOUDOS_MANIFEST_JSON) : file;

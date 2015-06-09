@@ -20,6 +20,8 @@ import static org.cobbzilla.util.json.JsonUtil.toJson;
 
 public class AppStoreApiClient extends ApiClientBase {
 
+    public static final String PUBLIC_APPS = "public";
+
     public AppStoreApiClient(ApiConnectionInfo connectionInfo) { super(connectionInfo); }
     public AppStoreApiClient(String baseUri) { super(baseUri); }
 
@@ -67,13 +69,13 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public AppStoreAccount findAccount (String uuid) throws Exception {
-        final RestResponse restResponse = get(ACCOUNTS_ENDPOINT+"/"+uuid);
-        return fromJson(restResponse.json, AppStoreAccount.class);
+        final RestResponse restResponse = doGet(ACCOUNTS_ENDPOINT + "/" + uuid);
+        return objectOrNull(restResponse, AppStoreAccount.class);
     }
 
     public AppStorePublisher findPublisher(String name) throws Exception {
-        final RestResponse restResponse = get(PUBLISHERS_ENDPOINT + "/" + name);
-        return fromJson(restResponse.json, AppStorePublisher.class);
+        final RestResponse restResponse = doGet(PUBLISHERS_ENDPOINT + "/" + name);
+        return objectOrNull(restResponse, AppStorePublisher.class);
     }
 
     public void deleteAccount() throws Exception { delete(ACCOUNTS_ENDPOINT); }
@@ -84,13 +86,9 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public CloudApp findApp(String publisherName, String name) throws Exception {
+        if (empty(publisherName)) publisherName = PUBLIC_APPS;
         final RestResponse restResponse = doGet(APPS_ENDPOINT + "/" + publisherName + "/" + name);
-        if (restResponse.status == HttpStatusCodes.NOT_FOUND) return null;
-        if (restResponse.isSuccess()) {
-            return fromJson(restResponse.json, CloudApp.class);
-        } else {
-            return die("findApp: "+restResponse);
-        }
+        return objectOrNull(restResponse, CloudApp.class);
     }
 
     public void deleteVersion(String pubName, String appName, String version) throws Exception {
@@ -102,8 +100,9 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public AppFootprint getAppFootprint(String publisher, CloudApp app) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app.getUuid() + EP_FOOTPRINT);
-        return fromJson(restResponse.json, AppFootprint.class);
+        if (empty(publisher)) publisher = PUBLIC_APPS;
+        final RestResponse restResponse = doGet(APPS_ENDPOINT + "/" + publisher + "/" + app.getUuid() + EP_FOOTPRINT);
+        return objectOrNull(restResponse, AppFootprint.class);
     }
 
     public AppFootprint setAppFootprint(String publisher, AppFootprint footprint) throws Exception {
@@ -112,8 +111,9 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public AppPrice[] getAppPrices(String publisher, CloudApp app) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app.getName() + EP_PRICES);
-        return fromJson(restResponse.json, AppPrice[].class);
+        if (empty(publisher)) publisher = PUBLIC_APPS;
+        final RestResponse restResponse = doGet(APPS_ENDPOINT + "/" + publisher + "/" + app.getName() + EP_PRICES);
+        return objectOrNull(restResponse, AppPrice[].class);
     }
 
     public AppPrice setAppPrice(String publisher, AppPrice price) throws Exception {
@@ -127,13 +127,15 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public AppListing findAppListing(String publisher, String name) throws Exception {
-        final RestResponse restResponse = get(APPSTORE_ENDPOINT + "/" + publisher + "/" + name);
-        return fromJson(restResponse.json, AppListing.class);
+        if (empty(publisher)) publisher = PUBLIC_APPS;
+        final RestResponse restResponse = doGet(APPSTORE_ENDPOINT + "/" + publisher + "/" + name);
+        return objectOrNull(restResponse, AppListing.class);
     }
 
     public AppListing findAppListing(String publisher, String name, String version) throws Exception {
-        final RestResponse restResponse = get(APPSTORE_ENDPOINT + "/" + publisher + "/" + name + "/" + version);
-        return fromJson(restResponse.json, AppListing.class);
+        if (empty(publisher)) publisher = PUBLIC_APPS;
+        final RestResponse restResponse = doGet(APPSTORE_ENDPOINT + "/" + publisher + "/" + name + "/" + version);
+        return objectOrNull(restResponse, AppListing.class);
     }
 
     public CloudAppVersion updateAppStatus(String publisher, String app, String version, CloudAppStatus status) throws Exception {
@@ -147,14 +149,16 @@ public class AppStoreApiClient extends ApiClientBase {
     }
 
     public CloudAppVersion findVersion(String publisher, String app, String version) throws Exception {
-        final RestResponse restResponse = get(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version);
-        return fromJson(restResponse.json, CloudAppVersion.class);
+        if (empty(publisher)) publisher = PUBLIC_APPS;
+        final RestResponse restResponse = doGet(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version);
+        return objectOrNull(restResponse, CloudAppVersion.class);
     }
 
     public File getLatestAppBundle(String publisher, String app) throws Exception {
         return getLatestAsset(publisher, app, "bundle");
     }
     public File getLatestAsset(String publisher, String app, String asset) throws Exception {
+        if (empty(publisher)) publisher = PUBLIC_APPS;
         return getFile(APPS_ENDPOINT+"/"+publisher+"/"+app+"/assets/"+asset);
     }
 
@@ -162,6 +166,7 @@ public class AppStoreApiClient extends ApiClientBase {
         return getAppAsset(publisher, app, version, "bundle");
     }
     public File getAppAsset(String publisher, String app, String version, String asset) throws Exception {
+        if (empty(publisher)) publisher = PUBLIC_APPS;
         return getFile(APPS_ENDPOINT+"/"+publisher+"/"+app+"/versions/"+version+"/assets/"+asset);
     }
 
@@ -169,6 +174,15 @@ public class AppStoreApiClient extends ApiClientBase {
         if (empty(path)) return ".temp";
         if (path.endsWith("/bundle")) return ".tar.gz";
         return super.getTempFileSuffix(path, contentType);
+    }
+
+    protected <T> T objectOrNull(RestResponse restResponse, Class<T> clazz) throws Exception {
+        if (restResponse.status == HttpStatusCodes.NOT_FOUND) return null;
+        if (restResponse.isSuccess()) {
+            return fromJson(restResponse.json, clazz);
+        } else {
+            return die("findApp: "+restResponse);
+        }
     }
 
 }

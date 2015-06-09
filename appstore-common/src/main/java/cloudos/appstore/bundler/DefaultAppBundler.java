@@ -445,9 +445,9 @@ public class DefaultAppBundler implements AppBundler {
 
     private String basename(String prefix) { return prefix == null ? null : new File(prefix + ".erb").getName(); }
 
-    protected void copyToTemplates(String outputBase, String name, String baseDir, String dirFile) throws IOException {
+    protected void copyToTemplates(String buildBase, String name, String baseDir, String dirFile) throws IOException {
         if (dirFile != null) {
-            final File outputFile = outputFile(outputBase, CHEF_TEMPLATES, name, dirFile);
+            final File outputFile = outputFile(buildBase, CHEF_TEMPLATES, name, dirFile);
             FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
         }
     }
