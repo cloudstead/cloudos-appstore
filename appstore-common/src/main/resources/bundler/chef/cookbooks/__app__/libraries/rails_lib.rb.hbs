@@ -99,11 +99,12 @@ EOF
 
         unless app[:mode] == :uninstall
             unless app[:mode] == :uninstall
-                %w( bundler rake foreman ).each do |gem|
 {{#if app.style_options.rbenv}}
+                %w( bundler foreman ).each do |gem|
                     ruser = app[:run_as]
                     dir = rails_dir(app)
 {{else}}
+                %w( bundler rake foreman ).each do |gem|
                     ruser = 'root'
                     dir = '/tmp'
 {{/if}}
