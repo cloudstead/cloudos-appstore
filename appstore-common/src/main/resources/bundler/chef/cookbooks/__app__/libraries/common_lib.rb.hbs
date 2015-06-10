@@ -1065,6 +1065,7 @@ EOH
 
     def self.cloudos_group (chef, app, name, description, quota, mirror, members)
 
+        name        = subst_string(name, app)
         description = "--description '#{subst_string(description, app)}'" unless description.to_s.empty?
         quota       = "--quota       '#{subst_string(quota, app)}'"       unless quota.to_s.empty?
         mirror      = "--mirror      '#{subst_string(mirror, app)}'"      unless mirror.to_s.empty?
