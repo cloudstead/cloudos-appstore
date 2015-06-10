@@ -53,7 +53,7 @@ for task in "#{rake_tasks.join(' ')}" ; do
   echo "yes" | bundle exec rake ${task} RAILS_ENV=production
 done
 EOF
-          not_if { database.count_tables(app[:dbname], app[:dbuser], app[:dbpass]) > 0  }
+          not_if { do_create && database.count_tables(app[:dbname], app[:dbuser], app[:dbpass]) > 0  }
         end
 
     end

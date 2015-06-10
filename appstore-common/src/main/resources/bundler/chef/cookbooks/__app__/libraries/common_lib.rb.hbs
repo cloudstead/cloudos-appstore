@@ -694,7 +694,7 @@ cat >> #{target} <<EOF
 #{data.gsub('$', '\\\\$')}
 EOF
             EOH
-            not_if { File.exists?(target) && File.readlines(target).grep(/Regexp.escape(data)/).size > 0 }
+            not_if { File.exists?(target) && IO.read(target).include?(data) }
         end
     end
 

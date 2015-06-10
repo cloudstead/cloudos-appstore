@@ -24,6 +24,7 @@ class Chef::Recipe::{{app.chefName}}
         etc_default = "/etc/default/#{app[:name]}"
         append chef, "export PATH=\"#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/rbenv/bin:#{app[:run_as_home]}/.rbenv/plugins/ruby-build/ruby-build/bin:#{app[:run_as_home]}/.rbenv/rbenv/libexec:${PATH}\"", etc_default, app
         append chef, 'rbenv init - > /dev/null 2>&1', etc_default, app
+        permission chef, etc_default, app, nil, nil, 'a+r'
 
         app_lib = Chef::Recipe::{{app.chefName}}
         rdir = rails_dir(app)
