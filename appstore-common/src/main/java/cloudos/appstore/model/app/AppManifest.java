@@ -14,13 +14,14 @@ import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.util.io.FileUtil.toStringOrDie;
-import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
+import static org.cobbzilla.util.json.JsonUtil.FULL_MAPPER_ALLOW_COMMENTS_AND_UNKNOWN_FIELDS;
 
 /**
  * The AppManifest defines everything about a CloudOs app. Things like:
@@ -43,7 +44,11 @@ public class AppManifest {
 
     public static AppManifest load(File file) {
         final File manifestFile = file.isDirectory() ? new File(file, AppManifest.CLOUDOS_MANIFEST_JSON) : file;
-        return fromJsonOrDie(toStringOrDie(manifestFile), AppManifest.class);
+        try {
+            return FULL_MAPPER_ALLOW_COMMENTS_AND_UNKNOWN_FIELDS.readValue(manifestFile, AppManifest.class);
+        } catch (IOException e) {
+            return die("load: "+e, e);
+        }
     }
 
     @Getter @Setter private String name;
