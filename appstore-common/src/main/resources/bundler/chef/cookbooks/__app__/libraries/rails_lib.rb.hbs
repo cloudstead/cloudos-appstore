@@ -14,17 +14,15 @@ class Chef::Recipe::{{app.chefName}}
     end
 
     def self.option_rbenv (chef, app, version)
-        %w( rbenv ruby-build ).each do |pkg|
-            chef.package pkg do
-                action :install
-            end
-        end
+        git_lib = Chef::Recipe::Git
+        git_lib.synchronize(chef, 'https://github.com/sstephenson/rbenv.git', 'tags/v0.4.0', app[:run_as], "#{app[:run_as_home]}/.rbenv")
+        git_lib.synchronize(chef, 'https://github.com/sstephenson/ruby-build.git', 'tags/v20150519', app[:run_as], "#{app[:run_as_home]}/.rbenv/plugins/ruby-build")
 
-        append chef, %q(export PATH="#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/bin:${PATH}"), bash_rc(app), app
-        append chef, %q(eval "$(rbenv init -)"), bash_rc(app), app
+        append chef, "export PATH=\"#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/rbenv/binn:#{app[:run_as_home]}/.rbenv/plugins/ruby-build/ruby-build/bin:#{app[:run_as_home]}/.rbenv/rbenv/libexec:${PATH}\"", bash_rc(app), app
+        append chef, 'eval "$(rbenv init -)"', bash_rc(app), app
 
         etc_default = "/etc/default/#{app[:name]}"
-        append chef, %q(export PATH="#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/bin:${PATH}"), etc_default, app
+        append chef, "export PATH=\"#{app[:run_as_home]}/.rbenv/shims:#{app[:run_as_home]}/.rbenv/rbenv/bin:#{app[:run_as_home]}/.rbenv/plugins/ruby-build/ruby-build/bin:#{app[:run_as_home]}/.rbenv/rbenv/libexec:${PATH}\"", etc_default, app
         append chef, 'rbenv init - > /dev/null 2>&1', etc_default, app
 
         app_lib = Chef::Recipe::{{app.chefName}}
@@ -38,7 +36,7 @@ class Chef::Recipe::{{app.chefName}}
             code <<-EOF
 . #{app_lib.bash_rc(app)}
 if [ ! -x #{app[:run_as_home]}/.rbenv/versions/#{version}/bin/ruby ] ; then
-  rbenv install #{version}
+  rbenv-install #{version}
 fi
 rbenv global #{version}
 rbenv local #{version}
