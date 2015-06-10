@@ -37,6 +37,8 @@ public class BundlerOptions {
     @Option(name=OPT_MANIFEST, aliases=LONGOPT_MANIFEST, usage=USAGE_MANIFEST)
     @Getter @Setter private File manifest = defaultManifest;
 
+    public File getManifestParent() { return manifest.isDirectory() ? manifest : manifest.getParentFile(); }
+
     public static final String USAGE_OUTPUT_DIR = "The output directory to build the bundle. Default is a directory named 'dist' within same directory as the manifest file.";
     public static final String OPT_OUTPUT_DIR = "-o";
     public static final String LONGOPT_OUTPUT_DIR = "--output";

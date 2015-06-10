@@ -235,7 +235,7 @@ public class DefaultAppBundler implements AppBundler {
 
     private File buildPlugin(BundlerOptions options, AppManifest manifest) {
 
-        final String baseDir = options.getManifest().getParent();
+        final String baseDir = abs(options.getManifestParent());
         final File srcDir = new File(baseDir, "src");
         final File pomFile = new File(baseDir, "pom.xml");
         boolean hasPlugin = srcDir.exists() && srcDir.isDirectory() && pomFile.exists() && pomFile.isFile();
@@ -360,7 +360,7 @@ public class DefaultAppBundler implements AppBundler {
         }
 
         // If config-metadata.json is defined, ensure it is parseable
-        final File configDir = new File(abs(options.getManifest().getParent())+"/config");
+        final File configDir = new File(options.getManifestParent(), "config");
         if (configDir.exists()) {
             final File configMetaFile = new File(configDir, AppConfigMetadata.CONFIG_METADATA_JSON);
             if (configMetaFile.exists()) {
@@ -415,7 +415,7 @@ public class DefaultAppBundler implements AppBundler {
     private void copy(BundlerOptions options, AppManifest manifest, String assetType) throws IOException {
 
         final String name = manifest.getName();
-        final String baseDir = abs(options.getManifest().getParentFile()) + "/";
+        final String baseDir = abs(options.getManifestParent()) + "/";
         final String buildBase = options.getBuildBase();
 
         final File localDir = new File(baseDir, assetType);
