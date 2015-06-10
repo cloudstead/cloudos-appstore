@@ -3,10 +3,22 @@
 # The multi-bundler. Creates CloudOs app bundles for every app found within a directory hierarchy.
 #
 # Usage:
-#   mcbundle [debug [<port>]] path/to/apps/dir
+#   mcbundle [debug [<port>]] path/to/apps/dir [-u] [-p] [-P publisher-name]
 #
 # The path supplied will be scanned for subdirectories that contain cloudos-manifest.json file.
 # The CloudOs Bundler will be run on each app.
+#
+# Other options:
+# -u  / --upload      upload the bundle to the appstore.
+# -p  / --publish     option to upload and publish the bundle in the appstore. Implies -u
+# -P  / --publisher   use this publisher name when uploading and publishing in the app store
+#
+# If using either the -u or -p option, you will need to define credentials in ~/.cbundler, or define
+# the CBUNDLER_APPSTORE_CREDENTIALS environment variable to be the path to the credentials file.
+#
+# Here's an example ~/.cbundler.json file:
+#
+#    { "user": "yourusername", "password": "yourpassword", "base_uri": "https://appstore-server/appstore" }
 #
 # To attach a debugger to the bundler, supply 'debug' as the first argument, optionally followed by a port number.
 # The default debug port is 5005
