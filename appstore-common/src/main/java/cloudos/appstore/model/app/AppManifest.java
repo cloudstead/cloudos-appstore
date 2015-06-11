@@ -51,6 +51,14 @@ public class AppManifest {
         }
     }
 
+    public static AppManifest fromJson(String json) {
+        try {
+            return FULL_MAPPER_ALLOW_COMMENTS_AND_UNKNOWN_FIELDS.readValue(json, AppManifest.class);
+        } catch (IOException e) {
+            return die("fromJson: "+e, e);
+        }
+    }
+
     @Getter @Setter private String name;
     @JsonIgnore public String getChefName () { return StringUtils.capitalize(scrub(getName())); }
 
