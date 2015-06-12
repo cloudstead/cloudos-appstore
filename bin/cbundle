@@ -79,7 +79,7 @@ if [ ! -z "${CLOUDOS_BUNDLER_JAR}" ] ; then
     die "CLOUDOS_BUNDLER_JAR env var was set, but doesn't seem to be valid: ${CLOUDOS_BUNDLER_JAR}"
   fi
 
-elif [ -f ${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar ] ; then
+elif [ -f ${SCRIPT_BASE}/cloudos-app-bundler.jar ] ; then
   BUNDLER_JAR="${SCRIPT_BASE}/../packages/cloudos-app-bundler.jar"
 
 elif [ -f ${SCRIPT_BASE}/../appstore-common/pom.xml ] ; then
