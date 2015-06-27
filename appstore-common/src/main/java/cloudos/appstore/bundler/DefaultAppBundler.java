@@ -33,9 +33,7 @@ import java.util.*;
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
-import static org.cobbzilla.util.io.FileUtil.abs;
-import static org.cobbzilla.util.io.FileUtil.list;
-import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
+import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.io.StreamUtil.loadResourceAsString;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
 import static org.cobbzilla.util.string.StringUtil.replaceLast;
@@ -246,7 +244,7 @@ public class DefaultAppBundler implements AppBundler {
         File pluginJar = findPluginJar(baseDir);
         if (pluginJar != null && pluginJar.exists()) {
             try {
-                if (pluginJar.lastModified() > CommandShell.mostRecentFileMod(srcDir)) {
+                if (mostRecentFileIsNewerThan(srcDir, pluginJar.lastModified())) {
                     log.info("buildPlugin: Plugin jar is newer than most recent source modification, not rebuilding");
                     return pluginJar;
                 }
@@ -268,10 +266,14 @@ public class DefaultAppBundler implements AppBundler {
 
     private File findPluginJar(String baseDir) {
         File jarFile = null;
-        for (File artifact : FileUtil.listFiles(new File(baseDir, "target"))) {
-            if (artifact.getName().endsWith(".jar")) {
-                if (jarFile != null) die("findPluginJar: Multiple jar files produced by plugin build: "+abs(jarFile)+", "+abs(artifact));
-                jarFile = artifact;
+        final File targetDir = new File(baseDir, "target");
+        if (targetDir.exists()) {
+            for (File artifact : listFiles(targetDir)) {
+                if (artifact.getName().endsWith(".jar")) {
+                    if (jarFile != null)
+                        die("findPluginJar: Multiple jar files produced by plugin build: " + abs(jarFile) + ", " + abs(artifact));
+                    jarFile = artifact;
+                }
             }
         }
         return jarFile;
