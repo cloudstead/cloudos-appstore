@@ -15,7 +15,6 @@ import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.io.ClassPathTemplateLoader;
 import com.github.jknack.handlebars.io.TemplateLoader;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.io.Tarball;
 import org.cobbzilla.util.reflect.ReflectionUtil;
@@ -31,6 +30,7 @@ import java.io.Writer;
 import java.util.*;
 
 import static cloudos.appstore.model.app.AppManifest.CLOUDOS_MANIFEST_JSON;
+import static org.apache.commons.io.FileUtils.copyFile;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 import static org.cobbzilla.util.io.FileUtil.*;
@@ -73,7 +73,7 @@ public class DefaultAppBundler implements AppBundler {
             final String filesPath = "/chef/cookbooks/" + name + "/files/default";
             final File filesDir = new File(abs(buildDir) + filesPath);
             mkdirOrDie(filesDir);
-            FileUtils.copyFile(pluginJar, new File(abs(buildDir) + filesPath + "/" + AppManifest.PLUGIN_JAR));
+            copyFile(pluginJar, new File(abs(buildDir) + filesPath + "/" + AppManifest.PLUGIN_JAR));
         }
 
         final Map<String, Object> scope = new HashMap<>();
@@ -200,14 +200,14 @@ public class DefaultAppBundler implements AppBundler {
         final String libName = name + "_lib.rb";
         final File libraryFile = new File(baseDir + "libraries/" + libName);
         if (libraryFile.exists()) {
-            FileUtils.copyFile(libraryFile, outputFile(buildBase, CHEF_LIBRARIES, name, libName));
+            copyFile(libraryFile, outputFile(buildBase, CHEF_LIBRARIES, name, libName));
         }
 
         final Handlebars handlebars = getHandlebars();
         for (String template : templates) {
             final Template hbs = handlebars.compile(template);
-            final String path = template.replace(APP, name).replace("/", File.separator);
-            final File file = new File(buildBase + File.separator + path);
+            final String path = template.replace(APP, name).replace("/", sep);
+            final File file = new File(buildBase + sep + path);
             mkdirOrDie(file.getParentFile());
 
             try (Writer w = new FileWriter(file)) {
@@ -220,12 +220,12 @@ public class DefaultAppBundler implements AppBundler {
         }
 
         final File manifestFile = new File(buildDir, CLOUDOS_MANIFEST_JSON);
-        FileUtil.toFile(manifestFile, toJson(manifest));
+        toFile(manifestFile, toJson(manifest));
 
         // Put a copy of the manifest under data_bags
         final File manifestCopy = outputFile(buildBase, CHEF_DATABAGS, name, CLOUDOS_MANIFEST_JSON);
         mkdirOrDie(manifestCopy.getParentFile());
-        FileUtils.copyFile(manifestFile, manifestCopy);
+        copyFile(manifestFile, manifestCopy);
 
         // Now ready to roll the bundle
         finalizeBundle(manifest, options);
@@ -373,7 +373,7 @@ public class DefaultAppBundler implements AppBundler {
                         final String buildBase = options.getBuildBase();
 
                         final File autogenPass = outputFile(buildBase, CHEF_FILES, manifest.getName(), "autogen_pass.sh");
-                        FileUtil.toFile(autogenPass,
+                        toFile(autogenPass,
                                 loadResourceAsString("bundler/" + CHEF_FILES + "autogen_pass.sh"));
                         CommandShell.chmod(autogenPass, "u+rx");
                     }
@@ -381,7 +381,7 @@ public class DefaultAppBundler implements AppBundler {
                         final String buildBase = options.getBuildBase();
 
                         final File defaultLocaleNames = outputFile(buildBase, CHEF_DATABAGS, manifest.getName(), "default-locale-names.json");
-                        FileUtil.toFile(defaultLocaleNames,
+                        toFile(defaultLocaleNames,
                                 loadResourceAsString("bundler/" + CHEF_DATABAGS + "default-locale-names.json"));
                     }
 
@@ -450,7 +450,7 @@ public class DefaultAppBundler implements AppBundler {
     protected void copyToTemplates(String buildBase, String name, String baseDir, String dirFile) throws IOException {
         if (dirFile != null) {
             final File outputFile = outputFile(buildBase, CHEF_TEMPLATES, name, dirFile);
-            FileUtils.copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
+            copyFile(new File(baseDir + "templates/" + dirFile), outputFile);
         }
     }
 
