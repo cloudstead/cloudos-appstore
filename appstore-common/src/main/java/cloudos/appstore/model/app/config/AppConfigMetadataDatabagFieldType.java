@@ -33,6 +33,7 @@ public enum AppConfigMetadataDatabagFieldType {
     integer    (new IntegerFieldValidator()),
     email      (new EmailFieldValidator()),
     hostname   (new HostnameFieldValidator()),
+    ipaddr     (new IpAddressFieldValidator()),
     filename   (new FilenameFieldValidator()),
     port       (new PortFieldValidator()),
     yesno      (new YesnoFieldValidator()),
@@ -40,6 +41,9 @@ public enum AppConfigMetadataDatabagFieldType {
     pick_many  (new PickManyFieldValidator()),
     cron       (new CronFieldValidator()),
     locale     (new LocaleFieldValidator()),
+
+    // list types
+    list_ipaddr(new ListOfFieldsValidator(new IpAddressFieldValidator())),
 
     // types that require entity-resolver
     cloudos_group (new CloudOsGroupFieldValidator()),
