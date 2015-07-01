@@ -156,13 +156,16 @@ public class AppConfiguration {
                     // Only examine locales codes for which this category declares it can support
                     for (String choice : field.getValue().getChoices()) {
 
-                        final String choiceKey = field.getKey() + ".choice." + choice;
-
-                        if (!translationCategory.containsKey(choiceKey)
+                        if (!translationCategory.hasChoice(field.getKey(), choice)
                             && defaultLocaleNames.containsKey(choice.toLowerCase().replace("_", "-"))) {
 
                             // fill in the missing translation with a default
-                            translationCategory.put(choiceKey, new AppConfigTranslation().setLabel(defaultLocaleNames.get(choice.toLowerCase())));
+                            AppConfigTranslation translationField = translationCategory.get(field.getKey());
+                            if (translationField == null) {
+                                translationField = new AppConfigTranslation(field.getKey());
+                                translationCategory.put(field.getKey(), translationField);
+                            }
+                            translationField.addChoice(new AppConfigTranslation(choice, defaultLocaleNames.get(choice.toLowerCase())));
                         }
                     }
                 }

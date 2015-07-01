@@ -10,7 +10,6 @@ import cloudos.appstore.model.app.config.AppConfigMetadata;
 import org.apache.commons.io.FileUtils;
 import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.io.StreamUtil;
-import org.cobbzilla.util.io.Tarball;
 import org.cobbzilla.util.io.TempDir;
 import org.cobbzilla.util.json.JsonUtil;
 import org.cobbzilla.util.security.ShaUtil;
@@ -79,7 +78,7 @@ public class AssetWebServer {
             final File manifestFile = new File(tempDir, AppManifest.CLOUDOS_MANIFEST_JSON);
             FileUtil.toFile(manifestFile, JsonUtil.toJson(manifest));
 
-            return buildAppTarball(manifestFile);
+            return buildAppBundle(manifestFile);
 
         } catch (Exception e) {
             return die("Error building app: "+e, e);
@@ -89,13 +88,13 @@ public class AssetWebServer {
         }
     }
 
-    public TestApp buildAppTarball(File manifestFile) throws Exception {
-        return buildAppTarball(manifestFile, null, null);
+    public TestApp buildAppBundle(File manifestFile) throws Exception {
+        return buildAppBundle(manifestFile, null, null);
     }
 
-    public TestApp buildAppTarball(String manifestResourcePath,
-                                   String appConfigMetadataPath,
-                                   String iconResourcePath) throws Exception {
+    public TestApp buildAppBundle(String manifestResourcePath,
+                                  String appConfigMetadataPath,
+                                  String iconResourcePath) throws Exception {
 
         // Write manifest for test app to a temp dir
         final File appTemp = FileUtil.createTempDir("appTemp");
@@ -103,12 +102,12 @@ public class AssetWebServer {
         final String manifestData = loadResourceAsString(manifestResourcePath).replace("@@PORT@@", String.valueOf(port));
         FileUtil.toFile(manifestFile, manifestData);
 
-        return buildAppTarball(manifestFile, appConfigMetadataPath, iconResourcePath);
+        return buildAppBundle(manifestFile, appConfigMetadataPath, iconResourcePath);
     }
 
-    public TestApp buildAppTarball(File manifestFile,
-                                   String appConfigMetadataPath,
-                                   String iconResourcePath) throws Exception {
+    public TestApp buildAppBundle(File manifestFile,
+                                  String appConfigMetadataPath,
+                                  String iconResourcePath) throws Exception {
 
         final File appTemp = manifestFile.getParentFile();
         final AppManifest appManifest = AppManifest.load(manifestFile);
@@ -150,26 +149,25 @@ public class AssetWebServer {
 
         // Roll the tarball into its place under the doc root
         final String tarballName = getBundleFilename(appManifest);
-        final File tarball = new File(rootDir, tarballName);
-        Tarball.roll(tarball, bundleDir);
+        final File tarball = new File(bundleDir, tarballName);
+        final File hostedTarball = new File(rootDir, tarballName);
+        if (!tarball.renameTo(hostedTarball)) die("Error renaming: "+abs(tarball)+" -> "+abs(hostedTarball));
 
         // Save the URL and shasum
         final String bundleUrl = getUrl(tarballName);
-        final String bundleUrlSha = ShaUtil.sha256_file(tarball);
+        final String bundleUrlSha = ShaUtil.sha256_file(hostedTarball);
 
         final TestApp testApp = new TestApp()
                 .setManifest(appManifest)
                 .setBundleUrl(bundleUrl)
                 .setBundleUrlSha(bundleUrlSha)
                 .setIconFile(iconFile)
-                .setTarball(tarball);
+                .setTarball(hostedTarball);
         apps.put(testApp.getNameAndVersion(), testApp);
         return testApp;
     }
 
-    public String getBundleFilename(AppManifest manifest) {
-        return manifest.getName() + "-" + manifest.getVersion() + "-bundle.tar.gz";
-    }
+    public String getBundleFilename(AppManifest manifest) { return manifest.getName() + "-bundle.tar.gz"; }
 
     public String getBaseUrl() { return "http://127.0.0.1:" + port; }
 
