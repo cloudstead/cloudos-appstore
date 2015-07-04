@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.wizard.main.MainOptionsBase;
 import org.kohsuke.args4j.Option;
 
 import java.io.File;
@@ -21,7 +22,7 @@ import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
 @NoArgsConstructor
-public class BundlerOptions {
+public class BundlerOptions extends MainOptionsBase {
 
     public BundlerOptions(BundlerOptions options) { copy(this, options); }
 
@@ -51,6 +52,12 @@ public class BundlerOptions {
     public static final String LONGOPT_UPLOAD = "--upload";
     @Option(name=OPT_UPLOAD, aliases=LONGOPT_UPLOAD, usage=USAGE_UPLOAD)
     @Getter @Setter private boolean upload;
+
+    public static final String USAGE_DELETE = "Remove the app completely and re-add it  (implies "+OPT_UPLOAD+"/"+LONGOPT_UPLOAD+"). Place credentials and API endpoint in  ~/" + DEFAULT_CREDENTIALS_FILE + ", or define the " + ENV_CREDENTIALS_FILE + " environment variable as the path to the credentials file";
+    public static final String OPT_DELETE = "-X";
+    public static final String LONGOPT_DELETE = "--delete";
+    @Option(name=OPT_DELETE, aliases=LONGOPT_DELETE, usage=USAGE_DELETE)
+    @Getter @Setter private boolean delete;
 
     public static final String USAGE_PUBLISH = "Publish the bundle in the app store (implies "+OPT_UPLOAD+"/"+LONGOPT_UPLOAD+")";
     public static final String OPT_PUBLISH = "-p";
@@ -102,8 +109,8 @@ public class BundlerOptions {
         return info;
     }
 
-    public boolean requiresAppstoreCredentials() { return upload || publish; }
-    public boolean shouldUpload() { return upload || publish; }
+    public boolean requiresAppstoreCredentials() { return upload || delete || publish; }
+    public boolean shouldUpload() { return upload || delete || publish; }
 
     public String[] toArgs() {
         final List<String> args = new ArrayList<>();
@@ -119,6 +126,7 @@ public class BundlerOptions {
         }
         if (upload) args.add(OPT_UPLOAD);
         if (publish) args.add(OPT_PUBLISH);
+        if (delete) args.add(OPT_DELETE);
         return args.toArray(new String[args.size()]);
     }
 }

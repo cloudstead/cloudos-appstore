@@ -141,11 +141,10 @@ public class AssetWebServer {
         final File bundleDir = FileUtil.createTempDir("bundleDir");
 
         // Run the bundler on our test manifest
-        final BundlerMain main = new BundlerMain(new String[] {
+        BundlerMain.main(new String[] {
                 BundlerOptions.OPT_MANIFEST, abs(manifestFile),
                 BundlerOptions.OPT_OUTPUT_DIR, abs(bundleDir)
         });
-        main.runOrDie();
 
         // Roll the tarball into its place under the doc root
         final String tarballName = getBundleFilename(appManifest);

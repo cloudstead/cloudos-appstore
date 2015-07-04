@@ -7,22 +7,21 @@ import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.io.FileUtil;
 
 import java.io.File;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
-import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.listDirs;
 
 @Slf4j
 public class MultiBundlerMain extends BundlerMain {
 
-    public MultiBundlerMain(String[] args) { super(args); }
-
     private final Map<String, Object> results = new HashMap<>();
 
     public static void main (String[] args) throws Exception {
-        final MultiBundlerMain main = new MultiBundlerMain(args);
-        main.run();
+        main(MultiBundlerMain.class, args);
     }
 
     public void run() throws Exception {

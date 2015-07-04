@@ -489,8 +489,12 @@ public class DefaultAppBundler implements AppBundler {
             try {
                 final CloudApp existingApp = apiClient.findApp(publisher, appName);
                 if (existingApp != null) {
-                    // are we changing visibility levels?
-                    if (options.hasVisibility() && options.getVisibility() != existingApp.getVisibility()) {
+                    if (options.isDelete()) {
+                        // delete the app and start fresh
+                        apiClient.deleteApp(publisher, appName);
+
+                    } else if (options.hasVisibility() && options.getVisibility() != existingApp.getVisibility()) {
+                        // changing visibility levels
                         apiClient.updateAppAttribute(publisher, appName, "visibility", options.getVisibility().name());
                     }
                 }
