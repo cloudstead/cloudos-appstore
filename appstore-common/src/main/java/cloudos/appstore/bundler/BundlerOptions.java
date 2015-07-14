@@ -38,6 +38,8 @@ public class BundlerOptions extends MainOptionsBase {
     @Option(name=OPT_MANIFEST, aliases=LONGOPT_MANIFEST, usage=USAGE_MANIFEST)
     @Getter @Setter private File manifest = defaultManifest;
 
+    public boolean hasManifest() { return manifest != defaultManifest; }
+
     public File getManifestParent() { return manifest.isDirectory() ? manifest : manifest.getParentFile(); }
 
     public static final String USAGE_OUTPUT_DIR = "The output directory to build the bundle. Default is a directory named 'dist' within same directory as the manifest file.";

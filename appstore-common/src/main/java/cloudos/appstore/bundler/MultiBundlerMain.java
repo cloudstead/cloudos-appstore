@@ -3,8 +3,8 @@ package cloudos.appstore.bundler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.io.FileUtil;
+import org.cobbzilla.wizard.main.MainBase;
 
 import java.io.File;
 import java.util.HashMap;
@@ -16,7 +16,7 @@ import static org.cobbzilla.util.io.FileUtil.abs;
 import static org.cobbzilla.util.io.FileUtil.listDirs;
 
 @Slf4j
-public class MultiBundlerMain extends BundlerMain {
+public class MultiBundlerMain extends MainBase<MultiBundlerOptions> {
 
     private final Map<String, Object> results = new HashMap<>();
 
@@ -26,11 +26,8 @@ public class MultiBundlerMain extends BundlerMain {
 
     public void run() throws Exception {
 
-        final File dir = new File(args[0]);
+        final File dir = getOptions().getDir();
         if (!dir.exists() || !dir.isDirectory()) die("Not a directory: "+abs(dir));
-
-        // populate options based on remaining args
-        if (args.length > 1) parser.parseArgument(ArrayUtil.slice(args, 1, args.length));
 
         try {
             processDir(dir);
@@ -54,7 +51,7 @@ public class MultiBundlerMain extends BundlerMain {
 
         for (File d : listDirs(dir)) {
             if (d.getName().equals(BundlerOptions.DEFAULT_OUTPUT_DIR)) continue;
-            if (isAppDirectory(d)) {
+            if (BundlerMain.isAppDirectory(d)) {
                 final String appName = d.getName();
                 try {
                     bundleApp(d);
@@ -77,7 +74,7 @@ public class MultiBundlerMain extends BundlerMain {
         FileUtil.mkdirOrDie(buildDir);
 
         // copy options provided at the command line
-        final BundlerOptions options = new BundlerOptions(this.options);
+        final BundlerOptions options = new BundlerOptions(getOptions());
         options.setManifest(appDir);
         options.setOutputDir(outputDir);
         BundlerMain.main(options.toArgs());
