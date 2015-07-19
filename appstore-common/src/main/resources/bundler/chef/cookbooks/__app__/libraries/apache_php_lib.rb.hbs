@@ -11,7 +11,16 @@ class Chef::Recipe::{{app.chefName}}
 
         apache = Chef::Recipe::Apache
 
-        apache.enable_module(chef, 'php5')
+        if app[:apache_mpm].nil? || app[:apache_mpm] == 'prefork'
+            install_package chef, 'libapache2-mod-php5'
+            apache.enable_module(chef, 'php5')
+
+        elsif app[:apache_mpm] == 'worker'
+            install_package chef, 'php5-fpm'
+
+        else
+            raise "apache_php: unsupported MPM: #{app[:apache_mpm]}"
+        end
 
         {{#if app.web.apache.php_set}}
           {{#each app.web.apache.php_set}}

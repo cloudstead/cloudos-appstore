@@ -125,6 +125,9 @@ EOF
             # No schema specified in manifest, look for schema file in standard locations
             [ '_schema', '-schema', '' ].each do |suffix|
                 schema_file = subst("@files/{{app.name}}#{suffix}.sql", app)
+                if File.exists? "#{schema_file}.gz"
+                    %x(gunzip #{schema_file}.gz)
+                end
                 # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
                 if File.exists? schema_file
                   tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"

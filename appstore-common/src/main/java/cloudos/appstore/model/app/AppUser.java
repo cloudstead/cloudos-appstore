@@ -9,7 +9,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.empty;
 public class AppUser {
 
     @Setter private String home;
-    public String getHome () { return empty(home) ? "/home/"+getUser(): home; }
+    public String getHome () { return empty(home) ? "/home/"+getUser() : home; }
 
     @Setter private String user;
     public String getUser () { return empty(user) ? label : user; }

@@ -4,7 +4,7 @@
 #
 # Usage:
 #
-#   cbundle [debug [<port>]] path/to/app/dir [-u] [-p] [-P publisher-name]
+#   cbundle [debug [<port>]] path/to/app/dir [-u] [-p] [-P publisher-name] [-o output-dir]
 #
 # The app directory must contain a cloudos-manifest.json or a pre_bundle.sh script.
 # If a pre_bundle.sh script exists, it will be run first. After it runs, the
@@ -16,6 +16,7 @@
 # -u  / --upload      upload the bundle to the appstore.
 # -p  / --publish     option to upload and publish the bundle in the appstore. Implies -u
 # -P  / --publisher   use this publisher name when uploading and publishing in the app store
+# -o  / --output      write bundled app to this directory
 #
 # If using either the -u or -p option, you will need to define credentials in ~/.cbundler.json, or define
 # the CBUNDLER_APPSTORE_CREDENTIALS environment variable to be the path to a valid JSON credentials file.

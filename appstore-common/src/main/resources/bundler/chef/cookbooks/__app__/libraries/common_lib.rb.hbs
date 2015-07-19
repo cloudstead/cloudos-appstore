@@ -403,7 +403,7 @@ AT_BASH"  },
             chef.bash "install pecl package #{pecl_package}" do
                 user 'root'
 code <<-EOH
-pecl install #{pecl_package}
+pecl install #{pecl_package} < /dev/null   # some packages (like apc) want to ask questions, we don't answer any.
 EOH
                 only_if { %x(pecl list | grep "^#{pecl_package} " | wc -l | tr -d ' ').strip.empty? }
             end

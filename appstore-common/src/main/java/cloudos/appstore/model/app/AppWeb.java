@@ -14,6 +14,7 @@ public class AppWeb {
     @JsonIgnore public String getChefType () { return StringUtils.capitalize(type.name()); }
 
     @Getter @Setter private String doc_root;
+    @Getter @Setter private String hostname;
     @Getter @Setter private AppWebApache apache;
     @Getter @Setter private AppWebMode mode;
 

@@ -45,16 +45,23 @@ class Chef::Recipe::{{app.chefName}}
             :filters => %w({{#each app.web.filters}}{{uri}} {{/each}}),
             {{/if}}
 
+            {{#if app.web.hostname}}
+            :server_name => subst_string('{{app.web.hostname}}', app)
+            {{else}}
             :server_name => nil
+            {{/if}}
         }
         config[:vhost] = File.exist? subst('@templates/apache_vhost.conf.erb', app)
 
+        {{#unless app.web.hostname}}
         if config[:cert_name]
             # The cert will tell us what our hostname should be
             # todo: implement whitelist of authorized domains, do not allow certs for others
             common_name = base.local_pem_cn('{{app.name}}', config[:cert_name])
             config[:server_name] = common_name unless common_name.nil? || common_name.start_with?('*')
         end
+        {{/unless}}
+
         config
     end
 
