@@ -1,6 +1,6 @@
 package cloudos.appstore.model.app.config.validation;
 
-import org.cobbzilla.wizard.validation.ValidationRegexes;
+import org.cobbzilla.util.string.ValidationRegexes;
 
 public class PortFieldValidator extends RegexFieldValidator {
 

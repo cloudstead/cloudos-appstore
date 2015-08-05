@@ -2,7 +2,7 @@ package cloudos.appstore.model.app.config.validation;
 
 import java.util.regex.Pattern;
 
-import static org.cobbzilla.wizard.validation.ValidationRegexes.LOCALE_PATTERNS;
+import static org.cobbzilla.util.string.ValidationRegexes.LOCALE_PATTERNS;
 
 public class LocaleFieldValidator extends PickOneFieldValidator {
 

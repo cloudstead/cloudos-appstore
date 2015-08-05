@@ -8,7 +8,7 @@ import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
 import java.util.List;
 
-import static org.cobbzilla.wizard.validation.ValidationRegexes.*;
+import static org.cobbzilla.util.string.ValidationRegexes.*;
 
 @AllArgsConstructor
 public enum AppConfigMetadataDatabagFieldType {

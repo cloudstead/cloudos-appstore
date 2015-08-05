@@ -1,6 +1,6 @@
 package cloudos.appstore.model.app.config.validation;
 
-import static org.cobbzilla.wizard.validation.ValidationRegexes.FILENAME_PATTERN;
+import static org.cobbzilla.util.string.ValidationRegexes.FILENAME_PATTERN;
 
 public class FilenameFieldValidator extends RegexFieldValidator {
 

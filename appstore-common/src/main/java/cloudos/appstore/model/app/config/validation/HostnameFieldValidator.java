@@ -6,9 +6,9 @@ import org.cobbzilla.wizard.validation.ConstraintViolationBean;
 
 import java.util.List;
 
-import static org.cobbzilla.wizard.validation.ValidationRegexes.HOST_PATTERN;
-import static org.cobbzilla.wizard.validation.ValidationRegexes.IPv4_PATTERN;
-import static org.cobbzilla.wizard.validation.ValidationRegexes.IPv6_PATTERN;
+import static org.cobbzilla.util.string.ValidationRegexes.HOST_PATTERN;
+import static org.cobbzilla.util.string.ValidationRegexes.IPv4_PATTERN;
+import static org.cobbzilla.util.string.ValidationRegexes.IPv6_PATTERN;
 
 public class HostnameFieldValidator extends AppConfigFieldValidatorBase {
 

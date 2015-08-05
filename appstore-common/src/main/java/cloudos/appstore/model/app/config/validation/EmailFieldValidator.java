@@ -1,6 +1,6 @@
 package cloudos.appstore.model.app.config.validation;
 
-import static org.cobbzilla.wizard.validation.ValidationRegexes.*;
+import static org.cobbzilla.util.string.ValidationRegexes.*;
 
 public class EmailFieldValidator extends AppConfigFieldValidatorBase {
 
