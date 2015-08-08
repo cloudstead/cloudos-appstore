@@ -1,5 +1,6 @@
 package cloudos.appstore.model.support;
 
+import cloudos.model.auth.ApiToken;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
