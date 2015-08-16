@@ -326,6 +326,7 @@ class Chef::Recipe::{{app.chefName}}
         value = value.gsub('@web_mode', '{{app.web.mode}}') unless '{{app.web.mode}}'.empty?
         value = value.gsub('@lang', %x(locale | grep LANG= | tr '=_' ' ' | awk '{print $2}').strip) if value.include?('@lang')
         value = value.gsub('@locale', %x(locale | grep LANG= | tr '=.' ' ' | awk '{print $2}').strip) if value.include?('@locale')
+        value = value.gsub('@uuid', %x(uuid -v 4).strip) if value.include?('@uuid')
 
         if value.include? '@currency_code'
           money_locale = %x(locale | grep LC_MONETARY | tr '=".' ' ' | awk '{print $2}').strip
