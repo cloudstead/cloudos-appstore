@@ -30,6 +30,8 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
     protected A admin;
     protected C cloudOs;
 
+    protected String getSimpleHostname() { return cloudOs.getName(); }
+
     @Getter(lazy=true) private final CsCloud cloud = buildCloud();
     protected CsInstance instance = null;
 
@@ -186,7 +188,7 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
         if (!preLaunch()) return;
 
         // start instance
-        final String hostname = cloudOs.getName();
+        final String hostname = getSimpleHostname();
         status.update("{setup.startingMasterInstance}");
         final CsInstanceRequest instanceRequest = new CsInstanceRequest().setHost(hostname);
         try {
@@ -221,5 +223,4 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
         updateState(cloudOs, CloudOsState.setup_complete);
         status.completed();
     }
-
 }
