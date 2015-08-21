@@ -5,9 +5,11 @@ import cloudos.cslib.compute.instance.CsInstance;
 import cloudos.cslib.compute.instance.CsInstanceRequest;
 import cloudos.cslib.compute.mock.MockCsInstance;
 import cloudos.model.instance.CloudOsBase;
+import cloudos.model.instance.CloudOsEvent;
 import cloudos.model.instance.CloudOsState;
-import cloudos.model.instance.CloudOsStatusBase;
+import cloudos.model.instance.CloudOsTaskResultBase;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.cobbzilla.util.system.CommandResult;
@@ -20,17 +22,18 @@ import java.io.IOException;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
 
-@Slf4j
-public abstract class CloudOsLauncherBase<A extends Identifiable, C extends CloudOsBase, S extends CloudOsStatusBase<A, C>>
-        extends CloudOsChefDeployer<A, C, S> {
+@Slf4j @NoArgsConstructor
+public abstract class CloudOsLauncherBase<A extends Identifiable,
+                                          C extends CloudOsBase,
+                                          R extends CloudOsTaskResultBase<A, C>>
+        extends CloudOsChefDeployer<A, C, R> {
 
-    @Getter protected S status;
     @Getter protected DAO<C> cloudOsDAO;
 
-    protected A admin;
-    protected C cloudOs;
+    protected A admin () { return result.getAdmin(); }
+    protected C cloudOs () { return result.getCloudOs(); }
 
-    protected String getSimpleHostname() { return cloudOs.getName(); }
+    protected String getSimpleHostname() { return cloudOs().getName(); }
 
     @Getter(lazy=true) private final CsCloud cloud = buildCloud();
     protected CsInstance instance = null;
@@ -40,11 +43,11 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
 
     protected int getMaxLaunchTries() { return 1; } // default: no retries
 
-    public CloudOsLauncherBase(S status, DAO<C> cloudOsDAO) {
-        this.status = status;
+    public void init (A admin, C cloudOs, DAO<C> cloudOsDAO, DAO<CloudOsEvent> eventDAO) {
         this.cloudOsDAO = cloudOsDAO;
-        this.admin = status.getAdmin();
-        this.cloudOs = status.getCloudOs();
+        result.setAdmin(admin);
+        result.setCloudOs(cloudOs);
+        result.setEventDAO(eventDAO);
     }
 
     protected String getFqdn() { return getCloud().getConfig().getFqdn(instance.getHost()); }
@@ -54,21 +57,21 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
         cloudOsDAO.update(cloudOs);
     }
 
-    public void run() {
+    @Override public R call() {
         boolean success = false;
         final int maxRetries = getMaxLaunchTries();
         for (int tries = 0; tries < maxRetries; tries++) {
-            status.initRetry();
+            result.initRetry();
             try {
                 launch();
-                if (!status.hasError()) {
+                if (!result.hasError()) {
                     // Give the server 10 seconds to get up and running. It should be already, but just in case.
                     Thread.sleep(10000);
 
                     if (cloudOsIsRunning()) {
-                        status.success("{setup.success}");
+                        result.success("{setup.success}");
                         success = true;
-                        updateState(cloudOs, CloudOsState.live);
+                        updateState(cloudOs(), CloudOsState.live);
                         break;
 
                     } else {
@@ -79,20 +82,20 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
 
             } catch (Exception e) {
                 if (tries == maxRetries-1) {
-                    status.error("{setup.error.unexpected.final}", "An unexpected error occurred during setup, we are giving up");
+                    result.error("{setup.error.unexpected.final}", "An unexpected error occurred during setup, we are giving up");
                 } else {
-                    status.error("{setup.error.unexpected.willRetry}", "An unexpected error occurred during setup, we will retry");
+                    result.error("{setup.error.unexpected.willRetry}", "An unexpected error occurred during setup, we will retry");
                 }
 
             } finally {
                 if (!success && instance != null) {
-                    updateState(status.getCloudOs(), CloudOsState.destroying);
+                    updateState(result.getCloudOs(), CloudOsState.destroying);
                     try {
                         if (getCloud() != null && !getCloud().teardown(instance)) {
                             log.error("error tearing down instance that failed to come up properly (returned false)");
-                            updateState(status.getCloudOs(), CloudOsState.error);
+                            updateState(result.getCloudOs(), CloudOsState.error);
                         } else {
-                            updateState(status.getCloudOs(), CloudOsState.destroyed);
+                            updateState(result.getCloudOs(), CloudOsState.destroyed);
                         }
                     } catch (Exception e) {
                         log.error("error tearing down instance that failed to come up properly: " + e, e);
@@ -100,10 +103,11 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
                 }
             }
         }
+        return result;
     }
 
     protected boolean cloudOsIsRunning() {
-        if (instance == null || !status.isCompleted()) return false;
+        if (instance == null || !result.isComplete()) return false;
         if (instance instanceof MockCsInstance) return true;
 
         // todo: try this a few times before giving up
@@ -128,7 +132,7 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
     }
 
     @Override protected void chefStart(C cloudOs) {
-        status.update("{setup.cheffing}");
+        result.update("{setup.cheffing}");
         updateState(cloudOs, CloudOsState.cheffing);
     }
 
@@ -138,7 +142,7 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
     }
 
     @Override protected void chefError(C cloudOs, CommandResult commandResult, Exception e) {
-        status.error("{setup.error.cheffing.serverError}", "Error running chef-solo");
+        result.error("{setup.error.cheffing.serverError}", "Error running chef-solo");
         log.error("Error running chef (" + e + "): stdout:\n" + ((commandResult == null) ? null : commandResult.getStdout()) + "\n\nstderr:\n" + ((commandResult == null) ? null : commandResult.getStderr()));
         updateState(cloudOs, CloudOsState.error);
     }
@@ -146,26 +150,26 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
     protected boolean resetCloudOs() {
 
         CsInstance instance;
-        if (!cloudOs.getAdminUuid().equals(admin.getUuid())) {
-            status.error("{setup.error.notOwner}", "Another user owns this cloud");
+        if (!cloudOs().getAdminUuid().equals(admin().getUuid())) {
+            result.error("{setup.error.notOwner}", "Another user owns this cloud");
             return false;
         }
 
         // if the instance is running, stop it and relaunch
-        status.update("{setup.instanceLookup}");
-        instance = cloudOs.getInstance();
+        result.update("{setup.instanceLookup}");
+        instance = cloudOs().getInstance();
 
         if (instance != null) {
             try {
-                status.update("{setup.teardownPreviousInstance}");
-                updateState(cloudOs, CloudOsState.destroying);
+                result.update("{setup.teardownPreviousInstance}");
+                updateState(cloudOs(), CloudOsState.destroying);
                 getCloud().teardown(instance);
-                updateState(cloudOs, CloudOsState.destroyed);
+                updateState(cloudOs(), CloudOsState.destroyed);
 
             } catch (Exception e) {
                 log.error("Error tearing down instance prior to relaunch (marching bravely forward!): " + e, e);
-                status.update("{setup.teardownPreviousInstance.nonFatalError}");
-                updateState(cloudOs, CloudOsState.error);
+                result.update("{setup.teardownPreviousInstance.nonFatalError}");
+                updateState(cloudOs(), CloudOsState.error);
             }
         }
         return true;
@@ -189,38 +193,38 @@ public abstract class CloudOsLauncherBase<A extends Identifiable, C extends Clou
 
         // start instance
         final String hostname = getSimpleHostname();
-        status.update("{setup.startingMasterInstance}");
+        result.update("{setup.startingMasterInstance}");
         final CsInstanceRequest instanceRequest = new CsInstanceRequest().setHost(hostname);
         try {
-            updateState(cloudOs, CloudOsState.starting);
+            updateState(cloudOs(), CloudOsState.starting);
             instance = getCloud().newInstance(instanceRequest);
 
-            cloudOs.setInstanceJson(toJson(instance));
-            cloudOs = cloudOsDAO.update(cloudOs);
-            updateState(cloudOs, CloudOsState.started);
+            cloudOs().setInstanceJson(toJson(instance));
+            result.setCloudOs(cloudOsDAO.update(cloudOs()));
+            updateState(cloudOs(), CloudOsState.started);
 
         } catch (Exception e) {
             if (e.getMessage().contains("Size is not available in this region")) {
-                status.error("{setup.error.startingMasterInstance.sizeUnavailableInRegion}", "The size requested is not currently available in the region requested");
+                result.error("{setup.error.startingMasterInstance.sizeUnavailableInRegion}", "The size requested is not currently available in the region requested");
             } else {
-                status.error("{setup.error.startingMasterInstance.serverError}", "Error booting compute instance in cloud: " + e);
+                result.error("{setup.error.startingMasterInstance.serverError}", "Error booting compute instance in cloud: " + e);
             }
-            updateState(cloudOs, CloudOsState.error);
+            updateState(cloudOs(), CloudOsState.error);
             return;
         }
 
         if (!setupDns()) return;
 
         // notify app store of new cloud; set appstore connection info
-        final String ucid = cloudOs.getUcid();
+        final String ucid = cloudOs().getUcid();
         if (!addAppStoreAccount(getFqdn(), ucid)) return;
 
         if (!setupMailCreds()) return;
 
-        if (!chefDeploy(cloudOs, hostname, instance.getPublicIp(), instance.getKey())) return;
+        if (!chefDeploy(cloudOs(), hostname, instance.getPublicIp(), instance.getKey())) return;
 
         log.info("launch completed OK: "+instance.getHost());
-        updateState(cloudOs, CloudOsState.setup_complete);
-        status.completed();
+        updateState(cloudOs(), CloudOsState.setup_complete);
+        result.success("{setup.success}");
     }
 }

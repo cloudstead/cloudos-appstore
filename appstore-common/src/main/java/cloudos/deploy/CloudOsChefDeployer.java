@@ -3,7 +3,7 @@ package cloudos.deploy;
 import cloudos.appstore.model.app.AppLevel;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.model.instance.CloudOsBase;
-import cloudos.model.instance.CloudOsStatusBase;
+import cloudos.model.instance.CloudOsTaskResultBase;
 import edu.emory.mathcs.backport.java.util.Arrays;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +16,7 @@ import org.cobbzilla.util.system.CommandProgressFilter;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.model.Identifiable;
+import org.cobbzilla.wizard.task.TaskBase;
 import org.cobbzilla.wizard.validation.SimpleViolationException;
 import rooty.toots.chef.ChefHandler;
 import rooty.toots.chef.ChefSolo;
@@ -34,9 +35,11 @@ import static org.cobbzilla.util.system.CommandShell.chmod;
 import static rooty.toots.chef.ChefSolo.SOLO_JSON;
 
 @Slf4j
-public abstract class CloudOsChefDeployer<A extends Identifiable, C extends CloudOsBase, S extends CloudOsStatusBase<A, C>> {
+public abstract class CloudOsChefDeployer<A extends Identifiable,
+                                          C extends CloudOsBase,
+                                          R extends CloudOsTaskResultBase<A, C>>
+    extends TaskBase<R> {
 
-    protected abstract S getStatus();
     protected abstract void chefStart(C cloudOs);
     protected abstract void chefComplete(C cloudOs);
     protected abstract void chefError(C cloudOs, CommandResult commandResult, Exception e);
@@ -177,7 +180,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable, C extends Clou
     protected CommandProgressFilter getLaunchProgressFilter(File chefDir) throws Exception {
 
         final CommandProgressFilter filter = new CommandProgressFilter()
-                .setCallback(new CloudOsLaunchProgressCallback(getStatus()));
+                .setCallback(new CloudOsLaunchProgressCallback(getResult()));
 
         final float chefBootstrapPct = 30.0f;
         final float chefRunPct = 100.0f - chefBootstrapPct;

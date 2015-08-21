@@ -3,7 +3,7 @@ package cloudos.appstore.model.app;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class AppService {
 
@@ -12,6 +12,6 @@ public class AppService {
     @Getter @Setter private AppServiceProvider provider;
     @Getter @Setter private String[] ports;
 
-    @JsonIgnore public String getChefProvider () { return provider == null ? null : "Chef::Provider::Service::"+StringUtils.capitalize(provider.name()); }
+    @JsonIgnore public String getChefProvider () { return provider == null ? null : "Chef::Provider::Service::"+ StringUtils.capitalize(provider.name()); }
 
 }
