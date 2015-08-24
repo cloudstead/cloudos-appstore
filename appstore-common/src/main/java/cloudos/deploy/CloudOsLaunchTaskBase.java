@@ -40,6 +40,8 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
     protected abstract CsCloud buildCloud();
     protected abstract boolean addAppStoreAccount(String hostname, String ucid);
 
+    @Override protected long getTerminationTimeout() { return TimeUnit.MINUTES.toMillis(5); }
+
     protected int getMaxLaunchTries() { return 1; } // default: no retries
 
     public void init (A admin, C cloudOs, DAO<C> cloudOsDAO, DAO<CloudOsEvent> eventDAO) {
@@ -103,15 +105,16 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
     }
 
     public synchronized boolean teardown() {
-        updateState(result.getCloudOs(), CloudOsState.destroying);
+        if (instance == null) instance = cloudOs().getInstance();
+        updateState(cloudOs(), CloudOsState.destroying);
         try {
             final CsCloud cloud = getCloud();
-            if (cloud != null && cloud.isRunning(instance) && !cloud.teardown(instance)) {
+            if (cloud != null && cloud.isRunning(instance) && cloud.teardown(instance) == 0) {
                 log.error("error tearing down instance that failed to come up properly (returned false)");
-                updateState(result.getCloudOs(), CloudOsState.error);
+                updateState(cloudOs(), CloudOsState.error);
                 return false;
             } else {
-                updateState(result.getCloudOs(), CloudOsState.destroyed);
+                updateState(cloudOs(), CloudOsState.destroyed);
                 return true;
             }
         } catch (Exception e) {
