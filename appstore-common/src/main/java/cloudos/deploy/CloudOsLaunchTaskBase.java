@@ -27,11 +27,6 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
                                           R extends CloudOsTaskResultBase<A, C>>
         extends CloudOsChefDeployer<A, C, R> {
 
-    @Getter protected DAO<C> cloudOsDAO;
-
-    protected A admin () { return result.getAdmin(); }
-    protected C cloudOs () { return result.getCloudOs(); }
-
     protected String getSimpleHostname() { return cloudOs().getName(); }
 
     @Getter(lazy=true) private final CsCloud cloud = buildCloud();
@@ -104,6 +99,8 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         }
     }
 
+    public boolean isInstanceRunning() throws Exception { return getCloud().isRunning(cloudOs().getInstance()); }
+
     public synchronized boolean teardown() {
         if (instance == null) instance = cloudOs().getInstance();
         updateState(cloudOs(), CloudOsState.destroying);
@@ -172,9 +169,9 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         }
         return true;
     }
-
     protected boolean preLaunch() { return true; }
     protected boolean setupDns () { return true; }
+
     protected boolean setupMailCreds() { return true; }
 
     // todo: this can be massively parallelized... use promises/futures to do as much async as possible

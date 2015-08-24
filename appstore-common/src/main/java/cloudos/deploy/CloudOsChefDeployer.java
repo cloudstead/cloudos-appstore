@@ -2,19 +2,24 @@ package cloudos.deploy;
 
 import cloudos.appstore.model.app.AppLevel;
 import cloudos.appstore.model.app.AppManifest;
+import cloudos.databag.BaseDatabag;
 import cloudos.model.instance.CloudOsBase;
 import cloudos.model.instance.CloudOsTaskResultBase;
 import edu.emory.mathcs.backport.java.util.Arrays;
 import lombok.Cleanup;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.FileUtils;
+import org.cobbzilla.util.io.DeleteOnExit;
 import org.cobbzilla.util.io.Tarball;
 import org.cobbzilla.util.io.TempDir;
+import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.Command;
 import org.cobbzilla.util.system.CommandProgressFilter;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
+import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.task.TaskBase;
 import org.cobbzilla.wizard.validation.SimpleViolationException;
@@ -31,14 +36,20 @@ import java.util.Map;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
+import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.system.CommandShell.chmod;
 import static rooty.toots.chef.ChefSolo.SOLO_JSON;
 
 @Slf4j
 public abstract class CloudOsChefDeployer<A extends Identifiable,
-                                          C extends CloudOsBase,
-                                          R extends CloudOsTaskResultBase<A, C>>
-    extends TaskBase<R> {
+        C extends CloudOsBase,
+        R extends CloudOsTaskResultBase<A, C>>
+        extends TaskBase<R> {
+
+    @Getter protected DAO<C> cloudOsDAO;
+
+    protected A admin () { return result.getAdmin(); }
+    protected C cloudOs () { return result.getCloudOs(); }
 
     protected abstract void chefStart(C cloudOs);
     protected abstract void chefComplete(C cloudOs);
@@ -46,15 +57,45 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
 
     public static final List<String> DATA_FILES = Arrays.asList(new String[]{"geoip"});
 
-    public static boolean prepChefStagingDir(File stagingDir,
-                                             File chefMaster,
-                                             List<String> appList,
-                                             AppBundleResolver appResolver) {
+    @Getter(lazy=true) private final BaseDatabag baseDatabag = initBaseDatabag();
+
+    protected BaseDatabag initBaseDatabag() {
+        final File baseDatabagFile = new File(abs(getInitFilesDir()) + "/data_bags/cloudos/base.json");
+        if (!baseDatabagFile.exists()) die("buildCloud: base databag not found: "+abs(baseDatabagFile));
+        return fromJsonOrDie(baseDatabagFile, BaseDatabag.class);
+    }
+
+    private File initFilesDir;
+    protected File getInitFilesDir() {
+        if (initFilesDir == null) {
+            final File stagingDir;
+            if (cloudOs().hasStagingDir()) {
+                stagingDir = cloudOs().getStagingDirFile();
+            } else {
+                stagingDir = mkdirOrDie(createTempDirOrDie(createChefDir("deploy-staging"), cloudOs().getName()));
+                cloudOs().setStagingDir(abs(stagingDir));
+                cloudOsDAO.update(cloudOs());
+            }
+            DeleteOnExit.add(stagingDir);
+
+            // decrypt and unroll the zipfile
+            initFilesDir = createInitFilesDir("init_files");
+            DeleteOnExit.add(initFilesDir);
+        }
+        return initFilesDir;
+    }
+
+    protected File createInitFilesDir(String dir) { return new TempDir(); }
+    protected File createChefDir(String dir) { return new TempDir(); }
+
+    public static boolean prepChefRepo(File stagingDir,
+                                       File chefMaster,
+                                       List<String> appList,
+                                       AppBundleResolver appResolver) {
         try {
             final Map<AppLevel, List<String>> appsByLevel = new HashMap<>();
             for (String app : appList) {
-                // get the latest version from app store
-                @Cleanup("delete") final File bundleTarball = appResolver.getAppBundle(app);
+                final File bundleTarball = appResolver.getAppBundle(app);
                 if (bundleTarball == null) {
                     throw new SimpleViolationException("err.cloudos.app.invalid", "no bundle could be located for app: "+app, app);
                 }
@@ -69,7 +110,8 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
                 final AppManifest manifest = AppManifest.load(tempDir);
                 List<String> apps = appsByLevel.get(manifest.getLevel());
                 if (apps == null) {
-                    apps = new ArrayList<>(); appsByLevel.put(manifest.getLevel(), apps);
+                    apps = new ArrayList<>();
+                    appsByLevel.put(manifest.getLevel(), apps);
                 }
                 apps.add(app);
             }
@@ -130,13 +172,26 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         final File stagingDir = cloudOs.getStagingDirFile();
         CommandResult commandResult = null;
         try {
-            final CommandLine chefSolo = new CommandLine(new File(stagingDir, "deploy.sh"))
+            final File deploy = new File(stagingDir, "deploy.sh");
+            chmod(deploy, "u+x");
+
+            final File deployLib = new File(stagingDir, "deploy_lib.sh");
+            chmod(deployLib, "u+x");
+
+            final CommandLine chefSolo = new CommandLine(deploy)
                     .addArgument(hostname + "@" + publicIp)
-                    .addArgument(SOLO_JSON);
+                    .addArgument(SOLO_JSON)
+                    .addArgument(getMode().name());
 
             // setup system env for deploy.sh script
             final Map<String, String> chefSoloEnv = new HashMap<>();
-            chefSoloEnv.put("INIT_FILES", abs(stagingDir));
+            chefSoloEnv.put("INIT_FILES", abs(getInitFilesDir()));
+
+            final List<File> requiredFiles = getRequiredFiles();
+            if (requiredFiles != null) chefSoloEnv.put("REQUIRED", StringUtil.toString(requiredFiles, " "));
+
+            final List<File> cookbookSources = getCookbookSources();
+            if (cookbookSources != null) chefSoloEnv.put("COOKBOOK_SOURCES", StringUtil.toString(cookbookSources, " "));
 
             // decrypt the private key and put it on disk somewhere, so that deploy.sh works without asking for a passphrase
             // we can make this a lot easier... what a PITA
@@ -170,6 +225,13 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
 
         return true;
     }
+
+    public List<File> getRequiredFiles() { return null; }
+    public List<File> getCookbookSources() { return null; }
+
+    public enum Mode { tempdir, inline }
+
+    public Mode getMode() { return Mode.tempdir; }
 
     public static final String[] CHEF_BOOTSTRAP_INDICATORS = {
             "Reading package lists", "Preconfiguring packages", "Current default time zone",

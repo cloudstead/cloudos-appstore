@@ -69,13 +69,18 @@ public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
                 if (task.teardown()) return instance.getState();
 
             } catch (Exception e) {
-                log.error("destroy: " + e, e);
+                die("destroy: " + e, e);
             }
         }
 
         long start = System.currentTimeMillis();
         while (instance.getState() != CloudOsState.destroyed && !timedOut(start)) {
             Sleep.sleep(1000);
+            try {
+                if (!task.isInstanceRunning()) break;
+            } catch (Exception e) {
+                log.error("Error checking if instance is running: "+e, e);
+            }
         }
 
         if (timedOut(start)) log.error("destroy: instance could not be destroyed (timeout)");
