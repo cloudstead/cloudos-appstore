@@ -11,19 +11,18 @@ import cloudos.model.instance.CloudOsTaskResultBase;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.exec.CommandLine;
+import org.cobbzilla.util.http.HttpUtil;
 import org.cobbzilla.util.system.CommandResult;
-import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
 
-import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.json.JsonUtil.toJson;
 
 @Slf4j @NoArgsConstructor
-public abstract class CloudOsLauncherBase<A extends Identifiable,
+public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
                                           C extends CloudOsBase,
                                           R extends CloudOsTaskResultBase<A, C>>
         extends CloudOsChefDeployer<A, C, R> {
@@ -57,78 +56,74 @@ public abstract class CloudOsLauncherBase<A extends Identifiable,
         cloudOsDAO.update(cloudOs);
     }
 
-    @Override public R call() {
-        boolean success = false;
-        final int maxRetries = getMaxLaunchTries();
-        for (int tries = 0; tries < maxRetries; tries++) {
-            result.initRetry();
-            try {
-                launch();
-                if (!result.hasError()) {
-                    // Give the server 10 seconds to get up and running. It should be already, but just in case.
-                    Thread.sleep(10000);
+    @Override public synchronized R execute() {
+        try {
+            boolean success = false;
+            final int maxRetries = getMaxLaunchTries();
+            for (int tries = 0; tries < maxRetries; tries++) {
+                result.initRetry();
+                try {
+                    launch();
+                    if (!result.hasError()) {
+                        // Give the server 10 seconds to get up and running. It should be already, but just in case.
+                        Thread.sleep(10000);
 
-                    if (cloudOsIsRunning()) {
-                        result.success("{setup.success}");
-                        success = true;
-                        updateState(cloudOs(), CloudOsState.live);
-                        break;
+                        if (cloudOsIsRunning()) {
+                            result.success("{setup.success}");
+                            success = true;
+                            updateState(cloudOs(), CloudOsState.live);
+                            break;
 
-                    } else {
-                        final String fqdn = instance != null ? getFqdn() : "no-fqdn";
-                        die("launch completed OK but instance ("+ fqdn +") was not running!");
-                    }
-                }
-
-            } catch (Exception e) {
-                if (tries == maxRetries-1) {
-                    result.error("{setup.error.unexpected.final}", "An unexpected error occurred during setup, we are giving up");
-                } else {
-                    result.error("{setup.error.unexpected.willRetry}", "An unexpected error occurred during setup, we will retry");
-                }
-
-            } finally {
-                if (!success && instance != null) {
-                    updateState(result.getCloudOs(), CloudOsState.destroying);
-                    try {
-                        if (getCloud() != null && !getCloud().teardown(instance)) {
-                            log.error("error tearing down instance that failed to come up properly (returned false)");
-                            updateState(result.getCloudOs(), CloudOsState.error);
                         } else {
-                            updateState(result.getCloudOs(), CloudOsState.destroyed);
+                            final String fqdn = instance != null ? getFqdn() : "no-fqdn";
+                            die("launch completed OK but instance (" + fqdn + ") was not running!");
                         }
-                    } catch (Exception e) {
-                        log.error("error tearing down instance that failed to come up properly: " + e, e);
+                    }
+
+                } catch (Exception e) {
+                    if (tries == maxRetries - 1) {
+                        result.error("{setup.error.unexpected.final}", "An unexpected error occurred during setup, we are giving up");
+                    } else {
+                        result.error("{setup.error.unexpected.willRetry}", "An unexpected error occurred during setup, we will retry");
+                    }
+
+                } finally {
+                    if (!success && instance != null) {
+                        if (!teardown()) log.error("error tearing down instance that failed to come up properly");
                     }
                 }
             }
+            return result;
+
+        } finally {
+            if (cancelled || cloudOs().getState() != CloudOsState.live) {
+                teardown();
+            }
         }
-        return result;
+    }
+
+    public synchronized boolean teardown() {
+        updateState(result.getCloudOs(), CloudOsState.destroying);
+        try {
+            final CsCloud cloud = getCloud();
+            if (cloud != null && cloud.isRunning(instance) && !cloud.teardown(instance)) {
+                log.error("error tearing down instance that failed to come up properly (returned false)");
+                updateState(result.getCloudOs(), CloudOsState.error);
+                return false;
+            } else {
+                updateState(result.getCloudOs(), CloudOsState.destroyed);
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("teardown: "+e, e);
+            return false;
+        }
     }
 
     protected boolean cloudOsIsRunning() {
         if (instance == null || !result.isComplete()) return false;
         if (instance instanceof MockCsInstance) return true;
-
-        // todo: try this a few times before giving up
-        final String url = "https://" + instance.getPublicIp() + "/";
-        final CommandLine command = new CommandLine("curl")
-                .addArgument("--insecure") // since we are requested via the IP address, the cert will not match
-                .addArgument("--header").addArgument("Host: "+getFqdn()) // pass FQDN via Host header
-                .addArgument("--silent")
-                .addArgument("--location")                              // follow redirects
-                .addArgument("--write-out").addArgument("%{http_code}") // just print status code
-                .addArgument("--output").addArgument("/dev/null")       // and ignore data
-                .addArgument(url);
-        try {
-            final CommandResult result = CommandShell.exec(command);
-            final String statusCode = result.getStdout();
-            return result.isZeroExitStatus() && statusCode != null && statusCode.trim().startsWith("2");
-
-        } catch (IOException e) {
-            log.warn("cloudOsIsRunning: Error fetching "+url+" with Host header="+getFqdn()+": "+e);
-            return false;
-        }
+        return HttpUtil.isOk("https://" + instance.getPublicIp() + "/", getFqdn(), 3, TimeUnit.SECONDS.toMillis(10));
     }
 
     @Override protected void chefStart(C cloudOs) {
