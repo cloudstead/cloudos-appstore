@@ -231,5 +231,7 @@ public class AppManifest {
             @Getter @Setter private String from;
             @Getter @Setter private String to;
         }
+
+        @JsonIgnore public boolean isHttp () { return url.startsWith("http://") || url.startsWith("https://"); }
     }
 }

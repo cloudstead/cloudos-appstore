@@ -3,6 +3,7 @@ package cloudos.deploy;
 import cloudos.appstore.model.app.AppLevel;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.databag.BaseDatabag;
+import cloudos.databag.CloudOsDatabag;
 import cloudos.model.instance.CloudOsBase;
 import cloudos.model.instance.CloudOsTaskResultBase;
 import edu.emory.mathcs.backport.java.util.Arrays;
@@ -60,9 +61,19 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
     @Getter(lazy=true) private final BaseDatabag baseDatabag = initBaseDatabag();
 
     protected BaseDatabag initBaseDatabag() {
-        final File baseDatabagFile = new File(abs(getInitFilesDir()) + "/data_bags/cloudos/base.json");
-        if (!baseDatabagFile.exists()) die("buildCloud: base databag not found: "+abs(baseDatabagFile));
-        return fromJsonOrDie(baseDatabagFile, BaseDatabag.class);
+        final File databag = new File(abs(getInitFilesDir()) + "/data_bags/cloudos/base.json");
+        if (!databag.exists()) die("initBaseDatabag: base databag not found: "+abs(databag));
+        return fromJsonOrDie(databag, BaseDatabag.class);
+    }
+
+    protected CloudOsDatabag getCloudOsDatabag() {
+        final File databag = getCloudOsDatabagFile();
+        if (!databag.exists()) die("getCloudOsDatabag: databag not found: "+abs(databag));
+        return fromJsonOrDie(databag, CloudOsDatabag.class);
+    }
+
+    protected File getCloudOsDatabagFile() {
+        return new File(abs(getInitFilesDir()) + "/data_bags/cloudos/init.json");
     }
 
     private File initFilesDir;
