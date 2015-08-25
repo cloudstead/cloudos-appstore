@@ -79,21 +79,24 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
     private File initFilesDir;
     protected File getInitFilesDir() {
         if (initFilesDir == null) {
-            final File stagingDir;
-            if (cloudOs().hasStagingDir()) {
-                stagingDir = cloudOs().getStagingDirFile();
-            } else {
-                stagingDir = mkdirOrDie(createTempDirOrDie(createChefDir("deploy-staging"), cloudOs().getName()));
-                cloudOs().setStagingDir(abs(stagingDir));
-                cloudOsDAO.update(cloudOs());
-            }
-            DeleteOnExit.add(stagingDir);
-
             // decrypt and unroll the zipfile
             initFilesDir = createInitFilesDir("init_files");
             DeleteOnExit.add(initFilesDir);
         }
         return initFilesDir;
+    }
+
+    protected File getStagingDir() {
+        final File stagingDir;
+        if (cloudOs().hasStagingDir()) {
+            stagingDir = cloudOs().getStagingDirFile();
+        } else {
+            stagingDir = mkdirOrDie(createTempDirOrDie(createChefDir("deploy-staging"), cloudOs().getName()));
+            cloudOs().setStagingDir(abs(stagingDir));
+            cloudOsDAO.update(cloudOs());
+        }
+        DeleteOnExit.add(stagingDir);
+        return stagingDir;
     }
 
     protected File createInitFilesDir(String dir) { return new TempDir(); }
@@ -180,7 +183,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         // run chef-solo to configure the box
         chefStart(cloudOs);
 
-        final File stagingDir = cloudOs.getStagingDirFile();
+        final File stagingDir = getStagingDir();
         CommandResult commandResult = null;
         try {
             final File deploy = new File(stagingDir, "deploy.sh");
