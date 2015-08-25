@@ -5,6 +5,7 @@ import cloudos.appstore.model.app.AppManifest;
 import cloudos.databag.BaseDatabag;
 import cloudos.databag.CloudOsDatabag;
 import cloudos.model.instance.CloudOsBase;
+import cloudos.model.instance.CloudOsEvent;
 import cloudos.model.instance.CloudOsTaskResultBase;
 import edu.emory.mathcs.backport.java.util.Arrays;
 import lombok.Cleanup;
@@ -45,7 +46,7 @@ import static rooty.toots.chef.ChefSolo.SOLO_JSON;
 public abstract class CloudOsChefDeployer<A extends Identifiable,
         C extends CloudOsBase,
         R extends CloudOsTaskResultBase<A, C>>
-        extends TaskBase<R> {
+        extends TaskBase<R, CloudOsEvent> {
 
     @Getter protected DAO<C> cloudOsDAO;
 

@@ -23,8 +23,8 @@ import static org.cobbzilla.util.json.JsonUtil.toJson;
 
 @Slf4j @NoArgsConstructor
 public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
-                                          C extends CloudOsBase,
-                                          R extends CloudOsTaskResultBase<A, C>>
+                                            C extends CloudOsBase,
+                                            R extends CloudOsTaskResultBase<A, C>>
         extends CloudOsChefDeployer<A, C, R> {
 
     protected String getSimpleHostname() { return cloudOs().getName(); }
