@@ -61,6 +61,10 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
 
     @Getter(lazy=true) private final BaseDatabag baseDatabag = initBaseDatabag();
 
+    @Override protected CloudOsEvent newEvent(String messageKey) {
+        return super.newEvent(messageKey).setCloudOsUuid(cloudOs().getUuid());
+    }
+
     protected BaseDatabag initBaseDatabag() {
         final File databag = new File(abs(getInitFilesDir()) + "/data_bags/cloudos/base.json");
         if (!databag.exists()) die("initBaseDatabag: base databag not found: "+abs(databag));
