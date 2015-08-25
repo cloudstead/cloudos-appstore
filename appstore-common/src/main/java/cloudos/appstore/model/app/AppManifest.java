@@ -11,6 +11,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 import org.cobbzilla.util.collection.ArrayUtil;
+import org.cobbzilla.util.dns.DnsRecord;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
@@ -139,6 +140,9 @@ public class AppManifest {
         if (!m.endsWith("/")) m += "/";
         return m;
     }
+
+    @Getter @Setter private DnsRecord[] dns;
+    @JsonIgnore public boolean hasDns () { return !empty(dns); }
 
     @Getter @Setter private Map<String, String> templates;
     @JsonIgnore public boolean hasTemplates () { return templates != null && !templates.isEmpty(); };

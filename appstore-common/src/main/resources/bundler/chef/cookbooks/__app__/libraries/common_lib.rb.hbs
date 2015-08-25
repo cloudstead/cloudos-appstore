@@ -723,7 +723,7 @@ EOF
             env = new_env
         end
 
-        chef.bash "exec: #{exec.split(/\s/)[0]} in #{dir} at #{Time.now}" do
+        chef.bash "exec: #{exec} in #{dir} at #{Time.now}" do
             user 'root'
             cwd dir
             environment env if env
@@ -1112,17 +1112,18 @@ EOH
         raise "Error generating password: #{gen_output}" unless $? == 0
     end
 
-    def self.create_dns (chef, app, type, fqdn, ip, options = nil, ttl = nil)
+    def self.create_dns (chef, app, type, fqdn = '@hostname', value = '@ipaddress', options = nil, ttl = 14400)
 
         base = Chef::Recipe::Base
 
-        ttl ||= 14400
+        fqdn = subst_string(fqdn, app)
+        value = subst_string(value, app)
         options_arg = options.to_s.empty? ? '' : "--options=\"#{options}\""
 
-        chef.bash "create_dns: type=#{type} fqdn=#{fqdn} ip=#{ip} options=#{options} ttl=#{ttl}" do
+        chef.bash "create_dns: type=#{type} fqdn=#{fqdn} value=#{value} options=#{options} ttl=#{ttl}" do
             user 'root'
             code <<-EOH
-cos cos-dns --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{ip} --ttl #{ttl} #{options_arg}
+cos cos-dns --operation add --record #{type.downcase} --fqdn #{fqdn} --value #{value} --ttl #{ttl} #{options_arg}
 EOH
         end
     end

@@ -19,9 +19,7 @@ public class BundlerMain extends MainBase<BundlerOptions> {
         return new File(dir, CLOUDOS_MANIFEST_JSON).exists() || new File(dir, PRE_BUNDLE_SH).exists();
     }
 
-    public static void main (String[] args) throws Exception {
-        main(BundlerMain.class, args);
-    }
+    public static void main (String[] args) { main(BundlerMain.class, args); }
 
     public void run () throws Exception {
         File manifestFile = getOptions().getManifest();

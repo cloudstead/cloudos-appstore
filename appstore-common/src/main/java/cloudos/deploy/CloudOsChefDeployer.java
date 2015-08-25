@@ -201,6 +201,9 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
             final Map<String, String> chefSoloEnv = new HashMap<>();
             chefSoloEnv.put("INIT_FILES", abs(getInitFilesDir()));
 
+            final String jsonEdit = getJsonEdit();
+            if (jsonEdit != null) chefSoloEnv.put("JSON_EDIT", jsonEdit);
+
             final List<File> requiredFiles = getRequiredFiles();
             if (requiredFiles != null) chefSoloEnv.put("REQUIRED", StringUtil.toString(requiredFiles, " "));
 
@@ -240,6 +243,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         return true;
     }
 
+    public String getJsonEdit() { return null; }
     public List<File> getRequiredFiles() { return null; }
     public List<File> getCookbookSources() { return null; }
 

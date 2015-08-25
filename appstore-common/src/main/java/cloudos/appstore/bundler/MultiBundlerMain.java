@@ -18,11 +18,10 @@ import static org.cobbzilla.util.io.FileUtil.listDirs;
 @Slf4j
 public class MultiBundlerMain extends MainBase<MultiBundlerOptions> {
 
-    private final Map<String, Object> results = new HashMap<>();
+    private final Map<String, Object> success = new HashMap<>();
+    private final Map<String, Object> failure = new HashMap<>();
 
-    public static void main (String[] args) throws Exception {
-        main(MultiBundlerMain.class, args);
-    }
+    public static void main (String[] args) { main(MultiBundlerMain.class, args); }
 
     public void run() throws Exception {
 
@@ -32,18 +31,22 @@ public class MultiBundlerMain extends MainBase<MultiBundlerOptions> {
         try {
             processDir(dir);
         } finally {
+            Set<String> apps;
             StringBuilder b = new StringBuilder("\n----- RESULTS -----\n");
-            Set<String> apps = new TreeSet<>(results.keySet());
+
+            apps = new TreeSet<>(success.keySet());
             for (String app : apps) {
-                final Object result = results.get(app);
+                final Object result = success.get(app);
                 if (result instanceof String) b.append(app).append(" ==> ").append(result.toString()).append("\n");
             }
-            for (String app: apps) {
-                final Object result = results.get(app);
+            apps = new TreeSet<>(failure.keySet());
+            for (String app : apps) {
+                final Object result = failure.get(app);
                 if (!(result instanceof String)) b.append(app).append(" ==> ").append(result.toString()).append("\n");
             }
+
             b.append("----- END RESULTS -----\n");
-            System.out.println(b.toString());
+            out(b.toString());
         }
     }
 
@@ -55,9 +58,9 @@ public class MultiBundlerMain extends MainBase<MultiBundlerOptions> {
                 final String appName = d.getName();
                 try {
                     bundleApp(d);
-                    results.put(appName, "success!");
+                    success.put(appName, "success!");
                 } catch (Exception e) {
-                    results.put(appName, e+"\n"+ ExceptionUtils.getStackTrace(e));
+                    failure.put(appName, e+"\n"+ ExceptionUtils.getStackTrace(e));
                 }
             } else {
                 processDir(d);
