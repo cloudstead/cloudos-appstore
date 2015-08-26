@@ -38,7 +38,6 @@ import java.util.Map;
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
-import static org.cobbzilla.util.json.JsonUtil.fromJsonOrDie;
 import static org.cobbzilla.util.system.CommandShell.chmod;
 import static rooty.toots.chef.ChefSolo.SOLO_JSON;
 
@@ -59,27 +58,15 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
 
     public static final List<String> DATA_FILES = Arrays.asList(new String[]{"geoip"});
 
-    @Getter(lazy=true) private final BaseDatabag baseDatabag = initBaseDatabag();
-
     @Override protected CloudOsEvent newEvent(String messageKey) {
         return super.newEvent(messageKey).setCloudOsUuid(cloudOs().getUuid());
     }
 
-    protected BaseDatabag initBaseDatabag() {
-        final File databag = new File(abs(getInitFilesDir()) + "/data_bags/cloudos/base.json");
-        if (!databag.exists()) die("initBaseDatabag: base databag not found: "+abs(databag));
-        return fromJsonOrDie(databag, BaseDatabag.class);
-    }
+    @Getter(lazy=true) private final BaseDatabag baseDatabag = initBaseDatabag();
+    protected BaseDatabag initBaseDatabag() { return BaseDatabag.fromChefRepo(getInitFilesDir()); }
 
-    protected CloudOsDatabag getCloudOsDatabag() {
-        final File databag = getCloudOsDatabagFile();
-        if (!databag.exists()) die("getCloudOsDatabag: databag not found: "+abs(databag));
-        return fromJsonOrDie(databag, CloudOsDatabag.class);
-    }
-
-    protected File getCloudOsDatabagFile() {
-        return new File(abs(getInitFilesDir()) + "/data_bags/cloudos/init.json");
-    }
+    @Getter(lazy=true) private final CloudOsDatabag cloudOsDatabag = initCloudOsDatabag();
+    protected CloudOsDatabag initCloudOsDatabag() { return CloudOsDatabag.fromChefRepo(getInitFilesDir()); }
 
     private File initFilesDir;
     protected File getInitFilesDir() {
