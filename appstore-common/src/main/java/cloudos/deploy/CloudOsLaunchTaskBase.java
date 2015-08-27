@@ -102,6 +102,12 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
     public boolean isInstanceRunning() throws Exception { return getCloud().isRunning(cloudOs().getInstance()); }
 
     public synchronized boolean teardown() {
+
+        if (!cloudOs().canTerminate()) {
+            log.warn("resetCloudOs: CloudOs is not resettable, returning");
+            return true;
+        }
+
         if (instance == null) instance = cloudOs().getInstance();
         updateState(cloudOs(), CloudOsState.destroying);
         try {
@@ -143,6 +149,11 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
     }
 
     protected boolean resetCloudOs() {
+
+        if (!cloudOs().canTerminate()) {
+            log.warn("resetCloudOs: CloudOs is not resettable, returning");
+            return true;
+        }
 
         CsInstance instance;
         if (!cloudOs().getAdminUuid().equals(admin().getUuid())) {
@@ -192,7 +203,7 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         final CsInstanceRequest instanceRequest = new CsInstanceRequest().setHost(hostname);
         try {
             updateState(cloudOs(), CloudOsState.starting);
-            instance = getCloud().newInstance(instanceRequest);
+            instance = createInstance(instanceRequest);
 
             cloudOs().setInstanceJson(toJson(instance));
             result.setCloudOs(cloudOsDAO.update(cloudOs()));
@@ -221,5 +232,9 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         log.info("launch completed OK: "+instance.getHost());
         updateState(cloudOs(), CloudOsState.setup_complete);
         result.success("{setup.success}");
+    }
+
+    protected CsInstance createInstance(CsInstanceRequest instanceRequest) throws Exception {
+        return getCloud().newInstance(instanceRequest);
     }
 }
