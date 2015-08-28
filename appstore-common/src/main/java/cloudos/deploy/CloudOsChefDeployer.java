@@ -62,11 +62,8 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         return super.newEvent(messageKey).setCloudOsUuid(cloudOs().getUuid());
     }
 
-    @Getter(lazy=true) private final BaseDatabag baseDatabag = initBaseDatabag();
-    protected BaseDatabag initBaseDatabag() { return BaseDatabag.fromChefRepo(getInitFilesDir()); }
-
-    @Getter(lazy=true) private final CloudOsDatabag cloudOsDatabag = initCloudOsDatabag();
-    protected CloudOsDatabag initCloudOsDatabag() { return CloudOsDatabag.fromChefRepo(getInitFilesDir()); }
+    @Getter(lazy=true) private final BaseDatabag baseDatabag = BaseDatabag.fromChefRepo(getInitFilesDir());
+    @Getter(lazy=true) private final CloudOsDatabag cloudOsDatabag = CloudOsDatabag.fromChefRepo(getInitFilesDir());
 
     private File initFilesDir;
     protected File getInitFilesDir() {
