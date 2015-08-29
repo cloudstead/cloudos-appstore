@@ -47,7 +47,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         R extends CloudOsTaskResultBase<A, C>>
         extends TaskBase<R, CloudOsEvent> {
 
-    @Getter protected DAO<C> cloudOsDAO;
+    protected abstract DAO<C> getCloudOsDAO();
 
     protected A admin () { return result.getAdmin(); }
     protected C cloudOs () { return result.getCloudOs(); }
@@ -82,7 +82,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         } else {
             stagingDir = mkdirOrDie(createTempDirOrDie(createChefDir("deploy-staging"), cloudOs().getName()));
             cloudOs().setStagingDir(abs(stagingDir));
-            cloudOsDAO.update(cloudOs());
+            getCloudOsDAO().update(cloudOs());
         }
         DeleteOnExit.add(stagingDir);
         return stagingDir;

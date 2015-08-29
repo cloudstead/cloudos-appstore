@@ -29,6 +29,8 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
 
     protected String getSimpleHostname() { return cloudOs().getName(); }
 
+    protected abstract DAO<CloudOsEvent> getEventDAO();
+
     @Getter(lazy=true) private final CsCloud cloud = buildCloud();
     protected CsInstance instance = null;
 
@@ -39,18 +41,17 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
 
     protected int getMaxLaunchTries() { return 1; } // default: no retries
 
-    public void init (A admin, C cloudOs, DAO<C> cloudOsDAO, DAO<CloudOsEvent> eventDAO) {
-        this.cloudOsDAO = cloudOsDAO;
+    public void init (A admin, C cloudOs) {
         result.setAdmin(admin);
         result.setCloudOs(cloudOs);
-        result.setEventDAO(eventDAO);
+        result.setEventDAO(getEventDAO());
     }
 
     protected String getFqdn() { return getCloud().getConfig().getFqdn(instance.getHost()); }
 
     protected void updateState(C cloudOs, CloudOsState state) {
         cloudOs.updateState(state);
-        cloudOsDAO.update(cloudOs);
+        getCloudOsDAO().update(cloudOs);
     }
 
     @Override public synchronized R execute() {
@@ -200,13 +201,13 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         // start instance
         final String hostname = getSimpleHostname();
         result.update("{setup.startingMasterInstance}");
-        final CsInstanceRequest instanceRequest = new CsInstanceRequest().setHost(hostname);
+        final CsInstanceRequest instanceRequest = prepareCsInstanceRequest(new CsInstanceRequest().setHost(hostname));
         try {
             updateState(cloudOs(), CloudOsState.starting);
             instance = createInstance(instanceRequest);
 
             cloudOs().setInstanceJson(toJson(instance));
-            result.setCloudOs(cloudOsDAO.update(cloudOs()));
+            result.setCloudOs(getCloudOsDAO().update(cloudOs()));
             updateState(cloudOs(), CloudOsState.started);
 
         } catch (Exception e) {
@@ -232,6 +233,10 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         log.info("launch completed OK: "+instance.getHost());
         updateState(cloudOs(), CloudOsState.setup_complete);
         result.success("{setup.success}");
+    }
+
+    protected CsInstanceRequest prepareCsInstanceRequest(CsInstanceRequest request) {
+        return request;
     }
 
     protected CsInstance createInstance(CsInstanceRequest instanceRequest) throws Exception {

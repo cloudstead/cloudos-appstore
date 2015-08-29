@@ -8,14 +8,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.map.LRUMap;
 import org.cobbzilla.util.system.Sleep;
 import org.cobbzilla.wizard.model.UniquelyNamedEntity;
+import org.cobbzilla.wizard.server.config.RestServerConfiguration;
 import org.cobbzilla.wizard.task.TaskId;
-import org.cobbzilla.wizard.task.TaskServiceBase;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.cobbzilla.util.daemon.ZillaRuntime.die;
+import static org.cobbzilla.util.reflect.ReflectionUtil.getFirstTypeParam;
+import static org.cobbzilla.util.reflect.ReflectionUtil.instantiate;
 
 @Slf4j
 public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
@@ -23,13 +25,22 @@ public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
                                         R extends CloudOsTaskResultBase<A, C>,
                                         T extends CloudOsLaunchTaskBase<A, C, R>> {
 
-    @Autowired protected TaskServiceBase<T, R> taskService;
+    @Autowired protected CloudOsTaskService<A, C, T, R> taskService;
 
     protected final Map<String, T> launchers = Collections.synchronizedMap(new LRUMap(100));
 
-    protected abstract T launchTask(A account, C instance);
+    public abstract RestServerConfiguration getConfiguration ();
+
+    protected T launchTask(A account, C instance) {
+        final Class<T> taskClass = getFirstTypeParam(getClass(), CloudOsLaunchTaskBase.class);
+        final T task = getConfiguration().autowire(instantiate(taskClass));
+        task.init(account, instance);
+        return task;
+    }
 
     public R getResult(TaskId taskId) { return taskService.getResult(taskId.getUuid()); }
+
+    public boolean isRunning(C cloudOs) { return taskService.isRunning(cloudOs.getUuid()); }
 
     public TaskId launch(A account, C instance) {
         if (!instance.getAdminUuid().equals(account.getUuid())) die("launch: not owner");
@@ -87,7 +98,6 @@ public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
         return instance.getState();
     }
 
-    protected boolean timedOut(long start) {
-        return System.currentTimeMillis() - start > DESTROY_TIMEOUT;
-    }
+    protected boolean timedOut(long start) { return System.currentTimeMillis() - start > DESTROY_TIMEOUT; }
+
 }
