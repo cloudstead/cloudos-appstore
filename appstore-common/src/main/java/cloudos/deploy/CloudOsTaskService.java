@@ -16,7 +16,7 @@ public class CloudOsTaskService<A extends Identifiable,
     }
 
     @Override protected T mergeTask(T task, T found) {
-        task.getResult().getEvents().addAll(found.getResult().getEvents());
+        task.getResult().addAll(found.getResult().getEvents());
         return task;
     }
 

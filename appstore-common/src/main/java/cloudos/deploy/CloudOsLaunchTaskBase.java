@@ -113,7 +113,7 @@ public abstract class CloudOsLaunchTaskBase<A extends Identifiable,
         updateState(cloudOs(), CloudOsState.destroying);
         try {
             final CsCloud cloud = getCloud();
-            if (cloud != null && cloud.isRunning(instance) && cloud.teardown(instance) == 0) {
+            if (cloud != null && instance != null && cloud.isRunning(instance) && cloud.teardown(instance) == 0) {
                 log.error("error tearing down instance that failed to come up properly (returned false)");
                 updateState(cloudOs(), CloudOsState.error);
                 return false;
