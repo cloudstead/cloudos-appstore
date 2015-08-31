@@ -69,7 +69,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
     protected File getInitFilesDir() {
         if (initFilesDir == null) {
             // decrypt and unroll the zipfile
-            initFilesDir = createInitFilesDir("init_files");
+            initFilesDir = createInitFilesDir();
             DeleteOnExit.add(initFilesDir);
         }
         return initFilesDir;
@@ -80,7 +80,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         if (cloudOs().hasStagingDir()) {
             stagingDir = cloudOs().getStagingDirFile();
         } else {
-            stagingDir = mkdirOrDie(createTempDirOrDie(createChefDir("deploy-staging"), cloudOs().getName()));
+            stagingDir = createChefDir();
             cloudOs().setStagingDir(abs(stagingDir));
             getCloudOsDAO().update(cloudOs());
         }
@@ -88,8 +88,8 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         return stagingDir;
     }
 
-    protected File createInitFilesDir(String dir) { return new TempDir(); }
-    protected File createChefDir(String dir) { return new TempDir(); }
+    protected File createInitFilesDir() { return new TempDir(); }
+    protected File createChefDir() { return new TempDir(); }
 
     public static boolean prepChefRepo(File stagingDir,
                                        File chefMaster,
