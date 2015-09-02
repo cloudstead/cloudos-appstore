@@ -16,15 +16,16 @@ class Chef::Recipe::{{app.chefName}}
         base_dir = url_parts[2]
         compression = url_parts[3]
 
-        {{#if app.tarball.http}}
-        local_archive = "#{Chef::Config[:file_cache_path]}/#{base_file}"
-        chef.remote_file local_archive do
-            source url
-            checksum "#{subst_string('{{app.tarball.shasum}}', app)}"
+        if url.start_with?('http://') || url.start_with?('https://')
+          local_archive = "#{Chef::Config[:file_cache_path]}/#{base_file}"
+          lib = self
+          chef.remote_file local_archive do
+              source url
+              checksum "#{lib.subst_string('{{app.tarball.shasum}}', app)}"
+          end
+        else
+          local_archive = url
         end
-        {{else}}
-        local_archive = url
-        {{/if}}
 
         case compression
         when 'gz'

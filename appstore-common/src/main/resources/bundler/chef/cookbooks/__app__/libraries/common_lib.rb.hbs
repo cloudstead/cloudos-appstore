@@ -133,7 +133,7 @@ class Chef::Recipe::{{app.chefName}}
         if databag
                     {{#each fields}}
                         {{#if is_password}}
-            if databag{{dots_to_brackets @key}}.to_s.empty?
+            if defined?(databag{{dots_to_brackets @key}}) && databag{{dots_to_brackets @key}}.to_s.empty?
                 databag_file = "#{base.chef_databags(app[:name])}/#{config_category}.json"
                 raise "Missing databag: #{databag_file}" unless File.exists? databag_file
 
@@ -327,7 +327,7 @@ class Chef::Recipe::{{app.chefName}}
         value = value.gsub('@web_mode', '{{app.web.mode}}') unless '{{app.web.mode}}'.empty?
         value = value.gsub('@lang', %x(locale | grep LANG= | tr '=_' ' ' | awk '{print $2}').strip) if value.include?('@lang')
         value = value.gsub('@locale', %x(locale | grep LANG= | tr '=.' ' ' | awk '{print $2}').strip) if value.include?('@locale')
-        value = value.gsub('@uuid', %x(uuid -v 4).strip) if value.include?('@uuid')
+        value = value.gsub('@uuid', base.uuid) if value.include?('@uuid')
 
         if value.include? '@currency_code'
           money_locale = %x(locale | grep LC_MONETARY | tr '=".' ' ' | awk '{print $2}').strip

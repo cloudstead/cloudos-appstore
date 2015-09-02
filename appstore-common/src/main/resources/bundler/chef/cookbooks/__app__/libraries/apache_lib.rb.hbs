@@ -11,9 +11,9 @@ class Chef::Recipe::{{app.chefName}}
         base = Chef::Recipe::Base
         config = {
             :mode => :{{app.web.mode}},
-            :mount => app[:mount],
-            :local_mount => app[:local_mount],
-            :doc_root => app[:doc_root],
+            :mount       => subst_string(app[:mount], app),
+            :local_mount => subst_string(app[:local_mount], app),
+            :doc_root    => subst_string(app[:doc_root], app),
 
             {{#if app.auth.http_auth}}
             :auth => :{{app.auth.http_auth}},
@@ -111,16 +111,22 @@ class Chef::Recipe::{{app.chefName}}
         base = Chef::Recipe::Base
         apache_lib = Chef::Recipe::Apache
 
-        {{#if app.web.apache.mods}}
-          {{#each app.web.apache.mods}}
-            mod_name = '{{this}}'
-            if mod_name.start_with? '@'
-                mod_name = mod_name[1..mod_name.length-1]
-                apache_lib.new_module(chef, mod_name)
-            end
-            apache_lib.enable_module(chef, mod_name)
-          {{/each}}
-        {{/if}}
+{{#if app.web.is_root}}
+        # Disable default sites. This app will enable default-ssl on a new site name
+        apache_lib.disable_site(chef, 'default-ssl')
+        apache_lib.disable_site(chef, 'default')
+{{/if}}
+
+{{#if app.web.apache.mods}}
+  {{#each app.web.apache.mods}}
+        mod_name = '{{this}}'
+        if mod_name.start_with? '@'
+            mod_name = mod_name[1..mod_name.length-1]
+            apache_lib.new_module(chef, mod_name)
+        end
+        apache_lib.enable_module(chef, mod_name)
+  {{/each}}
+{{/if}}
 
         config = get_config(app)
         {{app.web.type}}_{{app.style}} chef, app, config

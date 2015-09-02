@@ -1,0 +1,26 @@
+#
+# Cookbook Name:: {{app.name}}
+# Library:: apache_system_lib
+#
+# {{app.publisher.packaging_copyright}}
+#
+
+class Chef::Recipe::{{app.chefName}}
+
+    def self.apache_system (chef, app, config)
+        base = Chef::Recipe::Base
+        apache = Chef::Recipe::Apache
+
+        begin
+            ports_bag = base.ports_databag chef, '{{app.name}}'
+            app[:port] = config[:port] = ports_bag['primary']
+            app[:admin_port] = config[:admin_port] = ports_bag['admin']
+        rescue => e
+            puts "Error loading base/ports databag: #{e}"
+            app[:port] = config[:port] = nil
+        end
+
+        apache.define_app(chef, '{{app.name}}', config)
+    end
+
+end

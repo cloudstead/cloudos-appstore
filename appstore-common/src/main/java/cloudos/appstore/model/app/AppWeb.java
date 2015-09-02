@@ -28,6 +28,7 @@ public class AppWeb {
     @Getter @Setter private String ssl_cert_name;
 
     @JsonIgnore public boolean getIs_separate_hostname() { return mode.isSeparateHostname(); }
+    @JsonIgnore public boolean getIs_root () { return mode.isRoot(); }
 
     @Getter @Setter private AppFilterConfig[] filters;
     public boolean hasFilters () { return filters != null && filters.length > 0; }
