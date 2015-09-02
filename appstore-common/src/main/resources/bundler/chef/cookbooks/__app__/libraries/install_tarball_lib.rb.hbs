@@ -20,7 +20,7 @@ class Chef::Recipe::{{app.chefName}}
         local_archive = "#{Chef::Config[:file_cache_path]}/#{base_file}"
         chef.remote_file local_archive do
             source url
-            checksum '{{app.tarball.shasum}}'
+            checksum "#{subst_string('{{app.tarball.shasum}}', app)}"
         end
         {{else}}
         local_archive = url
