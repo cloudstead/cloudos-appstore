@@ -14,6 +14,7 @@ class Chef::Recipe::{{app.chefName}}
         base = Chef::Recipe::Base
         app = {
             :lib => self,
+            :base_lib => base,
             :mode => mode,
             :name => '{{app.name}}',
             :path => '{{app.path}}',
