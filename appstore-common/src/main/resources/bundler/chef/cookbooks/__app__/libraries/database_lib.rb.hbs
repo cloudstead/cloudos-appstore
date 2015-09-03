@@ -125,11 +125,11 @@ EOF
             # No schema specified in manifest, look for schema file in standard locations
             [ '_schema', '-schema', '' ].each do |suffix|
                 schema_file = subst("@files/{{app.name}}#{suffix}.sql", app)
-                if File.exists? "#{schema_file}.gz"
+                if File.exist? "#{schema_file}.gz"
                     %x(gunzip #{schema_file}.gz)
                 end
                 # todo: move this into a common utility, use whenever we need to copy stuff from @files to /tmp
-                if File.exists? schema_file
+                if File.exist? schema_file
                   tmp_schema = "/tmp/{{app.name}}#{suffix}.sql"
                   File.open(tmp_schema, 'w') { |tmp|
                     tmp.write(File.open(schema_file, 'r') { |schema| schema.read })
@@ -142,7 +142,7 @@ EOF
             end
             {{/if}}
 
-            database.initialize_db(chef, schema_file, app[:dbuser], app[:dbpass], app[:dbname], unless_table) unless schema_file.nil? || !File.exists?(schema_file)
+            database.initialize_db(chef, schema_file, app[:dbuser], app[:dbpass], app[:dbname], unless_table) unless schema_file.nil? || !File.exist?(schema_file)
         {{/if}}
 
         {{#if app.database.auto_migration}}

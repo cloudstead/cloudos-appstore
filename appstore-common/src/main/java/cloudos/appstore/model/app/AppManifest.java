@@ -12,6 +12,7 @@ import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 import org.cobbzilla.util.collection.ArrayUtil;
 import org.cobbzilla.util.dns.DnsRecord;
+import org.cobbzilla.util.network.FirewallRule;
 import org.cobbzilla.wizard.model.SemanticVersion;
 
 import java.io.File;
@@ -91,6 +92,9 @@ public class AppManifest {
 
     @Getter @Setter private AppMutableData assets;
     @JsonIgnore public boolean hasAssets () { return assets != null; }
+
+    @Getter @Setter private FirewallRule[] firewall_rules;
+    @JsonIgnore public boolean hasFirewallRules () { return !empty(firewall_rules); }
 
     @Getter @Setter private AppConfigDef[] config;
     public boolean hasConfig() { return config != null && config.length > 0; }

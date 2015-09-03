@@ -136,7 +136,7 @@ class Chef::Recipe::{{app.chefName}}
                         {{#if is_password}}
             if defined?(databag{{dots_to_brackets @key}}) && databag{{dots_to_brackets @key}}.to_s.empty?
                 databag_file = "#{base.chef_databags(app[:name])}/#{config_category}.json"
-                raise "Missing databag: #{databag_file}" unless File.exists? databag_file
+                raise "Missing databag: #{databag_file}" unless File.exist? databag_file
 
                             {{#if login}}
                 # password field knows where its login field is
@@ -324,7 +324,7 @@ class Chef::Recipe::{{app.chefName}}
         value = value.gsub('@data_files', "#{base.chef_datafiles(app[:name])}") if value.include?('@data_files')
         value = value.gsub('@templates', "#{base.chef_templates(app[:name])}")
         value = value.gsub('@now_millis', (1000*Time.now.to_f).to_i.to_s)
-        value = value.gsub('@timezone', %x(cat /etc/timezone).strip) if File.exists? '/etc/timezone'
+        value = value.gsub('@timezone', %x(cat /etc/timezone).strip) if File.exist? '/etc/timezone'
         value = value.gsub('@web_mode', '{{app.web.mode}}') unless '{{app.web.mode}}'.empty?
         value = value.gsub('@lang', %x(locale | grep LANG= | tr '=_' ' ' | awk '{print $2}').strip) if value.include?('@lang')
         value = value.gsub('@locale', %x(locale | grep LANG= | tr '=.' ' ' | awk '{print $2}').strip) if value.include?('@locale')
@@ -335,7 +335,7 @@ class Chef::Recipe::{{app.chefName}}
           if money_locale.length > 0
             money_locale = 'en_US' if money_locale == 'POSIX'
             locale_file="/usr/share/i18n/locales/#{money_locale}"
-            if File.exists? locale_file
+            if File.exist? locale_file
               currency_code = %x(cat #{locale_file} | grep int_curr_symbol | awk '{print $2}' | tr -d '"' | sed -e 's,<U, ,g' | tr -d '>').strip.split(" ").map(&:hex).pack('C*').force_encoding('utf-8').strip
               if currency_code.empty?
                 raise "Error determining currency code from #{locale_file}"
@@ -569,7 +569,7 @@ EOH
 #{force_command}
 ln -s #{symlink_target} #{symlink_link}
             EOH
-            not_if { File.exists?(symlink_link) && !force }
+            not_if { File.exist?(symlink_link) && !force }
         end
     end
 
@@ -697,7 +697,7 @@ cat >> #{target} <<EOF
 #{data.gsub('$', '\\\\$')}
 EOF
             EOH
-            not_if { File.exists?(target) && IO.read(target).include?(data) }
+            not_if { File.exist?(target) && IO.read(target).include?(data) }
         end
     end
 
@@ -735,7 +735,7 @@ else
     sudo -u #{exec_user} -H #{cmd}
 fi
             EOH
-            only_if { unless_file.to_s == '' || !File.exists?(unless_file) }
+            only_if { unless_file.to_s == '' || !File.exist?(unless_file) }
         end
 
     end
@@ -853,7 +853,7 @@ fi
             sysinit = parse_wrap app, command
             init_svc = "/etc/init.d/#{svc}"
 
-            unless File.exists? init_svc
+            unless File.exist? init_svc
                 chef.template init_svc do
                     source "init_wrapper.sh.erb"
                     owner 'root'
@@ -881,7 +881,7 @@ fi
             sysinit = parse_sysinit app, command
             init_svc = "/etc/init.d/#{svc}"
 
-            unless File.exists? init_svc
+            unless File.exist? init_svc
                 chef.template init_svc do
                     source 'init.sh.erb'
                     owner 'root'

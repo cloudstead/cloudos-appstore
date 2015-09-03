@@ -311,6 +311,11 @@ public class DefaultAppBundler implements AppBundler {
                 return empty(src) ? "nil" : new Handlebars.SafeString("'"+src.toString().replace("'", "\\'")+"'");
             }
         });
+        handlebars.registerHelper("number_or_nil", new Helper<Object>() {
+            public CharSequence apply(Object src, Options options) {
+                return empty(src) ? "nil" : new Handlebars.SafeString(src.toString());
+            }
+        });
         handlebars.registerHelper("dots_to_brackets", new Helper<Object>() {
             public CharSequence apply(Object src, Options options) {
                 return empty(src) ? "" : new Handlebars.SafeString("['"+src.toString().replace(".", "']['")+"']");
