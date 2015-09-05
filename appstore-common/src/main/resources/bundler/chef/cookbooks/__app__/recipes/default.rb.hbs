@@ -121,9 +121,9 @@ app_lib.template_file self, '{{this}}', '{{@key}}', app
 app_lib.database self, app
 {{/if}}
 
-{{#if app.firewall_rules}}
-    {{#each app.firewall_rules}}
-base.public_port self, app[:name], {{number_or_nil port}}, '{{iface}}', '{{protocol}}', '{{chain}}', '{{action}}'
+{{#if app.public_ports}}
+    {{#each app.public_ports}}
+base.public_port self, app[:name], {{number_or_nil port}}, '{{iface}}', '{{protocol}}'
     {{/each}}
 {{/if}}
 

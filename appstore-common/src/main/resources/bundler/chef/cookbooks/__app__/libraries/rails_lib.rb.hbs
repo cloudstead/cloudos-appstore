@@ -30,6 +30,8 @@ class Chef::Recipe::{{app.chefName}}
         rdir = rails_dir(app)
         renv = rails_env(chef, app)
 
+        app[:ruby_version] = version
+
         chef.bash "install rbenv version #{version} in #{rdir}" do
             user app[:run_as]
             cwd rdir
