@@ -1119,7 +1119,7 @@ EOH
 
         fqdn = subst_string(fqdn, app)
         value = subst_string(value, app)
-        options_arg = options.to_s.empty? ? '' : "--options=\"#{options}\""
+        options_arg = options.to_s.empty? ? '' : "--options \"#{options}\""
 
         chef.bash "create_dns: type=#{type} fqdn=#{fqdn} value=#{value} options=#{options} ttl=#{ttl}" do
             user 'root'
