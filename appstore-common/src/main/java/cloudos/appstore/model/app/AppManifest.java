@@ -204,21 +204,18 @@ public class AppManifest {
 
     public String getPath() { return empty(path) ? getDefaultPath() : path; }
 
-    @JsonIgnore
-    public AppRuntimeDetails getInstalledAppDetails () {
+    @JsonIgnore public AppRuntimeDetails getInstalledAppDetails () {
         return new AppRuntimeDetails(name, getPath(), getHostname(), isInteractive(), getAssets());
     }
 
-    @JsonIgnore
-    public String getDefaultPath() {
+    @JsonIgnore public String getDefaultPath() {
         if (!isInteractive() || !hasWeb()) return null;
         if (web.hasMount()) return web.getMount();
         if (web.getMode().isSeparateHostname()) return null;
         return name;
     }
 
-    @JsonIgnore
-    public String getHostname() {
+    @JsonIgnore public String getHostname() {
         if (!isInteractive() || !hasWeb()) return null;
         if (web.getMode().isRoot()) return ROOT_HOSTNAME;
         if (web.getMode().isSeparateHostname()) return name;
