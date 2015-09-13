@@ -157,7 +157,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
             soloJson.write(stagingDir);
 
         } catch (Exception e) {
-            log.error("prepChefStagingDir: Error preparing chef staging dir: "+e);
+            log.error("prepChefRepo: Error preparing chef staging dir: "+e);
             return false;
         }
         return true;

@@ -88,7 +88,7 @@ class Chef::Recipe::{{app.chefName}}
 
         # If we have a base databag, define it and populate replacements, then set hostname
         begin
-            app[:databag][:base] = chef.data_bag_item('{{app.name}}', 'base')
+            app[:databag][:base] = chef.data_bag_item('base', 'base')
             app[:databag][:base].each do |bagkey, bagvalue|
                 define_databag_replacements app, app[:databag_replacements], "@config[base]", bagkey, bagvalue, app[:databag][:base]
             end
@@ -104,7 +104,7 @@ class Chef::Recipe::{{app.chefName}}
             base.set_hostname self, fqdn
 
         rescue => e
-            puts "{{app.name}}/base databag not found or error reading: #{e}"
+            puts "base/base databag not found or error reading: #{e}"
         end
 
         # If there is a cloudos-init databag, define it as @cloudos
