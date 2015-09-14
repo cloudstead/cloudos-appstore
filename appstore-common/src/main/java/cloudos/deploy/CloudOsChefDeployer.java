@@ -65,15 +65,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
     @Getter(lazy=true) private final BaseDatabag baseDatabag = BaseDatabag.fromChefRepo(getInitFilesDir());
     @Getter(lazy=true) private final CloudOsDatabag cloudOsDatabag = CloudOsDatabag.fromChefRepo(getInitFilesDir());
 
-    private File initFilesDir;
-    protected File getInitFilesDir() {
-        if (initFilesDir == null) {
-            // decrypt and unroll the zipfile
-            initFilesDir = createInitFilesDir();
-            DeleteOnExit.add(initFilesDir);
-        }
-        return initFilesDir;
-    }
+    protected File getInitFilesDir() { return getStagingDir(); }
 
     protected File getStagingDir() {
         final File stagingDir;
@@ -88,7 +80,6 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
         return stagingDir;
     }
 
-    protected File createInitFilesDir() { return new TempDir(); }
     protected File createChefDir() { return new TempDir(); }
 
     public static boolean prepChefRepo(File stagingDir,
