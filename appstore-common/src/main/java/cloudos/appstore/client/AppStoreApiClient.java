@@ -7,6 +7,7 @@ import org.apache.http.client.HttpClient;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.http.HttpStatusCodes;
 import org.cobbzilla.util.json.JsonUtil;
+import org.cobbzilla.wizard.api.ForbiddenException;
 import org.cobbzilla.wizard.client.ApiClientBase;
 import org.cobbzilla.wizard.dao.SearchResults;
 import org.cobbzilla.wizard.util.RestResponse;
@@ -160,7 +161,7 @@ public class AppStoreApiClient extends ApiClientBase {
     }
     public File getLatestAsset(String publisher, String app, String asset) throws Exception {
         if (empty(publisher)) publisher = PUBLIC_APPS;
-        return getFile(APPS_ENDPOINT+"/"+publisher+"/"+app+"/assets/"+asset);
+        return assetFile(APPS_ENDPOINT + "/" + publisher + "/" + app + "/assets/" + asset);
     }
 
     public File getAppBundle(String publisher, String app, String version) throws Exception {
@@ -168,7 +169,16 @@ public class AppStoreApiClient extends ApiClientBase {
     }
     public File getAppAsset(String publisher, String app, String version, String asset) throws Exception {
         if (empty(publisher)) publisher = PUBLIC_APPS;
-        return getFile(APPS_ENDPOINT+"/"+publisher+"/"+app+"/versions/"+version+"/assets/"+asset);
+        return assetFile(APPS_ENDPOINT + "/" + publisher + "/" + app + "/versions/" + version + "/assets/" + asset);
+    }
+
+    private File assetFile(String url) throws Exception {
+        try {
+            return getFile(url);
+        } catch (ForbiddenException e) {
+            login();
+            return getFile(url);
+        }
     }
 
     protected String getTempFileSuffix(String path, String contentType) {
