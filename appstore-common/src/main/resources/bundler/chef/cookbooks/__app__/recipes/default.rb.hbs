@@ -182,7 +182,7 @@ app_lib.user_management self, app
 
 {{#if app.dns}}
     {{#each app.dns}}
-app_lib.create_dns self, app, '{{type}}', "{{fqdn}}", app[:ipaddress], {{quoted_or_nil options_string}}, {{quoted_or_nil ttl}}
+app_lib.create_dns self, app, '{{type}}', "{{fqdn}}", '{{value}}', {{quoted_or_nil options_string}}, {{quoted_or_nil ttl}}
     {{/each}}
 {{/if}}
 
