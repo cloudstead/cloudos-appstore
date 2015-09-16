@@ -43,7 +43,7 @@ class Chef::Recipe::{{app.chefName}}
         end
 
 {{#if app.web.doc_root}}
-        app[:doc_root] = "#{app[:run_as_home]}/{{app.web.doc_root}}"
+        app[:doc_root] = subst('{{app.web.doc_root}}', app)
 {{else}}
     {{#if app.parent}}
         app[:doc_root] = '/var/www/{{app.parent}}'
