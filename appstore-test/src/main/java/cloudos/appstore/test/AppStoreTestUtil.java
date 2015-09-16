@@ -2,7 +2,7 @@ package cloudos.appstore.test;
 
 import cloudos.appstore.client.AppStoreApiClient;
 import cloudos.appstore.model.CloudAppVersion;
-import cloudos.model.auth.ApiToken;
+import org.cobbzilla.wizard.model.ApiToken;
 import cloudos.appstore.model.support.AppStoreAccountRegistration;
 import cloudos.appstore.model.support.DefineCloudAppRequest;
 import org.apache.commons.lang3.RandomStringUtils;

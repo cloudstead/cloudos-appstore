@@ -4,7 +4,7 @@ import cloudos.appstore.client.AppStoreApiClient;
 import cloudos.appstore.model.*;
 import cloudos.appstore.model.app.AppManifest;
 import cloudos.appstore.model.support.*;
-import cloudos.model.auth.ApiToken;
+import org.cobbzilla.wizard.model.ApiToken;
 import lombok.Getter;
 import org.apache.http.client.HttpClient;
 import org.cobbzilla.util.http.ApiConnectionInfo;

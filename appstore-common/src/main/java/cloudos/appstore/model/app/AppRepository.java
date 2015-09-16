@@ -20,6 +20,9 @@ public class AppRepository {
         return branch;
     }
 
+    @Getter @Setter private String user;
+    @Getter @Setter private String ssh;
+
     @JsonIgnore public String getName () {
         // todo: generify this, currently it is git-specific
         return url.substring(url.lastIndexOf("/"), url.lastIndexOf(".git"));

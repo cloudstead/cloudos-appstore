@@ -59,7 +59,7 @@ class Chef::Recipe::{{app.chefName}}
 {{/if}}
 
 {{#if app.repo.dir}}
-        app[:repo_dir] = '{{app.repo.dir}}'
+        app[:repo_dir] = subst_string('{{app.repo.dir}}', app)
 {{else}}
     {{#if app.repo.url}}
         app[:repo_dir] = Chef::Recipe::Git.base_name '{{app.repo.url}}'

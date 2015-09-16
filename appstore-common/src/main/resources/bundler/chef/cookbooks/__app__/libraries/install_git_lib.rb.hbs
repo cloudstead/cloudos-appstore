@@ -9,7 +9,12 @@ class Chef::Recipe::{{app.chefName}}
 
     def self.install_git (chef, app)
         git = Chef::Recipe::Git
-        git.synchronize(chef, '{{app.repo.url}}', '{{app.repo.branch}}', app[:run_as], app[:run_as_home], app[:repo_dir])
+
+        ssh = subst_string({{quoted_or_nil app.repo.ssh}}, app)
+        run_as = subst_string({{quoted_or_nil app.repo.user}}, app)
+        run_as = app[:run_as] if run_as.to_s.empty?
+
+        git.synchronize(chef, subst_string('{{app.repo.url}}', app), subst_string('{{app.repo.branch}}', app), run_as, app[:run_as_home], app[:repo_dir], ssh)
 
         {{#if app.supporting_repos}}
             {{#each app.supporting_repos}}
@@ -18,7 +23,17 @@ class Chef::Recipe::{{app.chefName}}
                 {{else}}
         dir = nil
                 {{/if}}
-        git.synchronize(chef, '{{url}}', '{{branch}}', app[:run_as], app[:run_as_home], dir)
+                {{#if ssh}}
+        sub_ssh = subst_string('{{ssh}}', app)
+                {{else}}
+        sub_ssh = ssh
+                {{/if}}
+                {{#if user}}
+        sub_user = subst_string('{{user}}', app)
+                {{else}}
+        sub_user = run_as
+                {{/if}}
+        git.synchronize(chef, '{{url}}', '{{branch}}', sub_user, app[:run_as_home], dir, sub_ssh)
             {{/each}}
         {{/if}}
     end

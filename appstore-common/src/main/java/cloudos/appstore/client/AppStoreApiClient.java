@@ -2,7 +2,7 @@ package cloudos.appstore.client;
 
 import cloudos.appstore.model.*;
 import cloudos.appstore.model.support.*;
-import cloudos.model.auth.ApiToken;
+import org.cobbzilla.wizard.model.ApiToken;
 import org.apache.http.client.HttpClient;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.http.HttpStatusCodes;
