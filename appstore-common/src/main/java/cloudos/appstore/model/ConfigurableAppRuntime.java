@@ -4,7 +4,6 @@ import com.google.common.collect.Multimap;
 import com.sun.jersey.api.core.HttpContext;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.cobbzilla.util.daemon.ZillaRuntime;
 import org.cobbzilla.util.http.HttpMethods;
 import org.cobbzilla.util.http.HttpRequestBean;
 import org.cobbzilla.util.http.URIUtil;
@@ -61,7 +60,10 @@ public class ConfigurableAppRuntime extends AppRuntimeBase {
                                                      BufferedResponse initialResponse,
                                                      HttpContext context,
                                                      String appPath) {
-
+        if (authentication == null) {
+            log.warn("buildLoginRequest: authentication was null");
+            return null;
+        }
         return buildRequest(account, initialResponse, appPath, authentication.getLogin_fields(), authentication.getLogin_path());
     }
 
