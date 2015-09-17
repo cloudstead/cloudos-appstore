@@ -29,6 +29,8 @@ public class AppLayout {
     public static final String CHEF_DIR = "chef";
     public static final String[] ASSET_IMAGE_EXTS = new String[]{"png", "jpg", "jpeg", "gif"};
 
+    public static final String LATEST_VERSION = "__LATEST_VERSION__";
+
     public static final FilenameFilter VERSION_DIRNAME_FILTER = new FilenameFilter() {
         @Override
         public boolean accept(File dir, String name) {
@@ -57,7 +59,11 @@ public class AppLayout {
     public AppLayout (File appRepository, String name, String version) {
         appDir = new File(appRepository, AppManifest.scrubDirname(name));
         appName = appDir.getName();
-        versionDir = getAppVersionDir(version);
+        if (version == null || version.equals(LATEST_VERSION)) {
+            versionDir = getLatestVersionDir();
+        } else {
+            versionDir = getAppVersionDir(version);
+        }
     }
 
     public AppLayout (File appRepository, AppManifest manifest) {
