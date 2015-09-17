@@ -46,7 +46,7 @@ public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
         return taskService.execute(task);
     }
 
-    public static final long DESTROY_TIMEOUT = TimeUnit.MINUTES.toMillis(5);
+    public static final long DESTROY_TIMEOUT = TimeUnit.MINUTES.toMillis(2);
 
     public CloudOsState destroy(A account, C instance) {
         if (!instance.getAdminUuid().equals(account.getUuid())) die("destroy: not owner");
@@ -62,7 +62,6 @@ public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
         if (task == null) {
             try {
                 task = launchTask(account, instance);
-                if (task.teardown()) return instance.getState();
 
             } catch (Exception e) {
                 die("destroy: " + e, e);
@@ -70,16 +69,23 @@ public abstract class LaunchManagerBase<A extends UniquelyNamedEntity,
         }
 
         long start = System.currentTimeMillis();
+        long sleep = 1000;
+        long maxSleep = 30 * sleep;
         while (instance.getState() != CloudOsState.destroyed && !timedOut(start)) {
-            Sleep.sleep(1000);
             try {
-                if (!task.isInstanceRunning()) break;
+                if (task.teardown()) return instance.getState();
             } catch (Exception e) {
-                log.error("Error checking if instance is running: "+e, e);
+                log.error("Error tearing down instance: "+e, e);
+            }
+            Sleep.sleep(sleep);
+            if (sleep < maxSleep/2) {
+                sleep *= 2;
+            } else {
+                sleep = maxSleep;
             }
         }
 
-        if (timedOut(start)) log.error("destroy: instance could not be destroyed (timeout)");
+        if (timedOut(start)) log.error("destroy: instance was not destroyed (timeout)");
         return instance.getState();
     }
 
