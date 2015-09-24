@@ -277,6 +277,7 @@ class Chef::Recipe::{{app.chefName}}
             value = value.gsub('@name', app[:name])
             value = value.gsub('@ipaddress', app[:ipaddress])
             value = value.gsub('@hostname', %x(hostname).strip)
+            value = value.gsub('@short_hostname', %x(hostname -s).strip)
             value = value.gsub('@domain', app[:domain]) if app[:domain]
             value = value.gsub('@run_as', run_as)
             value = value.gsub('@home', run_as_home)
