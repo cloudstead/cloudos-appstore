@@ -46,7 +46,7 @@ class Chef::Recipe::{{app.chefName}}
             :name => '{{user}}',
             :home => {{quoted_or_nil home}},
             :group => {{quoted_or_nil group}},
-            :kerberos => {{#if kerberos}}true{{else}}false{{/if}}
+            :ldap => {{#if ldap}}true{{else}}false{{/if}}
         }
     {{/each}}
 {{/if}}

@@ -26,6 +26,6 @@ public class AppUser {
 
     @Getter @Setter private boolean can_login = false;
     @Getter @Setter private boolean system = true;
-    @Getter @Setter private boolean kerberos = false;
+    @Getter @Setter private boolean ldap = false;
 
 }

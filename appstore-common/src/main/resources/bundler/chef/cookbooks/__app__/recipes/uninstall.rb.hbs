@@ -118,12 +118,12 @@ to_delete << app_lib.subst('{{this}}', app)
 
 
 {{#if app.users}}
-# Remove kerberos and ubuntu users
+# Remove LDAP and ubuntu users
     {{#each app.users}}
-        {{#if kerberos}}
+        {{#if ldap}}
 # todo: move this check to the beginning, avoid leaving app half-unistalled
-raise "cannot create kerberos user without kerberos library." unless defined? Chef::Recipe::Kerberos.create_user
-Chef::Recipe::Kerberos.delete_user self, '{{user}}'
+raise "cannot delete LDAP user without LDAP library." unless defined? Chef::Recipe::LdapHelper.delete_user
+Chef::Recipe::LdapHelper.delete_user self, '{{user}}'
 
         {{else}}
 user_home = {{quoted_or_nil home}}
