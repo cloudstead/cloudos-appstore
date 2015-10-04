@@ -47,7 +47,7 @@ public class BundlerOptions extends MainOptionsBase {
     public static final String LONGOPT_OUTPUT_DIR = "--output";
     @Option(name=OPT_OUTPUT_DIR, aliases=LONGOPT_OUTPUT_DIR, usage=USAGE_OUTPUT_DIR)
     @Setter private File outputDir = null;
-    public File getOutputDir () { return !empty(outputDir) ? outputDir : new File(getManifest().getParentFile(), DEFAULT_OUTPUT_DIR); }
+    public File getOutputDir () { return outputDir != null ? outputDir : new File(getManifest().getParentFile(), DEFAULT_OUTPUT_DIR); }
 
     public static final String USAGE_UPLOAD = "Upload the bundle to the app store. Place credentials and API endpoint in  ~/" + DEFAULT_CREDENTIALS_FILE + ", or define the " + ENV_CREDENTIALS_FILE + " environment variable as the path to the credentials file";
     public static final String OPT_UPLOAD = "-u";

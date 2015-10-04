@@ -54,7 +54,7 @@ public class DefaultAppBundler implements AppBundler {
     public static final String CHEF_ATTRIBUTES = COOKBOOK + "attributes/";
 
     @Override
-    public void bundle(BundlerOptions options, AppManifest manifest) throws Exception {
+    public File bundle(BundlerOptions options, AppManifest manifest) throws Exception {
 
         validate(options, manifest);
 
@@ -228,7 +228,7 @@ public class DefaultAppBundler implements AppBundler {
         copyFile(manifestFile, manifestCopy);
 
         // Now ready to roll the bundle
-        finalizeBundle(manifest, options);
+        return finalizeBundle(manifest, options);
     }
 
     private File buildPlugin(BundlerOptions options, AppManifest manifest) {
@@ -467,7 +467,7 @@ public class DefaultAppBundler implements AppBundler {
         return new File(base + path.replace(APP, appName) + file);
     }
 
-    protected void finalizeBundle(AppManifest manifest, BundlerOptions options) {
+    protected File finalizeBundle(AppManifest manifest, BundlerOptions options) {
 
         // roll the tarball
         final String appName = manifest.getName();
@@ -525,6 +525,8 @@ public class DefaultAppBundler implements AppBundler {
                 die("Error communicating with app store: "+e, e);
             }
         }
+
+        return tarball;
     }
 
 }

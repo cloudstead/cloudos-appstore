@@ -1,7 +1,8 @@
 package cloudos.appstore.test;
 
-import cloudos.appstore.bundler.BundlerMain;
+import cloudos.appstore.bundler.AppBundler;
 import cloudos.appstore.bundler.BundlerOptions;
+import cloudos.appstore.bundler.DefaultAppBundler;
 import cloudos.appstore.model.AppMutableData;
 import cloudos.appstore.model.app.AppLevel;
 import cloudos.appstore.model.app.AppManifest;
@@ -12,8 +13,8 @@ import org.cobbzilla.util.io.FileUtil;
 import org.cobbzilla.util.io.StreamUtil;
 import org.cobbzilla.util.io.TempDir;
 import org.cobbzilla.util.json.JsonUtil;
-import org.cobbzilla.util.security.ShaUtil;
 import org.cobbzilla.util.network.PortPicker;
+import org.cobbzilla.util.security.ShaUtil;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 
@@ -141,14 +142,15 @@ public class AssetWebServer {
         final File bundleDir = FileUtil.createTempDir("bundleDir");
 
         // Run the bundler on our test manifest
-        BundlerMain.main(new String[] {
-                BundlerOptions.OPT_MANIFEST, abs(manifestFile),
-                BundlerOptions.OPT_OUTPUT_DIR, abs(bundleDir)
-        });
+        final AppManifest manifest = AppManifest.load(manifestFile);
+        final AppBundler bundler = new DefaultAppBundler();
+        final BundlerOptions bundlerOptions = new BundlerOptions();
+        bundlerOptions.setManifest(manifestFile);
+        bundlerOptions.setOutputDir(bundleDir);
+        final File tarball = bundler.bundle(bundlerOptions, manifest);
 
         // Roll the tarball into its place under the doc root
-        final String tarballName = getBundleFilename(appManifest);
-        final File tarball = new File(bundleDir, tarballName);
+        final String tarballName = tarball.getName();
         final File hostedTarball = new File(rootDir, tarballName);
         if (!tarball.renameTo(hostedTarball)) die("Error renaming: "+abs(tarball)+" -> "+abs(hostedTarball));
 

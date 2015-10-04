@@ -2,10 +2,10 @@ package cloudos.appstore.bundler;
 
 import cloudos.appstore.model.app.AppManifest;
 
-import java.io.IOException;
+import java.io.File;
 
 public interface AppBundler {
 
-    public void bundle(BundlerOptions options, AppManifest manifest) throws Exception;
+    public File bundle(BundlerOptions options, AppManifest manifest) throws Exception;
 
 }
