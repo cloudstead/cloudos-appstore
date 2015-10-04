@@ -66,11 +66,11 @@ class Chef::Recipe::{{app.chefName}}
     {{/if}}
 {{/if}}
 
-        # add LdapHelper lib if present, allows apps to reference LDAP configs for single-signon
+        # add ldap lib if present, allows apps to reference LDAP configs for single-signon
         begin
-            app[:auth] = { :ldap => Chef::Recipe::LdapHelper.new(chef, app) }
+            app[:ldap] = Chef::Recipe::LdapHelper.new(chef, app)
         rescue => e
-            puts "Error loading auth lib: #{e}"
+            puts "Warning: Error loading ldap lib, ldap functions will be unavailable: #{e}"
         end
 
         app[:databag] = {}
@@ -101,7 +101,7 @@ class Chef::Recipe::{{app.chefName}}
             # But only if we are already this hostname -- the install.sh script should set the hostname for us
             raise "Please run with install.sh: system hostname (#{app[:hostname]}) didn't match base databag value (#{fqdn})" unless app[:hostname] == fqdn
 
-            base.set_hostname self, fqdn
+            base.set_hostname chef, fqdn
 
         rescue => e
             puts "base/base databag not found or error reading: #{e}"
@@ -370,12 +370,12 @@ fi
 AT_BASH"  },
           '@databag' => lambda { |val| "#{Chef::Recipe::Base.chef_databags(app[:name])}/#{val}.json" },
           '@ldapify' => lambda { |val|
-                raise "No auth library loaded" unless defined? app[:auth][:ldap]
-                app[:auth][:ldap].domainify val
+                raise "No ldap library loaded" unless defined? app[:ldap]
+                app[:ldap].domainify val
           },
           '@ldap'    => lambda { |val|
-                raise "No auth library loaded" unless defined? app[:auth][:ldap]
-                app[:auth][:ldap].send val
+                raise "No ldap library loaded" unless defined? app[:ldap]
+                app[:ldap].send val
           },
           '@bcrypt'  => lambda { |val|
                 if val =~ /,[\s]*[\d]+$/
