@@ -20,6 +20,7 @@ import org.cobbzilla.util.io.Tarball;
 import org.cobbzilla.util.reflect.ReflectionUtil;
 import org.cobbzilla.util.security.ShaUtil;
 import org.cobbzilla.util.string.Base64;
+import org.cobbzilla.util.string.StringUtil;
 import org.cobbzilla.util.system.CommandResult;
 import org.cobbzilla.util.system.CommandShell;
 
@@ -85,6 +86,20 @@ public class DefaultAppBundler implements AppBundler {
         final List<String> templates = new ArrayList<>();
         templates.add(CHEF_METADATA);
         templates.add(CHEF_README);
+
+        if (manifest.hasInstallerGems()) {
+            // check to see if app/installer_gems file exists
+            final File installerGemsFile = new File(baseDir+"/files/installer_gems");
+            final Set<String> gems = new LinkedHashSet<>();
+            if (installerGemsFile.exists()) {
+                log.warn("Manifest specified installer_gems *and* "+abs(installerGemsFile)+" exists, merging them together");
+                gems.addAll(StringUtil.split(FileUtil.toString(installerGemsFile), "\n"));
+            }
+            Collections.addAll(gems, manifest.getInstaller_gems());
+            final String filesPath = "/chef/cookbooks/" + name + "/files/default";
+            final File packagedGemsFile = new File(abs(buildDir) + filesPath + "/" + installerGemsFile.getName());
+            FileUtil.toFile(packagedGemsFile, StringUtil.toString(gems, "\n"));
+        }
 
         if (style != AppStyle.chef) {
             templates.add(CHEF_RECIPES + "default.rb");

@@ -99,6 +99,9 @@ public class AppManifest {
     @Getter @Setter private AppConfigDef[] config;
     public boolean hasConfig() { return config != null && config.length > 0; }
 
+    @Getter @Setter private String[] installer_gems;
+    public boolean hasInstallerGems() { return !empty(installer_gems); }
+
     @Getter @Setter private AppShellCommand[] pre_package;
     @Getter @Setter private String[] packages;
     @Getter @Setter private AppShellCommand[] post_package;
