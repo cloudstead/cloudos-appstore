@@ -1116,6 +1116,9 @@ EOH
 
     def self.create_dns (chef, app, type, fqdn = '@hostname', value = '@ipaddress', options = nil, ttl = 14400)
 
+        if defined? app[:databag][:base]['disable_dns']
+            return if app[:databag][:base]['disable_dns']
+        end
         base = Chef::Recipe::Base
 
         fqdn = subst_string(fqdn, app)

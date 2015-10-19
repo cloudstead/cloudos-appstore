@@ -24,7 +24,6 @@ import org.cobbzilla.util.system.CommandShell;
 import org.cobbzilla.wizard.dao.DAO;
 import org.cobbzilla.wizard.model.Identifiable;
 import org.cobbzilla.wizard.task.TaskBase;
-import org.cobbzilla.wizard.validation.SimpleViolationException;
 import rooty.toots.chef.ChefHandler;
 import rooty.toots.chef.ChefSolo;
 import rooty.toots.chef.ChefSoloEntry;
@@ -39,6 +38,7 @@ import static org.cobbzilla.util.daemon.ZillaRuntime.die;
 import static org.cobbzilla.util.io.FileUtil.*;
 import static org.cobbzilla.util.json.JsonUtil.fromJson;
 import static org.cobbzilla.util.system.CommandShell.chmod;
+import static org.cobbzilla.wizard.resources.ResourceUtil.invalidEx;
 import static rooty.toots.chef.ChefSolo.SOLO_JSON;
 
 @Slf4j
@@ -91,7 +91,7 @@ public abstract class CloudOsChefDeployer<A extends Identifiable,
             for (String app : appList) {
                 final File bundleTarball = appResolver.getAppBundle(app);
                 if (bundleTarball == null) {
-                    throw new SimpleViolationException("err.cloudos.app.invalid", "no bundle could be located for app: "+app, app);
+                    throw invalidEx("err.cloudos.app.invalid", "no bundle could be located for app: " + app, app);
                 }
 
                 // unroll it, we'll rsync it to the target host later

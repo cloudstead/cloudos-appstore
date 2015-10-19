@@ -45,7 +45,7 @@ end
 
 {{#if app.web}}
     {{#if app.validation.service_url}}
-service_url = '{{app.validation.service_url}}'
+service_url = app_lib.subst_string('{{app.validation.service_url}}', app)
 service_url = "#{app[:service_url].chomp('/')}#{service_url}" if service_url.start_with? '/'
     {{else}}
 service_url = app[:service_url]

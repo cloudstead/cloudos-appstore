@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.cobbzilla.util.http.ApiConnectionInfo;
 import org.cobbzilla.util.json.JsonUtil;
-import org.cobbzilla.wizard.main.MainOptionsBase;
+import org.cobbzilla.util.main.BaseMainOptions;
 import org.kohsuke.args4j.Option;
 
 import java.io.File;
@@ -22,7 +22,7 @@ import static org.cobbzilla.util.io.FileUtil.mkdirOrDie;
 import static org.cobbzilla.util.reflect.ReflectionUtil.copy;
 
 @NoArgsConstructor
-public class BundlerOptions extends MainOptionsBase {
+public class BundlerOptions extends BaseMainOptions {
 
     public BundlerOptions(BundlerOptions options) { copy(this, options); }
 

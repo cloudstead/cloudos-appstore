@@ -112,6 +112,7 @@ dest=$(echo "${dest}" | sed -e 's,/$,,')
 
 mkdir -p ${dest}/
 rsync -ac #{tmp}/$(get_tarball_basedir #{tmp} #{base_dir})/ ${dest}/
+#debugging: echo "rsync -ac #{tmp}/$(get_tarball_basedir #{tmp} #{base_dir})/ ${dest}/" >> /tmp/tarball-rsync.command
 chown -R #{app[:run_as]} ${dest}
 chmod -R u+rx ${dest}
 
