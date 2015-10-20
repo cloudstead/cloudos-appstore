@@ -475,6 +475,9 @@ EOH
     {{#if app.run_as.user}}
         app[:run_as] = '{{app.run_as.user}}'
     {{/if}}
+    {{#if app.run_as.home}}
+        app[:run_as_home] = '{{app.run_as.home}}'
+    {{/if}}
 
         can_login = '{{app.run_as.can_login}}' == 'true'
 {{else}}
