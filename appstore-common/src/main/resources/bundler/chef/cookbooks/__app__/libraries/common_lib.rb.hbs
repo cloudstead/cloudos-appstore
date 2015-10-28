@@ -227,7 +227,7 @@ class Chef::Recipe::{{app.chefName}}
         {{/if}}
 
         {{#if app.web}}
-        app[:service_url] = {{app.web.type}}_service_url(app)
+        app[:service_url] = {{app.web.type}}_service_url(chef, app)
         {{/if}}
 
         return app
@@ -532,7 +532,7 @@ EOH
             owner app[:run_as]
             group app[:run_as]
             mode '0700'
-            variables ({ :app => app })
+            variables ({ :app => app, :chef => chef })
             action :create
         end
     end

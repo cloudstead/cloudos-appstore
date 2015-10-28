@@ -19,6 +19,8 @@ public class AppWebApache {
     @Getter @Setter private String[] htaccess;
     public boolean hasHtaccess() { return !empty(htaccess); }
 
+    @Getter @Setter private boolean enable_mixins = true;
+
     @Getter @Setter private String[] mixins;
     public boolean hasMixins () { return !empty(mixins); }
 

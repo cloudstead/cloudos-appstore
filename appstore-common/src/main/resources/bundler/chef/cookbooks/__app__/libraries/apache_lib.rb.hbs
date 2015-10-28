@@ -7,7 +7,7 @@
 
 class Chef::Recipe::{{app.chefName}}
 
-    def self.get_config (app)
+    def self.get_config (chef, app)
         base = Chef::Recipe::Base
         config = {
             :mode => :{{app.web.mode}},
@@ -38,7 +38,7 @@ class Chef::Recipe::{{app.chefName}}
             {{#if app.web.ssl_cert_name}}
             :cert_name => subst_string('{{app.web.ssl_cert_name}}', app), # likely pulling from databag here
             {{else}}
-            :cert_name => nil, # use default (wildcard) SSL cert
+            :cert_name => base.default_ssl_cert(chef), # nil if no ssl_cert_name is defined in base/base.json (SSL turned off by default)
             {{/if}}
 
             {{#if app.web.filters}}
@@ -49,6 +49,13 @@ class Chef::Recipe::{{app.chefName}}
             :server_name => subst_string('{{app.web.hostname}}', app),
             {{else}}
             :server_name => nil,
+            {{/if}}
+
+            {{#if app.web.apache.enable_mixins}}
+            # String.to_bool is defined in base_lib.rb
+            :enable_mixins => String.to_bool(subst_string('{{app.web.apache.enable_mixins}}', app)),
+            {{else}}
+            :enable_mixins => true,
             {{/if}}
 
             :app => app
@@ -67,9 +74,9 @@ class Chef::Recipe::{{app.chefName}}
         config
     end
 
-    def self.apache_service_url (app)
+    def self.apache_service_url (chef, app)
         apache_lib = Chef::Recipe::Apache
-        config = get_config(app)
+        config = get_config(chef, app)
 {{#if app.web.mode.separate_hostname}}
         # has its own hostname mode
     {{#if app.web.mount}}
@@ -130,13 +137,13 @@ class Chef::Recipe::{{app.chefName}}
   {{/each}}
 {{/if}}
 
-        config = get_config(app)
+        config = get_config(chef, app)
         {{app.web.type}}_{{app.style}} chef, app, config
     end
 
     def self.apache_uninstall (chef, app)
         apache_lib = Chef::Recipe::Apache
-        apache_lib.uninstall_app chef, app[:name], get_config(app)
+        apache_lib.uninstall_app chef, app[:name], get_config(chef, app)
         apache_reload chef, "uninstalled #{app[:name]}"
     end
 
