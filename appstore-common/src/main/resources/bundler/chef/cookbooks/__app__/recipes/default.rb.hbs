@@ -64,9 +64,9 @@ app_lib.exec self, app, '{{safe exec}}', '{{user}}', '{{safe dir}}', '{{safe std
 {{#if app.users}}
     {{#each app.users}}
         {{#if ldap}}
-raise "cannot create LDAP user without LDAP library." unless defined? Chef::Recipe::LdapHelper.create_user
+raise 'cannot create LDAP user without LDAP library.' unless defined? app[:ldap]
 ldap_password = app[:users]['{{label}}'][:password] = base.password('{{user}}')
-Chef::Recipe::Kolab.create_user self, '{{user}}', ldap_password
+app[:ldap].create_user self, '{{user}}', ldap_password
 
         {{else}}
 app_lib.user self, app, '{{user}}', {{quoted_or_nil home}}, {{quoted_or_nil creation_group}}, {{can_login}}, {{system}}

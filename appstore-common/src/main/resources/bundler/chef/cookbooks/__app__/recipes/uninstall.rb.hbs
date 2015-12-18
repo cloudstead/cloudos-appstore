@@ -122,8 +122,8 @@ to_delete << app_lib.subst('{{this}}', app)
     {{#each app.users}}
         {{#if ldap}}
 # todo: move this check to the beginning, avoid leaving app half-unistalled
-raise "cannot delete LDAP user without LDAP library." unless defined? Chef::Recipe::Kolab.delete_user
-Chef::Recipe::Kolab.delete_user self, '{{user}}'
+raise "cannot delete LDAP user without LDAP library." unless defined? app[:ldap]
+app[:ldap].delete_user self, '{{user}}'
 
         {{else}}
 user_home = {{quoted_or_nil home}}

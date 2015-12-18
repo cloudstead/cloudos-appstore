@@ -19,7 +19,10 @@ public class AppWebApache {
     @Getter @Setter private String[] htaccess;
     public boolean hasHtaccess() { return !empty(htaccess); }
 
-    @Getter @Setter private boolean enable_mixins = true;
+    @Getter private String enable_mixins = Boolean.TRUE.toString();
+    public void setEnable_mixins(String enable_mixins) {
+        this.enable_mixins = Boolean.valueOf(enable_mixins).toString();
+    }
 
     @Getter @Setter private String[] mixins;
     public boolean hasMixins () { return !empty(mixins); }
